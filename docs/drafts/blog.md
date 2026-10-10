@@ -1,64 +1,53 @@
-# Should I Go Paddling Today? Ask the Decision Engine, Not the Entire Agent
+# Should I Go Paddling Today? The Tide Is Not the Current
 
-*One Embabel agent, three interchangeable decision services, and six entirely fictional kayaking notes.*
+*One Embabel agent, three decision services, and a fictional drive to a fictional launch.*
 
-I like kayaking. I do not like checking the same half dozen things, getting distracted by a promising river photo, and then discovering that what I actually wanted was to sit at home with a book. The hardest question some days is not “Which boat?” It is “Do I even feel like going?”
+I live by the ocean, so “Should I go kayaking?” is not only a question about whether I can find the paddle. Weather matters. Tides matter. Tidal current is its own thing. And if traffic turns a short drive into a late arrival, the nice window I was looking at may have passed while I was still listening to the same song at a red light.
 
-That makes a decent little software problem, provided we keep it honest. I am not building a robot river guide. The example has no live weather, water levels, local access rules, or safety thresholds. It reads a synthetic note about what somebody *wants* to do and turns it into a personal day card: paddle today, plan a future outing, or take a day off. Even a “paddle” card says to check current conditions and make your own go/no-go decision.
+That is a better agent example than classifying “I feel like paddling” into yes or no. It gives the agent a few pieces of work to coordinate: read a forecast window, keep tide height separate from current speed, account for the trip to the launch, ask one narrow decision question, and make a card a person can review.
 
-I wanted to use that narrow judgment to try the experimental `DecisionService` API in [Embabel Agent](https://github.com/embabel/embabel-agent) **1.5.4-SNAPSHOT**. The question was whether I could keep the agent's job fixed and replace only the thing that answers its decision. I tried three implementations: TypeSafe's Jev, an OpenAI-backed decision service using `gpt-4.1-mini`, and a small application-owned rules class. The [runnable project](https://github.com/jimador/embabel-decision-desk) has the code, raw measurements, and this draft.
+This is still a **software demonstration**, not a marine safety tool. I did not choose a real coast or station. The inputs are synthetic, the road delay is simulated, and every numeric band below is invented for the example. A `candidate` is a candidate for *human review*, not permission to launch. The [runnable project](https://github.com/jimador/embabel-decision-desk) uses Embabel Agent **1.5.4-SNAPSHOT** and includes the fixtures, source, and raw run results.
 
-## Give the agent a job
+## Tide height has a separate job from current
 
-The agent has three real Embabel actions. `choose` asks what the note says the person wants. `prepare` builds a few next steps for that choice. `finish` produces the day card and achieves the goal. Embabel's process planner runs the actions over its blackboard. This is an agent process, not a hand-written loop dressed up as one.
+The sample record has a proposed 15:00–17:00 UTC window. Its weather forecast carries an issue time, a valid-through time, wind, gust, swell, and a storm signal. The tide record has a predicted water height in feet above MLLW and a rising or falling phase at 16:00 UTC. A *separate* fictional current station has a predicted speed in knots at that time. Those units and timestamps are in the decision input, not left to the model to guess.
 
-The decision has three legal answers:
+That separation matters. [NOAA says high and low tide do not generally coincide with slack current](https://tidesandcurrents.noaa.gov/faq.html); it produces tide-height and tidal-current predictions separately. “Rising tide” is not a current-speed measurement. One prediction at 16:00 also tells us little about the whole two-hour window. The example keeps those limitations visible instead of turning a tide table into an imaginary current sensor.
+
+A tiny `SimulatedTrafficProvider` adds a fixed base drive time and delay for each case. Leaving at 14:00 UTC might get the person to the launch at 14:40, right at 15:00, or at 15:15. There is no live map, account, or real route. It is enough to make arrival time affect the proposed window.
+
+## Keep the agent; change the decision service
+
+The Embabel agent has three actions. `prepare` assembles the normalized weather, tide, current, and traffic brief and calculates forecast age and coverage. `choose` asks a typed choice question. `finish` produces a planning card. Embabel's process planner runs them over its blackboard. The choice call is the same for every engine:
 
 ```java
-private static final DecisionSpec PREFERENCE = DecisionSpec.builder()
-    .choice("day", q -> q.asking(
-            "What does this person want to do with kayaking today? " +
-            "Classify their stated preference, not weather or water safety.")
-        .option("paddle", "They want to paddle today and have time for it")
-        .option("plan", "They want to research or plan a future kayak outing, but not paddle today")
-        .option("rest", "They want a day off from kayaking and kayak planning"))
-    .build();
-
 var response = ai.decisions()
     .named("activeDecisionService")
-    .ask(note.text(), PREFERENCE);
+    .ask(brief.text(), WINDOW);
 ```
 
-The important line is the call through Embabel's public decision selector. The agent neither calls Jev's endpoint itself nor asks a language model to print a word and hopes the word is valid. A selected category becomes a card. An inconclusive or failed result becomes a review card. Code decides what happens after the judgment.
+The choice specification says `review` first for missing, stale, future-dated, or incomplete input. Otherwise it says `defer` for a storm signal, a value outside an illustrative band, or traffic arriving after the window starts. Otherwise it says `candidate`. An exact boundary is in the band. These are made-up software-test numbers, **not** kayaking limits or a general launch policy.
 
-The engine switch is a property:
+Change `demo.engine` from `local` to `jev` or `openai` and the `activeDecisionService` bean changes. The TypeSafe path is Embabel's `TypeSafeModelFactory`; the OpenAI path is Embabel's `LlmDecisionServiceFactory`; the local path implements `DecisionService` with ordinary code. Jev's adapter accepts the caller-defined choice labels and answered this structured question in the recorded run. It is not a certified coastal policy evaluator. The LLM is not one either.
 
-```properties
-demo.engine=local
-```
+There is one deliberately unromantic guard in the agent. Before any model-selected `candidate` reaches the card, deterministic code checks it against the same recorded facts. If the code does not agree, the card becomes `review`. The raw model choice stays in the results. This means the decision engines remain interchangeable, but a model cannot silently turn an out-of-band fixture into a candidate card.
 
-Set it to `jev` or `openai` and the `activeDecisionService` bean changes. The agent actions, choice spec, notes, and card logic stay put. The Jev path uses Embabel's `TypeSafeModelFactory`; the OpenAI path uses `LlmDecisionServiceFactory`; the local path implements `DecisionService` directly. It is gloriously boring code: look for rest language, then future-planning language, then assume the note is about paddling. It is also brittle outside this tiny vocabulary. The point is that an application-owned decision system can occupy the same seam.
+## What the small run found
 
-Jev's Embabel adapter accepts caller-defined choice labels, so this preference-routing question is a supported use of the API. That does not mean Jev understands real paddling conditions, nor does a correct classification make the plan safe. I am asking it to label a sentence, not assess a river.
+I used ten synthetic cases: a plain candidate, one exactly on the numeric and arrival boundaries, gust and storm cases, low water height, stronger current, a stale forecast, a missing current prediction, a late drive, and an unknown drive delay. Each engine got one ten-case warmup pass and one measured pass. The keys came from the existing runtime environment and were not stored in the project. `jev-latest` resolved to `jev-1.13.0`; OpenAI used `gpt-4.1-mini`.
 
-## Six notes, three engines
+| Decision implementation | Raw policy match | Valid cards | Guarded candidates | Median decision call | Median whole process |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Local coastal rules | 10/10 | 10/10 | 0 | 0.166 ms | 3.397 ms |
+| Jev 1.13.0 | 10/10 | 10/10 | 0 | 173.252 ms | 178.513 ms |
+| GPT-4.1 mini | 8/10 | 10/10 | 2 | 483.010 ms | 487.502 ms |
 
-I wrote six synthetic notes with explicit intent: two people want to paddle, two want to plan another day, and two want a day off. Each engine got one six-note warmup pass and one six-note measured pass. The keys came from the existing runtime environment; none were saved in the repository. Jev's `jev-latest` alias resolved to `jev-1.13.0`. The OpenAI model was `gpt-4.1-mini`.
+The LLM selected `candidate` for the low-water and late-traffic cases, in warmup and measurement. Both violated this example's policy, and both cards became `review`. That is a more interesting result than a perfect table. `Valid` here means the agent completed with a legal selected label and a card; it does not mean the label was correct or the water safe. These ten hand-built cases are a boundary check, not an accuracy study.
 
-All three chose the hand label for all six measured notes. All 18 measured processes finished with selected labels and nonempty cards. There were no recorded failures. These notes practically wave their answers in your face, so 6/6 says the wiring works. It says very little about general classification quality.
+The decision timer wraps `DecisionService.ask(...)`. Remote time includes client work, network, provider queueing, inference, and parsing, so it is not pure model latency. The whole-process timer wraps `AgentProcess.run()` and excludes JVM and Spring startup. The [raw CSV rows and method](https://github.com/jimador/embabel-decision-desk/tree/main/results) are more useful than a speed ratio. I did not download a local Jev model; “local” means the application-owned rules implementation.
 
-| Decision implementation | Correct / valid, measured | Median decision call | Median whole process |
-| --- | ---: | ---: | ---: |
-| Local preference rules | 6/6 · 6/6 | 0.064 ms | 1.879 ms |
-| Jev 1.13.0 | 6/6 · 6/6 | 165.366 ms | 169.137 ms |
-| GPT-4.1 mini | 6/6 · 6/6 | 794.429 ms | 798.740 ms |
+## What I would need before using a real launch
 
-These are wall-clock measurements on one macOS arm64 machine with Java 21. The decision timer wraps `DecisionService.ask(...)`. For remote services, it includes client work, network, provider queueing, inference, and response parsing. I cannot extract “model speed” from that number. The process timer wraps `AgentProcess.run()` and excludes JVM and Spring startup. The [raw CSV rows and method](https://github.com/jimador/embabel-decision-desk/tree/main/results) are there if you want to see each call, including warmup. I did not download a local Jev model. Here, “local” means the rules class.
+A real version would need an actual marine forecast zone, relevant water-level and current stations, a verified datum and launch-access relationship, source times and uncertainty, and local knowledge. [NWS warns that marine forecasts cover broad areas and conditions can differ from the range](https://www.weather.gov/safety/safeboating-marine). [NOAA's CO-OPS API](https://api.tidesandcurrents.noaa.gov/api/prod/) makes observations and predictions available by station, but it does not pick the right station or establish a safe route for me. Current conditions, warnings, equipment, skill, and local judgment would remain outside this little agent's authority.
 
-## The useful seam
-
-The interesting part is the boundary. The agent receives a note, gets one typed answer, prepares a card, and finishes its job. It does not care whether the answer came from a remote decision model, a prompted LLM, or code that might one day be replaced by a spreadsheet somebody insists is a rules engine.
-
-The boundary also makes failure visible. A selected label is one outcome, not a command to pretend certainty. If the decision service cannot select, the card asks for review. And even when it selects `paddle`, the card does not tell anyone to launch. It asks the person to check current conditions, access rules, and their own judgment. A demo about preferences has no business making promises about water.
-
-I would not pick a production decision system from six examples or the timing table. I would start with a real, reviewed set of notes, define the acceptable labels and failure policy, and then see how each implementation behaves on ambiguous language. This small project establishes the wiring: one Embabel agent, three real decision-service implementations, a configuration switch, and enough recorded evidence to tell what happened this time.
+The useful result is the seam. One agent can organize different inputs, ask the same typed question through different decision implementations, and produce a reviewable card. The two wrong raw LLM choices are a reminder to keep the card's authority smaller than the model's confidence. The ocean does not care how elegant my dependency injection is.

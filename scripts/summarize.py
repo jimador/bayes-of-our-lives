@@ -12,7 +12,8 @@ for path in sys.argv[1:]:
         raise SystemExit(f"No measured rows: {path}")
     median = lambda key: statistics.median(float(row[key]) for row in measured)
     overhead = statistics.median(float(row["process_ms"]) - float(row["decision_ms"]) for row in measured)
-    print(f"{path}: measured={len(measured)} correct={sum(row['correct'] == 'true' for row in measured)}/{len(measured)} "
+    print(f"{path}: measured={len(measured)} raw_correct={sum(row['raw_correct'] == 'true' for row in measured)}/{len(measured)} "
           f"valid={sum(row['valid'] == 'true' for row in measured)}/{len(measured)} "
+          f"guarded={sum(row['guarded'] == 'true' for row in measured)} "
           f"decision_median_ms={median('decision_ms'):.3f} process_median_ms={median('process_ms'):.3f} "
           f"residual_median_ms={overhead:.3f}")
