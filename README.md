@@ -6,16 +6,16 @@ This is a small executable example of Embabel Agent **1.5.4-SNAPSHOT**'s experim
 
 ## Run
 
-Requirements: Java 21, Maven, network access for Maven's public Embabel snapshot and Spring repositories. The local mode needs no API key.
+Requirements: Java 21, Maven, network access for Maven's public Embabel snapshot and Spring repositories. The local mode needs no API key. Embabel still requires an LLM model provider at startup, so local and Jev runs without an OpenAI key register one using an inert placeholder; the stage-desk agent does not call it.
 
 ```bash
 mvn test
 ./scripts/run-bench.sh local
-TYPESAFE_API_KEY=... ./scripts/run-bench.sh jev
-OPENAI_API_KEY=... ./scripts/run-bench.sh openai
+./scripts/run-bench.sh jev
+./scripts/run-bench.sh openai
 ```
 
-Set credentials in your existing runtime environment instead of putting them on a command line or in a file. The commands above show variable names only. The script runs one warmup and one measured pass of six synthetic tickets (12 calls per engine), saves CSV under `results/`, and prints a summary. `demo.openai-model` defaults to `gpt-4.1-mini`; change it with `--demo.openai-model=...` when invoking the jar directly. Jev uses Embabel's `jev-latest` alias and the CSV records the resolved model name.
+Set `TYPESAFE_API_KEY` for Jev and `OPENAI_API_KEY` for OpenAI in your existing runtime environment. Do not put credentials on a command line or in a file. The script runs one warmup and one measured pass of six synthetic tickets (12 calls per engine), saves CSV under `results/`, and prints a summary. `demo.openai-model` defaults to `gpt-4.1-mini`; change it with `--demo.openai-model=...` when invoking the jar directly. Jev uses Embabel's `jev-latest` alias and the CSV records the resolved model name.
 
 ```bash
 java -jar target/decision-desk-0.1.0.jar --demo.engine=local --demo.warmups=1 --demo.runs=1

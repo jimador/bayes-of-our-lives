@@ -11,7 +11,18 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class DeskApplication {
     public static void main(String[] args) {
-        SpringApplication.run(DeskApplication.class, args);
+        String engine = java.util.Arrays.stream(args)
+                .filter(arg -> arg.startsWith("--demo.engine="))
+                .map(arg -> arg.substring("--demo.engine=".length()))
+                .findFirst().orElse("local");
+        SpringApplication application = new SpringApplication(DeskApplication.class);
+        // Embabel's platform still requires a registered LLM even for a code-only GOAP flow.
+        // This inert value enables model registration; the local/Jev decision action does not invoke it.
+        if (!engine.equals("openai") && System.getenv("OPENAI_API_KEY") == null) {
+            application.setDefaultProperties(java.util.Map.of(
+                    "embabel.agent.platform.models.openai.api-key", "unused-local-mode"));
+        }
+        application.run(args);
     }
 
     /** The entire engine switch lives here. No agent action changes between runs. */
