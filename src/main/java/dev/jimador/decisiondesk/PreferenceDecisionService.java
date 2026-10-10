@@ -8,22 +8,23 @@ import com.embabel.common.ai.decision.DecisionService;
 import com.embabel.common.ai.decision.PropositionRequest;
 import com.embabel.common.ai.decision.PropositionResult;
 import com.embabel.common.ai.decision.QuestionKind;
+import java.util.Locale;
 import java.util.Set;
 
-/** A deliberately simple, inspectable stand-in for any application-owned decision system. */
-public final class KeywordDecisionService implements DecisionService {
-    private static final ModelProvenance PROVENANCE = new ModelProvenance("keywords-v1", "local");
+/** An inspectable example of an application-owned choice service, scoped to these synthetic notes. */
+public final class PreferenceDecisionService implements DecisionService {
+    private static final ModelProvenance PROVENANCE = new ModelProvenance("preference-rules-v1", "local");
 
-    @Override public String getName() { return "keywords-v1"; }
+    @Override public String getName() { return "preference-rules-v1"; }
     @Override public String getProvider() { return "local"; }
     @Override public DecisionCapabilities capabilities() { return DecisionCapabilities.of(Set.of(QuestionKind.CHOICE)); }
 
     @Override
     public ClassificationResult classify(ClassificationRequest request) {
-        String text = request.getInput().toLowerCase(java.util.Locale.ROOT);
-        String category = text.matches("(?s).*(exit|fire|smoke|trip|injur|blocked door|electrical).*") ? "safety"
-                : text.matches("(?s).*(speaker|microphone|feedback|audio|monitor|sound).*") ? "sound"
-                : "props";
+        String text = request.getInput().toLowerCase(Locale.ROOT);
+        String category = text.matches("(?s).*(rest|day off|no kayak|nothing kayak).*") ? "rest"
+                : text.matches("(?s).*(plan|research|map|route|another day|next weekend).*") ? "plan"
+                : "paddle";
         return request.getSpec().selected(category, PROVENANCE);
     }
 

@@ -17,7 +17,7 @@ public class DeskApplication {
                 .findFirst().orElse("local");
         SpringApplication application = new SpringApplication(DeskApplication.class);
         // Embabel's platform still requires a registered LLM even for a code-only GOAP flow.
-        // This inert value enables model registration; the local/Jev decision action does not invoke it.
+        // This inert value enables model registration; the local/Jev agent action does not invoke it.
         if (!engine.equals("openai") && System.getenv("OPENAI_API_KEY") == null) {
             application.setDefaultProperties(java.util.Map.of(
                     "embabel.agent.platform.models.openai.api-key", "unused-local-mode"));
@@ -32,7 +32,7 @@ public class DeskApplication {
             @Value("${demo.openai-model:gpt-4.1-mini}") String openAiModel,
             org.springframework.beans.factory.ObjectProvider<LlmDecisionServiceFactory> llmFactory) {
         return switch (engine) {
-            case "local" -> new KeywordDecisionService();
+            case "local" -> new PreferenceDecisionService();
             case "jev" -> new TypeSafeModelFactory(() -> requiredKey("TYPESAFE_API_KEY")).build();
             case "openai" -> llmFactory.getObject().decisionService(openAiModel);
             default -> throw new IllegalArgumentException("demo.engine must be local, jev, or openai");

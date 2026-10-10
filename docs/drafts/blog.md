@@ -1,66 +1,64 @@
-# The Dragon Head Broke. Which Model Gets the Call?
+# Should I Go Paddling Today? Ask the Decision Engine, Not the Entire Agent
 
-*One Embabel agent, three interchangeable decision services, and a very small theater emergency.*
+*One Embabel agent, three interchangeable decision services, and six entirely fictional kayaking notes.*
 
-At 6:55, the dragon head jams before its entrance. A microphone starts feeding back. Somebody has parked a scenery cart in front of the exit. The stage manager has about five minutes to decide who deals with what, and even less patience for a chatbot composing a stirring paragraph about teamwork.
+I like kayaking. I do not like checking the same half dozen things, getting distracted by a promising river photo, and then discovering that what I actually wanted was to sit at home with a book. The hardest question some days is not “Which boat?” It is “Do I even feel like going?”
 
-This is a useful shape for an agent demo. The incoming text is messy. The next decision is narrow: send the ticket to props, sound, or safety. Once that decision is made, the rest of the work is ordinary software. Build a dispatch card, attach a first checklist, and give the crew something they can use.
+That makes a decent little software problem, provided we keep it honest. I am not building a robot river guide. The example has no live weather, water levels, local access rules, or safety thresholds. It reads a synthetic note about what somebody *wants* to do and turns it into a personal day card: paddle today, plan a future outing, or take a day off. Even a “paddle” card says to check current conditions and make your own go/no-go decision.
 
-I wanted to see what happens when that one decision changes implementation while the agent stays put. In [Embabel Agent](https://github.com/embabel/embabel-agent) 1.5.4-SNAPSHOT, the experimental `DecisionService` API makes that possible. I put the same stage-desk agent behind three implementations: TypeSafe's Jev, an OpenAI-backed prompted decision service using `gpt-4.1-mini`, and a tiny keyword classifier standing in for an application-owned system.
+I wanted to use that narrow judgment to try the experimental `DecisionService` API in [Embabel Agent](https://github.com/embabel/embabel-agent) **1.5.4-SNAPSHOT**. The question was whether I could keep the agent's job fixed and replace only the thing that answers its decision. I tried three implementations: TypeSafe's Jev, an OpenAI-backed decision service using `gpt-4.1-mini`, and a small application-owned rules class. The [runnable project](https://github.com/jimador/embabel-decision-desk) has the code, raw measurements, and this draft.
 
-The [runnable project](https://github.com/jimador/embabel-decision-desk) includes the source, synthetic cases, raw CSVs, and a script to repeat the run. The article you are reading lives in that repository too.
+## Give the agent a job
 
-## The agent does more than classify
+The agent has three real Embabel actions. `choose` asks what the note says the person wants. `prepare` builds a few next steps for that choice. `finish` produces the day card and achieves the goal. Embabel's process planner runs the actions over its blackboard. This is an agent process, not a hand-written loop dressed up as one.
 
-The agent has three Embabel actions. `route` asks a typed choice question. `prepare` turns the selected crew into a checklist. `finish` produces a dispatch card and achieves the goal. Embabel's process planner runs those actions over the blackboard. This is an actual agent process, not a loop that imitates one.
-
-The decision is deliberately small:
+The decision has three legal answers:
 
 ```java
-private static final DecisionSpec ROUTE = DecisionSpec.builder()
-    .choice("crew", q -> q.asking("Which crew should handle this theater issue first?")
-        .option("props", "Props and set pieces")
-        .option("sound", "Speakers, microphones, monitors")
-        .option("safety", "Exits, fire, injury, electrical hazards"))
+private static final DecisionSpec PREFERENCE = DecisionSpec.builder()
+    .choice("day", q -> q.asking(
+            "What does this person want to do with kayaking today? " +
+            "Classify their stated preference, not weather or water safety.")
+        .option("paddle", "They want to paddle today and have time for it")
+        .option("plan", "They want to research or plan a future kayak outing, but not paddle today")
+        .option("rest", "They want a day off from kayaking and kayak planning"))
     .build();
 
 var response = ai.decisions()
     .named("activeDecisionService")
-    .ask(ticket.note(), ROUTE);
+    .ask(note.text(), PREFERENCE);
 ```
 
-The source has the full option descriptions and the outcome handling. The important part is that the agent asks through Embabel's public decision-service selector. It does not call Jev's HTTP endpoint directly or ask an LLM to emit an unvalidated string. A selected category becomes a crew. A failure, no match, or inconclusive result becomes a human-review card. The model supplies evidence for the route; code controls what to do with it.
+The important line is the call through Embabel's public decision selector. The agent neither calls Jev's endpoint itself nor asks a language model to print a word and hopes the word is valid. A selected category becomes a card. An inconclusive or failed result becomes a review card. Code decides what happens after the judgment.
 
-The switch is a single property:
+The engine switch is a property:
 
 ```properties
 demo.engine=local
 ```
 
-Change that to `jev` or `openai`, and the `activeDecisionService` bean changes. The agent's actions, decision spec, and dispatch-card logic stay the same. Jev is built through Embabel's `TypeSafeModelFactory`; the OpenAI path uses Embabel's `LlmDecisionServiceFactory`; the local service implements `DecisionService` itself. The local one is intentionally unsophisticated. It looks for safety words first, then sound words, and sends everything else to props. That is enough to show that the extension point can hold a custom or black-box decision system. It is not a claim that regexes can run a theater.
+Set it to `jev` or `openai` and the `activeDecisionService` bean changes. The agent actions, choice spec, notes, and card logic stay put. The Jev path uses Embabel's `TypeSafeModelFactory`; the OpenAI path uses `LlmDecisionServiceFactory`; the local path implements `DecisionService` directly. It is gloriously boring code: look for rest language, then future-planning language, then assume the note is about paddling. It is also brittle outside this tiny vocabulary. The point is that an application-owned decision system can occupy the same seam.
 
-## What happened on six tickets
+Jev's Embabel adapter accepts caller-defined choice labels, so this preference-routing question is a supported use of the API. That does not mean Jev understands real paddling conditions, nor does a correct classification make the plan safe. I am asking it to label a sentence, not assess a river.
 
-I ran six short, synthetic tickets: two props problems, two sound problems, and two safety problems. Each implementation got one warmup pass and one measured pass, six tickets per pass. That is 12 calls per implementation, 36 total. The keys came from the existing runtime environment and were not written into the project. Jev's `jev-latest` alias resolved to `jev-1.13.0`; the OpenAI model was `gpt-4.1-mini`.
+## Six notes, three engines
 
-All three implementations routed all six measured tickets to the hand-labeled primary crew. All 18 measured agent processes completed with a nonempty checklist. There were no recorded failures. That is reassuring for this example, but six straightforward tickets are not an accuracy benchmark.
+I wrote six synthetic notes with explicit intent: two people want to paddle, two want to plan another day, and two want a day off. Each engine got one six-note warmup pass and one six-note measured pass. The keys came from the existing runtime environment; none were saved in the repository. Jev's `jev-latest` alias resolved to `jev-1.13.0`. The OpenAI model was `gpt-4.1-mini`.
+
+All three chose the hand label for all six measured notes. All 18 measured processes finished with selected labels and nonempty cards. There were no recorded failures. These notes practically wave their answers in your face, so 6/6 says the wiring works. It says very little about general classification quality.
 
 | Decision implementation | Correct / valid, measured | Median decision call | Median whole process |
 | --- | ---: | ---: | ---: |
-| Local keywords | 6/6 · 6/6 | 0.188 ms | 4.178 ms |
-| Jev 1.13.0 | 6/6 · 6/6 | 162.610 ms | 166.040 ms |
-| GPT-4.1 mini | 6/6 · 6/6 | 823.324 ms | 829.195 ms |
+| Local preference rules | 6/6 · 6/6 | 0.064 ms | 1.879 ms |
+| Jev 1.13.0 | 6/6 · 6/6 | 165.366 ms | 169.137 ms |
+| GPT-4.1 mini | 6/6 · 6/6 | 794.429 ms | 798.740 ms |
 
-Those are wall-clock times on one macOS arm64 machine running Java 21. The decision timer wraps `DecisionService.ask(...)`. For a remote model, it includes client work, network, provider queueing, inference, and response parsing. I cannot pull “model speed” out of that number. The whole-process timer wraps Embabel's `AgentProcess.run()` and excludes JVM and Spring startup. The difference between the two medians was only a few milliseconds here, but subtracting them is not a rigorous orchestration benchmark either. The [raw rows and method](../../results/README.md) are more useful than any ratio I could put in a headline.
+These are wall-clock measurements on one macOS arm64 machine with Java 21. The decision timer wraps `DecisionService.ask(...)`. For remote services, it includes client work, network, provider queueing, inference, and response parsing. I cannot extract “model speed” from that number. The process timer wraps `AgentProcess.run()` and excludes JVM and Spring startup. The [raw CSV rows and method](https://github.com/jimador/embabel-decision-desk/tree/main/results) are there if you want to see each call, including warmup. I did not download a local Jev model. Here, “local” means the rules class.
 
-I also did not download a local Jev-style model. The official Hugging Face ecosystem may make that an interesting follow-up, but a large model download would have turned this small example into a hardware and runtime experiment. Here, “local” means the application-owned keyword service.
+## The useful seam
 
-## Why this boundary matters
+The interesting part is the boundary. The agent receives a note, gets one typed answer, prepares a card, and finishes its job. It does not care whether the answer came from a remote decision model, a prompted LLM, or code that might one day be replaced by a spreadsheet somebody insists is a rules engine.
 
-The interesting result is architectural. The agent has a stable job: take a ticket, choose a crew, prepare first actions, produce a card. It does not need to know whether its narrow judgment came from a remote decision model, a prompted language model, or code somebody wrote years ago and now calls “the legacy rules engine” with a mixture of affection and fear.
+The boundary also makes failure visible. A selected label is one outcome, not a command to pretend certainty. If the decision service cannot select, the card asks for review. And even when it selects `paddle`, the card does not tell anyone to launch. It asks the person to check current conditions, access rules, and their own judgment. A demo about preferences has no business making promises about water.
 
-Each implementation has a different shape. Jev returns a typed decision through Embabel's TypeSafe integration. The OpenAI service uses an LLM to answer the same Embabel question. The local classifier is transparent and fast on the words it recognizes, and brittle outside that tiny vocabulary. Embabel gives the agent one contract for all three, including explicit failure outcomes. That makes swapping the decision step a configuration choice instead of a rewrite of the workflow.
-
-It also keeps the job of deciding what happens *after* a judgment in application code. A safety route produces a stop-and-verify checklist. A sound route starts by muting the affected channel. If the decision service cannot make a valid selection, the card goes to a person. Nobody wants the dragon head to become the stage manager just because it came back with high confidence.
-
-I would not choose a production decision system from this table. I would start by identifying the small judgments inside an agent, write down the valid answers and failure policy, and then test candidate services on real, reviewed examples. This project is the first step: a complete runnable path showing that the boundary works, and enough measurement to see what happened without pretending it settles performance or quality.
+I would not pick a production decision system from six examples or the timing table. I would start with a real, reviewed set of notes, define the acceptable labels and failure policy, and then see how each implementation behaves on ambiguous language. This small project establishes the wiring: one Embabel agent, three real decision-service implementations, a configuration switch, and enough recorded evidence to tell what happened this time.
