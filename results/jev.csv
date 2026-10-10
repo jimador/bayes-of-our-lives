@@ -1,0 +1,13 @@
+engine,phase,round,case_id,expected,actual,correct,valid,decision_ms,process_ms,model,status
+jev,warmup,0,dragon,props,props,true,true,553.843,594.052,jev-1.13.0,selected
+jev,warmup,0,cape,props,props,true,true,244.435,252.214,jev-1.13.0,selected
+jev,warmup,0,feedback,sound,sound,true,true,155.702,161.850,jev-1.13.0,selected
+jev,warmup,0,monitor,sound,sound,true,true,163.133,170.105,jev-1.13.0,selected
+jev,warmup,0,exit,safety,safety,true,true,154.397,159.978,jev-1.13.0,selected
+jev,warmup,0,cable,safety,safety,true,true,144.686,150.141,jev-1.13.0,selected
+jev,measured,1,dragon,props,props,true,true,146.061,150.436,jev-1.13.0,selected
+jev,measured,1,cape,props,props,true,true,327.998,331.672,jev-1.13.0,selected
+jev,measured,1,feedback,sound,sound,true,true,146.901,150.290,jev-1.13.0,selected
+jev,measured,1,monitor,sound,sound,true,true,179.655,182.937,jev-1.13.0,selected
+jev,measured,1,exit,safety,safety,true,true,178.319,181.643,jev-1.13.0,selected
+jev,measured,1,cable,safety,safety,true,true,142.819,146.370,jev-1.13.0,selected

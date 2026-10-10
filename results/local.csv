@@ -1,0 +1,13 @@
+engine,phase,round,case_id,expected,actual,correct,valid,decision_ms,process_ms,model,status
+local,warmup,0,dragon,props,props,true,true,6.453,49.572,keywords-v1,selected
+local,warmup,0,cape,props,props,true,true,0.168,8.132,keywords-v1,selected
+local,warmup,0,feedback,sound,sound,true,true,0.160,6.797,keywords-v1,selected
+local,warmup,0,monitor,sound,sound,true,true,0.161,6.389,keywords-v1,selected
+local,warmup,0,exit,safety,safety,true,true,0.122,6.287,keywords-v1,selected
+local,warmup,0,cable,safety,safety,true,true,0.165,5.981,keywords-v1,selected
+local,measured,1,dragon,props,props,true,true,0.176,4.729,keywords-v1,selected
+local,measured,1,cape,props,props,true,true,0.252,4.851,keywords-v1,selected
+local,measured,1,feedback,sound,sound,true,true,0.219,3.361,keywords-v1,selected
+local,measured,1,monitor,sound,sound,true,true,0.199,4.364,keywords-v1,selected
+local,measured,1,exit,safety,safety,true,true,0.142,3.745,keywords-v1,selected
+local,measured,1,cable,safety,safety,true,true,0.116,3.991,keywords-v1,selected

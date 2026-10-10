@@ -1,0 +1,13 @@
+engine,phase,round,case_id,expected,actual,correct,valid,decision_ms,process_ms,model,status
+openai,warmup,0,dragon,props,props,true,true,1750.099,1788.567,gpt-4.1-mini,selected
+openai,warmup,0,cape,props,props,true,true,516.824,524.404,gpt-4.1-mini,selected
+openai,warmup,0,feedback,sound,sound,true,true,749.603,754.255,gpt-4.1-mini,selected
+openai,warmup,0,monitor,sound,sound,true,true,541.160,547.314,gpt-4.1-mini,selected
+openai,warmup,0,exit,safety,safety,true,true,914.528,921.077,gpt-4.1-mini,selected
+openai,warmup,0,cable,safety,safety,true,true,509.889,514.596,gpt-4.1-mini,selected
+openai,measured,1,dragon,props,props,true,true,863.420,867.908,gpt-4.1-mini,selected
+openai,measured,1,cape,props,props,true,true,484.946,489.482,gpt-4.1-mini,selected
+openai,measured,1,feedback,sound,sound,true,true,813.325,820.391,gpt-4.1-mini,selected
+openai,measured,1,monitor,sound,sound,true,true,536.434,540.765,gpt-4.1-mini,selected
+openai,measured,1,exit,safety,safety,true,true,833.322,837.998,gpt-4.1-mini,selected
+openai,measured,1,cable,safety,safety,true,true,999.279,1002.391,gpt-4.1-mini,selected
