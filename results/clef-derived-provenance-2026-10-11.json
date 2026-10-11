@@ -1,0 +1,23 @@
+{
+  "files": {
+    "Decoder": {
+      "derived_spec_sha256": "49049d20da650ffa67b550ce0ac08f12aff305b4f9e6bbfe6dbc8e46408ab2e1",
+      "graph_semantically_equal": true,
+      "source_spec_sha256": "3e665021d57e3e7ff05396574a592ab95aea98a72a7744401336b641e796cee7",
+      "weights_sha256": "cbe7a6f22befa4edee09e7c806b2b0b9db8533d1ede737540fa82a0261435742"
+    },
+    "Head": {
+      "derived_spec_sha256": "71045bc150f3091142578e40bde13f7db5b3435d127af7f1c7dda6b637a31ec4",
+      "graph_semantically_equal": true,
+      "source_spec_sha256": "02e92c4f2cd13b5217e6402934c1fbe20a7c8afac19a79d3d02ed0c6279cd7c3",
+      "weights_sha256": "d028526027d6ce12313fbc80ad35f148ecb815f09f83695c5bb2b5872dbd4657"
+    },
+    "embeddings.f16": "616f9374ddbaae3a033a0174557d502719154882e21e5d975ab5b58e0244459d",
+    "tokenizer.json": "be75606093db2094d7cd20f3c2f385c212750648bd6ea4fb2bf507a6a4c55506"
+  },
+  "license": "Apache-2.0",
+  "source_repo": "FluidInference/clef-text-0.6b-coreml",
+  "source_revision": "3c61a60954478ef385aa42d67d5764642dcc9135",
+  "tool": "coremltools 9.0",
+  "variant": "local-single-function-L1024"
+}

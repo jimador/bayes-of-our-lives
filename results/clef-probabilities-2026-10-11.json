@@ -1,0 +1,192 @@
+{
+  "model": "FluidInference/clef-text-0.6b-coreml",
+  "variant": "local-single-function-L1024",
+  "runs": [
+    {
+      "input_tokens": 525,
+      "inference_ms": 564.2520189285278,
+      "bridge_wall_ms": 4166.016,
+      "answers": [
+        {
+          "id": "interest-match",
+          "kind": "proposition",
+          "selected_id": "true",
+          "confidence": 0.5732006430625916,
+          "probabilities": {
+            "false": 0.42679932713508606,
+            "true": 0.5732006430625916
+          }
+        },
+        {
+          "id": "fit",
+          "kind": "choice",
+          "selected_id": "consider",
+          "confidence": 0.5543307662010193,
+          "probabilities": {
+            "consider": 0.5543307662010193,
+            "pass": 0.04639969393610954,
+            "prefer": 0.3992694914340973
+          }
+        },
+        {
+          "id": "strength",
+          "kind": "rating",
+          "selected_id": "weak",
+          "confidence": 0.3756975531578064,
+          "probabilities": {
+            "strong": 0.2914528250694275,
+            "possible": 0.3328495919704437,
+            "weak": 0.3756975531578064
+          },
+          "expected_index": 1.0842446982860565
+        }
+      ],
+      "place": "Pocket Art Gallery",
+      "request": "mixed"
+    },
+    {
+      "input_tokens": 308,
+      "inference_ms": 610.7829809188843,
+      "bridge_wall_ms": 876.4590420000001,
+      "answers": [
+        {
+          "id": "setting",
+          "kind": "classification",
+          "selected_id": "indoor",
+          "confidence": 0.8710630536079407,
+          "probabilities": {
+            "indoor": 0.8710630536079407,
+            "outdoor": 0.08213680982589722,
+            "unknown": 0.04680014029145241
+          }
+        }
+      ],
+      "place": "Pocket Art Gallery",
+      "request": "classification"
+    },
+    {
+      "input_tokens": 528,
+      "inference_ms": 586.8600606918335,
+      "bridge_wall_ms": 909.811542,
+      "answers": [
+        {
+          "id": "interest-match",
+          "kind": "proposition",
+          "selected_id": "false",
+          "confidence": 0.5865228176116943,
+          "probabilities": {
+            "false": 0.5865228176116943,
+            "true": 0.4134771227836609
+          }
+        },
+        {
+          "id": "fit",
+          "kind": "choice",
+          "selected_id": "consider",
+          "confidence": 0.5794224143028259,
+          "probabilities": {
+            "consider": 0.5794224143028259,
+            "pass": 0.026601750403642654,
+            "prefer": 0.3939758539199829
+          }
+        },
+        {
+          "id": "strength",
+          "kind": "rating",
+          "selected_id": "weak",
+          "confidence": 0.4017777740955353,
+          "probabilities": {
+            "strong": 0.24226684868335724,
+            "possible": 0.3559553921222687,
+            "weak": 0.4017777740955353
+          },
+          "expected_index": 1.1595109403133392
+        }
+      ],
+      "place": "Hands-On Science Hall",
+      "request": "mixed"
+    },
+    {
+      "input_tokens": 311,
+      "inference_ms": 560.7999563217163,
+      "bridge_wall_ms": 844.995458,
+      "answers": [
+        {
+          "id": "setting",
+          "kind": "classification",
+          "selected_id": "indoor",
+          "confidence": 0.8821510672569275,
+          "probabilities": {
+            "indoor": 0.8821510672569275,
+            "outdoor": 0.07983959466218948,
+            "unknown": 0.03800934553146362
+          }
+        }
+      ],
+      "place": "Hands-On Science Hall",
+      "request": "classification"
+    },
+    {
+      "input_tokens": 526,
+      "inference_ms": 557.3819875717163,
+      "bridge_wall_ms": 879.4050419999999,
+      "answers": [
+        {
+          "id": "interest-match",
+          "kind": "proposition",
+          "selected_id": "false",
+          "confidence": 0.553022563457489,
+          "probabilities": {
+            "false": 0.553022563457489,
+            "true": 0.4469774663448334
+          }
+        },
+        {
+          "id": "fit",
+          "kind": "choice",
+          "selected_id": "consider",
+          "confidence": 0.5504732728004456,
+          "probabilities": {
+            "consider": 0.5504732728004456,
+            "pass": 0.03724132478237152,
+            "prefer": 0.4122854173183441
+          }
+        },
+        {
+          "id": "strength",
+          "kind": "rating",
+          "selected_id": "weak",
+          "confidence": 0.38669121265411377,
+          "probabilities": {
+            "strong": 0.28512823581695557,
+            "possible": 0.32818058133125305,
+            "weak": 0.38669121265411377
+          },
+          "expected_index": 1.1015630066394806
+        }
+      ],
+      "place": "Riverside Garden",
+      "request": "mixed"
+    },
+    {
+      "input_tokens": 309,
+      "inference_ms": 552.4979829788208,
+      "bridge_wall_ms": 863.5292499999999,
+      "answers": [
+        {
+          "id": "setting",
+          "kind": "classification",
+          "selected_id": "outdoor",
+          "confidence": 0.8814200758934021,
+          "probabilities": {
+            "indoor": 0.06460250169038773,
+            "outdoor": 0.8814200758934021,
+            "unknown": 0.05397741124033928
+          }
+        }
+      ],
+      "place": "Riverside Garden",
+      "request": "classification"
+    }
+  ]
+}

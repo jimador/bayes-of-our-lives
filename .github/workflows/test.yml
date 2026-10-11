@@ -3,7 +3,7 @@ on:
   push:
   pull_request:
 jobs:
-  unit-test:
+  bays-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -12,20 +12,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Test without API keys
-        run: mvn -B test
-  tripper-example:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: examples/tripper-decision-demo
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: maven
-          cache-dependency-path: examples/tripper-decision-demo/pom.xml
       - name: Test and package without API keys
         run: mvn -B test package
+      - name: Test CLEF bridge without model weights
+        run: python3 -m unittest discover -s clef -p 'test_*.py' -v

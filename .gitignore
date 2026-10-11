@@ -4,3 +4,10 @@ target/
 .DS_Store
 .env
 *.log
+clef/model/
+clef/model-main-*/
+clef/fluiduse-upstream/
+clef/coreml-tmp/
+clef/.clef_bridge.lock
+clef/.venv/
+clef/__pycache__/

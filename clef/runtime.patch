@@ -1,0 +1,35 @@
+diff --git a/Sources/ClefTextCheck/main.swift b/Sources/ClefTextCheck/main.swift
+index 665bd38..8fb732f 100644
+--- a/Sources/ClefTextCheck/main.swift
++++ b/Sources/ClefTextCheck/main.swift
+@@ -1,4 +1,5 @@
+ import Foundation
++import CoreML
+ import FluidUse
+ 
+ // ClefTextCheck <bundle> <requests.jsonl> (string states): token count + per-question probabilities for each request (one JSON line
+@@ -10,7 +11,10 @@ guard CommandLine.arguments.count == 3 else {
+ @available(macOS 15.0, *)
+ func run() async throws {
+     let bundle = URL(fileURLWithPath: CommandLine.arguments[1])
+-    let manager = try await ClefTextManager.load(from: bundle, buckets: [256, 512, 1024, 2048])
++    let buckets = ProcessInfo.processInfo.environment["CLEF_SINGLE_MAIN"] == "1" ? [1024] : [256, 512, 1024, 2048]
++    let unit = ProcessInfo.processInfo.environment["CLEF_COMPUTE"] ?? "ane"
++    let compute: MLComputeUnits = unit == "gpu" ? .cpuAndGPU : unit == "cpu" ? .cpuOnly : .cpuAndNeuralEngine
++    let manager = try await ClefTextManager.load(from: bundle, buckets: buckets, computeUnits: compute)
+     let lines = try String(contentsOfFile: CommandLine.arguments[2], encoding: .utf8).split(separator: "\n")
+     for line in lines {
+         guard let request = try JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any],
+diff --git a/Sources/FluidUse/ClefText/ClefTextManager.swift b/Sources/FluidUse/ClefText/ClefTextManager.swift
+index d9edf3a..f9bb179 100644
+--- a/Sources/FluidUse/ClefText/ClefTextManager.swift
++++ b/Sources/FluidUse/ClefText/ClefTextManager.swift
+@@ -85,7 +85,7 @@ public actor ClefTextManager {
+             }
+             let configuration = MLModelConfiguration()
+             configuration.computeUnits = computeUnits
+-            configuration.functionName = "L\(bucket)"
++            configuration.functionName = ProcessInfo.processInfo.environment["CLEF_SINGLE_MAIN"] == "1" ? nil : "L\(bucket)"
+             decoders[bucket] = try await MLModel.load(contentsOf: decoderURL, configuration: configuration)
+             heads[bucket] = try await MLModel.load(contentsOf: headURL, configuration: configuration)
+         }
