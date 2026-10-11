@@ -16,13 +16,22 @@ public class DeskApplication {
                 .map(arg -> arg.substring("--demo.engine=".length()))
                 .findFirst().orElse("local");
         SpringApplication application = new SpringApplication(DeskApplication.class);
+        boolean dice = java.util.Arrays.stream(args).anyMatch(arg -> arg.equals("--demo.dice.enabled=true"));
+        DemoNeo4jLifecycle neo4j = dice ? new DemoNeo4jLifecycle() : null;
+        if (neo4j != null) application.addInitializers(neo4j);
         // Embabel's platform still requires a registered LLM even for a code-only GOAP flow.
         // This inert value enables model registration; the local/Jev agent action does not invoke it.
         if (!engine.equals("openai") && System.getenv("OPENAI_API_KEY") == null) {
             application.setDefaultProperties(java.util.Map.of(
                     "embabel.agent.platform.models.openai.api-key", "unused-local-mode"));
         }
-        application.run(args);
+        try {
+            var context = application.run(args);
+            SpringApplication.exit(context);
+        } catch (RuntimeException failure) {
+            if (neo4j != null) neo4j.close();
+            throw failure;
+        }
     }
 
     /** The entire engine switch lives here. No agent action changes between runs. */

@@ -1,53 +1,31 @@
-# Should I Go Paddling Today? The Tide Is Not the Current
+# JEV and Embabel Agent Make Some Decisions
 
-*One Embabel agent, three decision services, and a fictional drive to a fictional launch.*
+TypeSafe calls [Jev a System One model](https://typesafe.ai/blog/introducing-system-one-models-and-jev). Give it the facts of a situation and a bounded question, and it returns a typed answer. We added decision and classification requests to Embabel Agent so those answers can guide an agent as it gathers evidence and works toward a goal. Result quality and execution times may vary.
 
-I live by the ocean, so “Should I go kayaking?” is not only a question about whether I can find the paddle. Weather matters. Tides matter. Tidal current is its own thing. And if traffic turns a short drive into a late arrival, the nice window I was looking at may have passed while I was still listening to the same song at a red light.
+Suppose you have one free afternoon in a city you don't know. [Tripper](https://github.com/embabel/tripper) can find places, research them, and work toward a travel plan. The interesting part comes when those researched places have to become *your* afternoon. A place may fit the dates but lack a useful source. Another may be farther away than the forecast and your schedule allow. The agent needs to settle those questions before it decides what belongs in the plan.
 
-That is a better agent example than classifying “I feel like paddling” into yes or no. It gives the agent a few pieces of work to coordinate: read a forecast window, keep tide height separate from current speed, account for the trip to the launch, ask one narrow decision question, and make a card a person can review.
+We added that review step to Tripper. After it researches points of interest, `reviewPointsOfInterest` asks the decision service about each one and passes eligible places to a separate ranker. Local Kotlin rules, Jev, and OpenAI all use the same request contract. Changing `tripper.decision.engine` changes who answers the questions; it does not require another set of planning actions. Tripper's existing full-journey flow remains in place.
 
-This is still a **software demonstration**, not a marine safety tool. I did not choose a real coast or station. The inputs are synthetic, the road delay is simulated, and every numeric band below is invented for the example. A `candidate` is a candidate for *human review*, not permission to launch. The [runnable project](https://github.com/jimador/embabel-decision-desk) uses Embabel Agent **1.5.4-SNAPSHOT** and includes the fixtures, source, and raw run results.
+## An afternoon the agent can actually work through
 
-## Tide height has a separate job from current
+To see the whole decision path with real place and forecast data, we added a smaller city-outing agent inside Tripper. Give it a geocodable city and it looks for mapped museums, gets hourly weather, and estimates a base drive. Embabel carries the outing from discovery and assessment through ranking to a final research lead. The information and model answers remain visible along the way.
 
-The sample record has a proposed 15:00–17:00 UTC window. Its weather forecast carries an issue time, a valid-through time, wind, gust, swell, and a storm signal. The tide record has a predicted water height in feet above MLLW and a rising or falling phase at 16:00 UTC. A *separate* fictional current station has a predicted speed in knots at that time. Those units and timestamps are in the decision input, not left to the model to guess.
+In Miami, the agent found [P&#233;rez Art Museum Miami](https://www.openstreetmap.org/way/484587327) and two Frost museums. It brought together a forecast and drive estimate for each, then worked out which places merited a closer look. The traffic delay in this example was simulated.
 
-That separation matters. [NOAA says high and low tide do not generally coincide with slack current](https://tidesandcurrents.noaa.gov/faq.html); it produces tide-height and tidal-current predictions separately. “Rising tide” is not a current-speed measurement. One prediction at 16:00 also tells us little about the whole two-hour window. The example keeps those limitations visible instead of turning a tide table into an imaginary current sensor.
+Each request answers a different developer question. Use a **proposition** for a yes-or-no check, such as whether a lead has enough weather and travel information to assess. Use a **choice** when the answer must be one of a few actions: `candidate`, `review`, or `defer`. Use a **rating** to describe one lead's planning effort as `easy`, `unknown`, or `hard`. Use **classification** to put a drive in a named category, here `nearby` or `long-drive`. Then use the application-owned Embabel **ranker** to order the eligible leads. A rating describes one place; ranking compares places. The application decides which typed answers qualify a lead for ranking, so a provider's uncertain or failed response does not quietly become approval.
 
-A tiny `SimulatedTrafficProvider` adds a fixed base drive time and delay for each case. Leaving at 14:00 UTC might get the person to the launch at 14:40, right at 15:00, or at 15:15. There is no live map, account, or real route. It is enough to make arrival time affect the proposed window.
+The Miami comparison shows why the boundary matters. Local rules and Jev qualified all three museums. OpenAI `gpt-4.1-mini` returned typed `INVALID_RESPONSE` outcomes for choice and rating on two, so the application excluded them. All three backends put P&#233;rez Art Museum Miami first, but they did not agree on what belonged in the candidate set. A developer can swap the decision engine and see both the answers and their effect on the plan, without rebuilding the agent's planning steps.
 
-## Keep the agent; change the decision service
+The goal card calls it a **research lead**. OpenStreetMap supplied mapped places; Open-Meteo and OSRM supplied forecasts and base-drive estimates. The run did not verify museum hours, admission, accessibility, or live traffic. Its traffic delay and policy thresholds were fictional. The card gives you a place to investigate next and shows the trip details still missing.
 
-The Embabel agent has three actions. `prepare` assembles the normalized weather, tide, current, and traffic brief and calculates forecast age and coverage. `choose` asks a typed choice question. `finish` produces a planning card. Embabel's process planner runs them over its blackboard. The choice call is the same for every engine:
+## The same questions in a larger trip
 
-```java
-var response = ai.decisions()
-    .named("activeDecisionService")
-    .ask(brief.text(), WINDOW);
-```
+The outing is a compact way to see a capability added to Tripper's original journey planner. There, the proposition asks whether a researched place has a location and source and fits the travel dates. The choice is `prioritize`, `review`, or `skip`; the rating captures planning effort; classification names an indoor, outdoor, or unknown setting. Decision answers determine which places reach the local ranker. Words in the journey brief and traveler descriptions then influence their order before Tripper drafts its existing `TravelPlan`. The questions stay bounded even when the trip is larger.
 
-The choice specification says `review` first for missing, stale, future-dated, or incomplete input. Otherwise it says `defer` for a storm signal, a value outside an illustrative band, or traffic arriving after the window starts. Otherwise it says `candidate`. An exact boundary is in the band. These are made-up software-test numbers, **not** kayaking limits or a general launch policy.
+Traveler interests can also come from an optional [Dice](https://github.com/embabel/dice) graph preference. With Dice enabled, Spring Boot starts an app-owned Neo4j container, stores and reads a fictional `art` preference, and applies a bounded ranking bonus. A separate Miami outing retrieved that preference and stopped the container on normal exit. The default outing needs no graph service; the preference is made up for the demo.
 
-Change `demo.engine` from `local` to `jev` or `openai` and the `activeDecisionService` bean changes. The TypeSafe path is Embabel's `TypeSafeModelFactory`; the OpenAI path is Embabel's `LlmDecisionServiceFactory`; the local path implements `DecisionService` with ordinary code. Jev's adapter accepts the caller-defined choice labels and answered this structured question in the recorded run. It is not a certified coastal policy evaluator. The LLM is not one either.
+Each backend completed the five-action Miami outing over three mapped leads. A local Lisbon run found three museums and put Museu Calouste Gulbenkian first. Nine offline tests and packaging passed. Each Miami backend ran once without warmup, so its elapsed time is an observation, not a speed benchmark. The original full-journey planner still needs its broader travel and login integrations before that separate path can run end to end.
 
-There is one deliberately unromantic guard in the agent. Before any model-selected `candidate` reaches the card, deterministic code checks it against the same recorded facts. If the code does not agree, the card becomes `review`. The raw model choice stays in the results. This means the decision engines remain interchangeable, but a model cannot silently turn an out-of-band fixture into a candidate card.
+That separation is useful beyond museums. Embabel plans the work, a selected backend answers bounded questions, and application rules decide what those answers mean for the goal. You can try another decision engine while keeping the same agent flow and still see exactly why a candidate became the research lead.
 
-## What the small run found
-
-I used ten synthetic cases: a plain candidate, one exactly on the numeric and arrival boundaries, gust and storm cases, low water height, stronger current, a stale forecast, a missing current prediction, a late drive, and an unknown drive delay. Each engine got one ten-case warmup pass and one measured pass. The keys came from the existing runtime environment and were not stored in the project. `jev-latest` resolved to `jev-1.13.0`; OpenAI used `gpt-4.1-mini`.
-
-| Decision implementation | Raw policy match | Valid cards | Guarded candidates | Median decision call | Median whole process |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Local coastal rules | 10/10 | 10/10 | 0 | 0.166 ms | 3.397 ms |
-| Jev 1.13.0 | 10/10 | 10/10 | 0 | 173.252 ms | 178.513 ms |
-| GPT-4.1 mini | 8/10 | 10/10 | 2 | 483.010 ms | 487.502 ms |
-
-The LLM selected `candidate` for the low-water and late-traffic cases, in warmup and measurement. Both violated this example's policy, and both cards became `review`. That is a more interesting result than a perfect table. `Valid` here means the agent completed with a legal selected label and a card; it does not mean the label was correct or the water safe. These ten hand-built cases are a boundary check, not an accuracy study.
-
-The decision timer wraps `DecisionService.ask(...)`. Remote time includes client work, network, provider queueing, inference, and parsing, so it is not pure model latency. The whole-process timer wraps `AgentProcess.run()` and excludes JVM and Spring startup. The [raw CSV rows and method](https://github.com/jimador/embabel-decision-desk/tree/main/results) are more useful than a speed ratio. I did not download a local Jev model; “local” means the application-owned rules implementation.
-
-## What I would need before using a real launch
-
-A real version would need an actual marine forecast zone, relevant water-level and current stations, a verified datum and launch-access relationship, source times and uncertainty, and local knowledge. [NWS warns that marine forecasts cover broad areas and conditions can differ from the range](https://www.weather.gov/safety/safeboating-marine). [NOAA's CO-OPS API](https://api.tidesandcurrents.noaa.gov/api/prod/) makes observations and predictions available by station, but it does not pick the right station or establish a safe route for me. Current conditions, warnings, equipment, skill, and local judgment would remain outside this little agent's authority.
-
-The useful result is the seam. One agent can organize different inputs, ask the same typed question through different decision implementations, and produce a reviewable card. The two wrong raw LLM choices are a reminder to keep the card's authority smaller than the model's confidence. The ocean does not care how elegant my dependency injection is.
+Result quality and execution times may vary. Consult your app configuration for requests lasting longer than one minute. For best results use the right model for the right job. Embabel Agent the right tool for your agentic APIs.

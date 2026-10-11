@@ -1,44 +1,46 @@
-# Should I go paddling today? One agent, three decision services
+# Embabel Decision Desk: three museums, three ways to decide
 
-A real Embabel Agent **1.5.4-SNAPSHOT** process combines a synthetic marine forecast, tide-height prediction, separate tidal-current prediction, and simulated drive time to a fictional launch. It sorts a proposed coastal kayaking window into `candidate`, `review`, or `defer`. The same agent action calls `ai.decisions().named("activeDecisionService").ask(...)` with TypeSafe Jev, an OpenAI-backed LLM decision service, or an application-owned rules service. `demo.engine` swaps the service; the agent's work stays the same.
+**To run the example in [the current article draft](docs/drafts/blog.md), start with [the Tripper decision demo](examples/tripper-decision-demo/README.md).** It includes the full-journey agent, the new point-of-interest review, and the lightweight measured city outing. Its source is derived from [Embabel Tripper](https://github.com/embabel/tripper) under Apache-2.0. The Java Decision Desk application below is a separate MIT-licensed companion using the same Embabel decision and classification API; its older synthetic coastal fixture remains available for comparison.
 
-**This is a wiring and decision-contract demo, not a marine safety tool.** The location, launch access rule, observations, predictions, road estimates, and numeric policy bands are fictional. `candidate` means only “worth a human look”; it is never a safe-to-launch verdict. No live forecast, tide station, current station, road API, or actual location is used.
+You have one free afternoon in an unfamiliar city. The app finds up to three mapped museum leads, reads a forecast for the proposed hour at each place, estimates a base driving time, and produces a ranked **research plan**. The joke is that the museums are real but the traveler's 45-minute patience threshold is made up. Opening hours, admission, accessibility, and live traffic are not verified.
 
-## What the agent does
+The Embabel Agent `CityAfternoonAgent` follows `discover → assess → preferences → rank → finish`. Its `assess` action sends the same proposition, choice, and rating `DecisionRequest` and a separate `ClassificationRequest` to a named `activeDecisionService`. Change one setting, `--demo.engine=local|jev|openai`, to switch a Java rules implementation, TypeSafe JEV, or an OpenAI-backed LLM. Successful decision answers determine which leads enter the local `Ranker`; the ranker uses fictional preference weights and sourced weather and drive estimates. The goal card stays `research` because a model answer does not verify a museum visit.
 
-1. `prepare` combines the fixture values, computes forecast age and window coverage, and asks [`SimulatedTrafficProvider`](src/main/java/dev/jimador/decisiondesk/SimulatedTrafficProvider.java) for a fixed drive delay and arrival time. All timestamps are UTC.
-2. `choose` asks one typed Embabel choice question. Unknown or stale input maps to `review`; a fictional storm or exceeded numeric band, or arrival after the window start, maps to `defer`; otherwise the output is a `candidate` for human review.
-3. `finish` makes a planning card. A deterministic [`CoastalPolicy`](src/main/java/dev/jimador/decisiondesk/CoastalPolicy.java) guard checks any model-selected `candidate` against the same recorded facts and changes it to `review` if the illustrative rule does not agree. The CSV retains the raw model choice and the guarded card choice separately.
+## Run the article's Tripper outing
 
-The weather inputs include sustained wind and gust in knots, swell in feet, and a storm signal. The tide input is a predicted **water height in feet above MLLW** and a phase at 16:00 UTC. The tidal-current input is a separate predicted **speed in knots** at a separate fictional current station. [NOAA explains that high/low tide and slack current do not have a universal timing relationship](https://tidesandcurrents.noaa.gov/faq.html); this demo does not infer current from tide phase. One prediction instant cannot describe an entire two-hour window. The height band here also assumes a fictional launch access rule and has no meaning at a real ramp.
-
-## Run
-
-Requirements: Java 21 and Maven, with access to Embabel's snapshot repository for **1.5.4-SNAPSHOT**. The local engine needs no API key. Embabel still requires a registered LLM provider at startup, so local and Jev modes without an OpenAI key register an inert placeholder; this agent does not call it in those modes.
-
-```bash
-mvn test
-./scripts/run-bench.sh local
-./scripts/run-bench.sh jev
-./scripts/run-bench.sh openai
+```sh
+cd examples/tripper-decision-demo
+mvn test package
+GOOGLE_CLIENT_ID=unused GOOGLE_CLIENT_SECRET=unused java -jar target/tripper-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --tripper.outing.run=true --tripper.decision.engine=local '--tripper.outing.destination=Miami, Florida' '--tripper.outing.origin=Miami, Florida' --tripper.outing.simulated-traffic-delay-minutes=15
 ```
 
-Set `TYPESAFE_API_KEY` for Jev and `OPENAI_API_KEY` for OpenAI in the existing runtime environment. Do not place keys in source, arguments, or a file. The script runs ten synthetic cases once for warmup and once for measurement: 20 decision calls per engine. `demo.openai-model` defaults to `gpt-4.1-mini`. Jev uses Embabel's `jev-latest` alias; the CSV records its resolved model.
+See the [Tripper example guide](examples/tripper-decision-demo/README.md) for the JEV/OpenAI switch, optional Dice graph, provenance, and limits. The separate Java app can be run as follows.
 
-```bash
-java -jar target/decision-desk-0.1.0.jar --demo.engine=local --demo.warmups=1 --demo.runs=1
+## Run the Java companion
+
+Requires Java 21, Maven, and Embabel Agent `1.5.4-SNAPSHOT` artifacts. Public place, weather, and route APIs need no key.
+
+```sh
+mvn test package
+java -jar target/decision-desk-0.1.0.jar --demo.mode=outing --demo.engine=local '--demo.destination=Miami, Florida' '--demo.origin=Miami, Florida' --demo.simulated-traffic-delay-minutes=15
 ```
 
-The runner caps warmups plus measured rounds at ten. It writes no prompts or provider payloads to disk. See [raw results and limitations](results/README.md) and the [Medium-ready article draft](docs/drafts/blog.md). The article has not been published on Medium.
+`--demo.destination` accepts any geocodable city or place. The default forecast time is the next 2 pm in that destination's reported time zone. `--demo.window-start-utc=<ISO-8601 instant>` overrides it within the next six days. `--demo.origin` defaults to the destination center; use a public origin for shared examples. OSRM supplies a **base** driving estimate. `--demo.simulated-traffic-delay-minutes` adds an explicitly fictional 0–180 minutes (default zero); it is not real-time traffic. The fixed illustrative policy marks a lead `candidate` when the required values exist, precipitation probability is at most 50%, and base drive plus simulated delay is at most 45 minutes. `candidate` means research lead, not a confirmed plan.
 
-## Measurement and validity
+For JEV, set `--demo.engine=jev` with the existing runtime `TYPESAFE_API_KEY`. For OpenAI, use `--demo.engine=openai` with `OPENAI_API_KEY`; the default supported baseline is `gpt-4.1-mini`. Pass keys through the environment only, never command arguments or project files. A bounded comparison can add `--embabel.agent.platform.decisions.llm.max-attempts=1`. One outing run makes at most three mixed decision calls and three classification calls, one per mapped option.
 
-- `decision_ms`: wall time around `DecisionService.ask(...)`. For remote services, this includes client work, network, provider queueing, inference, and parsing, so it is **not** model-only latency.
-- `process_ms`: wall time around `AgentProcess.run()`, including preparation, choice, guard, and card creation. JVM and Spring startup are excluded.
-- `raw_correct`: raw selected label agrees with the fixture's hand label under this illustrative policy. `valid`: the process completed with a legal selected label and a nonempty card. `guarded`: a raw `candidate` was changed to `review` by the deterministic check. None of these establish outdoor safety or real-world accuracy.
+## Sources and limitations
 
-## Adapting to a real coast
+`CityOutingProvider` uses [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api), one user-triggered [OSM Nominatim](https://nominatim.org/release-docs/latest/api/Search/) museum search, [Open-Meteo weather](https://open-meteo.com/en/docs), and [OSRM](https://project-osrm.org/docs/v5.24.0/api/) route estimates. Place data: © OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright). The CLI follows the [public Nominatim policy](https://operations.osmfoundation.org/policies/nominatim/) by making one identified search per user run; it is not a bulk or scaled place service. `--demo.nominatim-base-url` switches that endpoint. A search may return fewer than three leads or none. Geocoding, OSM, forecasting, and routing coverage differ by destination. No lead is invented when a provider has no result.
 
-This repository intentionally has **no live provider** because no coastal location, marine forecast zone, water-level station, current station, datum applicability, or launch access rule was specified. A real adapter would need those explicit local choices, source timestamps and units, forecast coverage, station relevance, missing-data handling, and local validation before passing a brief to the decision step. [NWS marine forecasts and warnings](https://www.weather.gov/safety/safeboating-marine), the [NWS API](https://www.weather.gov/documentation/services-web-api), and [NOAA CO-OPS observations and predictions](https://api.tidesandcurrents.noaa.gov/api/prod/) are primary starting points, not drop-in proof that a window is safe. The final judgment belongs to a person with current local information.
+The forecast is a model at a supplied coordinate and hour. The route estimate is not a live traffic reading. Source URLs, sampling time, retrieval time, and unavailable fields are printed. Check official museum hours and accessibility before using the plan. The local ranking is application code; decision engines do not do it.
 
-Embabel Agent is an Apache-2.0 dependency; this repository's original demo code is MIT licensed.
+## Fictional preferences and the older coastal fixture
+
+`--demo.dice.enabled=true` starts an app-owned disposable Neo4j through Testcontainers, writes fictional Dice 0.4.0 preference propositions, reads short-drive and low-wind weights for ranking, and stops the container on normal exit. Docker is needed for this optional path. [The seed](src/main/resources/demo-persona.properties) contains no personal data. A forced kill can bypass shutdown hooks.
+
+`--demo.mode=compare --demo.city=Miami` exercises the original **synthetic coastal fixture**. The four-city catalog, tides, weather, traffic, and place names in that mode are fictional and are not the live city input limit. `--demo.mode=live` retains the earlier kayak research path with NOAA station context; its mapped access and local tide/current applicability remain unverified. The museum example is the recommended route through this repository.
+
+[The Tripper live outing check](examples/tripper-decision-demo/results/city-outing-live-2026-10-11.md) separates sourced data, decisions, and measurement limits; [the Tripper decision smoke](examples/tripper-decision-demo/results/decision-smoke-2026-10-11.md) records the typed request checks. They were measured in the source Tripper working branch and are not measurements of this Java application. [The synthetic comparison](results/private-city-miami-validation.md) includes earlier per-call and process timing for Decision Desk's coastal fixture; it does not measure live provider time. [The request tour](docs/private-request-tour.md) details the original fixture API, which the city agent uses in the same fashion.
+
+The Java companion was written separately; no Tripper source was copied into it. The Tripper example retains its upstream Apache-2.0 license in its own directory. The repository's root [MIT license](LICENSE) covers the original Java companion code.

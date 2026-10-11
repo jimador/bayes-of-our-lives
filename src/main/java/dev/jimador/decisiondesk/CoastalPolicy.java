@@ -17,7 +17,10 @@ final class CoastalPolicy {
         try {
             double age = number(fields, "Forecast age hours");
             Instant arrival = Instant.parse(fields.get("Simulated arrival UTC"));
-            Instant windowStart = Instant.parse(fields.get("Proposed window UTC").split(" to ")[0]);
+            String[] window = fields.get("Proposed window UTC").split(" to ");
+            Instant windowStart = Instant.parse(window[0]);
+            Instant windowEnd = Instant.parse(window[1]);
+            Instant daylightEnd = Instant.parse(fields.get("Synthetic daylight cutoff UTC"));
             boolean covers = booleanValue(fields, "Forecast covers whole window");
             double wind = number(fields, "Sustained wind kt");
             double gust = number(fields, "Wind gust kt");
@@ -29,7 +32,7 @@ final class CoastalPolicy {
                     fields.getOrDefault("Forecast issued UTC", "unknown").equals("unknown") ||
                     fields.getOrDefault("Forecast valid through UTC", "unknown").equals("unknown") ||
                     age > 6 || !covers) return "review";
-            if (storm || wind > 12 || gust > 16 || swell > 2 || height < 2 || current > 1 || arrival.isAfter(windowStart)) return "defer";
+            if (storm || wind > 12 || gust > 16 || swell > 2 || height < 2 || current > 1 || arrival.isAfter(windowStart) || windowEnd.isAfter(daylightEnd)) return "defer";
             return "candidate";
         } catch (RuntimeException missingOrInvalid) {
             return "review";
