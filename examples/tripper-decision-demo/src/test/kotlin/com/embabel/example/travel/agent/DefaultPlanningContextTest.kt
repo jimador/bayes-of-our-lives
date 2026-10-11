@@ -12,6 +12,7 @@ import org.springframework.context.ApplicationContext
 @SpringBootTest(classes = [TripperApplication::class], properties = [
     "spring.main.web-application-type=none",
     "tripper.decision.engine=local",
+    "embabel.agent.platform.models.openai.api-key=unused-local-mode",
     "spring.security.oauth2.client.registration.google.client-id=unused",
     "spring.security.oauth2.client.registration.google.client-secret=unused",
 ])
