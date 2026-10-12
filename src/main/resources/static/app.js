@@ -92,6 +92,7 @@ function renderItinerary(data) {
   const meta = node('div', 'lead-meta');
   meta.append(node('span', '', `Date: ${data.date}`), node('span', '', `Status: ${data.status.replaceAll('_', ' ')}`),
     node('span', '', `Decision: ${data.decision?.model || 'unavailable'}`));
+  meta.append(node('span', '', `Times: ${data.destinationTimezone || 'destination zone unverified'}`));
   wrap.append(meta);
   const list = node('div', 'itinerary-list');
   for (const alternative of data.alternatives) {
@@ -146,8 +147,8 @@ form.elements.useRememberedPreferences.addEventListener('change', updateRecall);
 updateRecall();
 form.elements.engine.addEventListener('change', updateEngine);
 updateEngine();
-form.elements.date.min = new Date().toISOString().slice(0, 10);
-form.elements.date.value = form.elements.date.min;
+const todayHere = new Date();
+form.elements.date.value = `${todayHere.getFullYear()}-${String(todayHere.getMonth() + 1).padStart(2, '0')}-${String(todayHere.getDate()).padStart(2, '0')}`;
 cancelButton.addEventListener('click', () => {
   generation++;
   pending?.abort();

@@ -45,7 +45,8 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
                 && (pace == null || !List.of("relaxed", "steady", "busy").contains(pace)))
             throw new IllegalArgumentException("Choose relaxed, steady, or busy pace");
         if ((rememberPreferences || useRememberedPreferences)
-                && (profileId == null || !profileId.matches("[0-9a-fA-F-]{36}")))
+                && (profileId == null || !profileId.matches(
+                        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")))
             throw new IllegalArgumentException("A private profile ID is required to remember preferences");
         if (engine == null || !List.of("local", "jev", "openai", "clef").contains(engine))
             throw new IllegalArgumentException("Choose a listed decision engine");
@@ -61,8 +62,10 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
         if (date == null || startTime == null || endTime == null)
             missing.add("What date and start/end times should the itinerary cover?");
         else {
-            if (date.isBefore(LocalDate.now()))
-                missing.add("Choose today or a future date; past opening hours cannot establish a current plan.");
+            // The destination's timezone is resolved during place lookup. Only reject dates
+            // already past in every timezone here; the exact local-day check follows geocoding.
+            if (date.isBefore(LocalDate.now(java.time.ZoneOffset.UTC).minusDays(1)))
+                missing.add("Choose a current or future date in the destination city.");
             if (!endTime.isAfter(startTime) || java.time.Duration.between(startTime, endTime).toHours() > 12)
                 missing.add("Choose an end time after the start, within a 12-hour outing.");
             if (startTime.isBefore(LocalTime.of(9, 0)) && !breakfast && !coffee && !earlyFoodDeclined)

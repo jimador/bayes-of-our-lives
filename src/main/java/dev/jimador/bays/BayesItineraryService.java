@@ -17,7 +17,8 @@ public class BayesItineraryService {
                          String memoryContext, List<String> memoryFactIds, String rememberedInterests,
                          String rememberedPace, List<String> researchSources, String retrievedUtc,
                          List<String> questions, long processMs,
-                         List<BayesAgent.ResearchedPointOfInterest> researchedPlaces) {}
+                         List<BayesAgent.ResearchedPointOfInterest> researchedPlaces,
+                         String destinationTimezone) {}
 
     private final AgentPlatform platform;
     private final BayesDecisionServices decisions;
@@ -31,16 +32,16 @@ public class BayesItineraryService {
         if (request.useRememberedPreferences() && memory.previous(request.profileId()).isEmpty())
             return new Result("needs_input", request.city(), request.date() == null ? null : request.date().toString(),
                     null, List.of(), null, null, List.of(), null, null, List.of(), null,
-                    List.of("No saved preferences were found for this profile. Enter interests and pace, then choose to save them."), 0, List.of());
+                    List.of("No saved preferences were found for this profile. Enter interests and pace, then choose to save them."), 0, List.of(), null);
         var effective = memory.resolve(request);
         List<String> questions = effective.questions();
         if (!questions.isEmpty()) return new Result("needs_input", request.city(),
                 request.date() == null ? null : request.date().toString(), null, List.of(), null,
-                null, List.of(), null, null, List.of(), null, questions, 0, List.of());
+                null, List.of(), null, null, List.of(), null, questions, 0, List.of(), null);
         if (!request.remoteModelConsent()) return new Result("needs_input", request.city(),
                 request.date().toString(), null, List.of(), null, null, List.of(), null, null,
-                List.of(), null, List.of("Confirm sharing non-sensitive outing details with OpenAI for Tripper-style research and planning."),
-                0, List.of());
+                List.of(), null, List.of("Confirm sharing city, date, group, interests, pace, and access requirements with OpenAI for research and planning. Exact origin and allergy text stay out of model prompts."),
+                0, List.of(), null);
         if (System.getenv("OPENAI_API_KEY") == null || System.getenv("OPENAI_API_KEY").isBlank())
             throw new BayesDecisionServices.ModelUnavailableException(
                     "OPENAI_API_KEY is required for Tripper-style research and planning");
@@ -68,6 +69,6 @@ public class BayesItineraryService {
         return new Result(plan.status(), plan.city(), plan.date(), plan.selectedAlternative(),
                 plan.alternatives(), answer, plan.memory().context(), plan.memory().factIds(),
                 plan.memory().interests(), plan.memory().pace(), plan.researchSources(),
-                plan.retrievedUtc(), open, elapsed, plan.researchedPlaces());
+                plan.retrievedUtc(), open, elapsed, plan.researchedPlaces(), plan.destinationTimezone());
     }
 }

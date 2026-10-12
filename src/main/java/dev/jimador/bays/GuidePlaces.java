@@ -29,7 +29,12 @@ public class GuidePlaces {
                     minimumVisitMinutes, null, null, Map.of());
         }
     }
-    public record Search(String city, String source, Instant retrievedUtc, List<Option> options) {}
+    public record Search(String city, String source, Instant retrievedUtc, List<Option> options,
+                         String timezone) {
+        public Search(String city, String source, Instant retrievedUtc, List<Option> options) {
+            this(city, source, retrievedUtc, options, null);
+        }
+    }
     private static final String USER_AGENT = "Bayes/0.1 (github.com/jimador/bayes-of-our-lives)";
     private static long lastNominatimRequestNanos;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -160,7 +165,8 @@ public class GuidePlaces {
                         intent.equals("meal") ? 40 : 45, pLat, pLon, Map.copyOf(tags)));
             }
             return new Search(center.path("name").asText() + ", " + center.path("country").asText(),
-                    geoUrl + " ; " + placeUrl, Instant.now(), List.copyOf(options));
+                    geoUrl + " ; " + placeUrl, Instant.now(), List.copyOf(options),
+                    center.path("timezone").asText(""));
         } catch (IOException | InterruptedException failure) {
             if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
             throw new IllegalStateException("Public city provider unavailable: " + failure.getClass().getSimpleName(), failure);

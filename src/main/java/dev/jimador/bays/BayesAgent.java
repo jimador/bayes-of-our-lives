@@ -60,10 +60,11 @@ public class BayesAgent {
             String rating, String classification, String model, long decisionNanos, long classificationNanos,
             List<ItineraryPlanner.Alternative> reviewedAlternatives,
             List<ResearchedPointOfInterest> reviewedResearch, int followupCount) {}
+    record FollowupTarget(ResearchedPointOfInterest place, String question) {}
     public record TravelPlan(String city, String date, String status, String selectedAlternative,
             List<ItineraryPlanner.Alternative> alternatives, ItineraryReview review,
             ItineraryMemory.Accepted memory, List<String> researchSources, String retrievedUtc,
-            List<ResearchedPointOfInterest> researchedPlaces) {}
+            List<ResearchedPointOfInterest> researchedPlaces, String destinationTimezone) {}
 
     private static final DecisionSpec FIT = DecisionSpec.builder()
             .proposition("interest-match", q -> q.asking("Does the supplied venue interest tag exactly match the supplied traveler interest? Unknown is not a match."))
@@ -120,11 +121,14 @@ public class BayesAgent {
 
     @Action public ItineraryIdeas findPointsOfInterest(OutingProfile profile, OperationContext context) {
         var found = itineraryResearch.findAndResearch(profile.requirements());
-        var discovery = tripperPort.discover(profile, found, context);
+        final TripperCityPort.DiscoveryDraft discovery;
+        try { discovery = tripperPort.discover(profile, found, context); }
+        catch (RuntimeException failure) { throw new IllegalStateException("LLM discovery", failure); }
         var sights = discovery.prioritizedPlaceNames().stream().map(name -> found.sights().stream()
                 .filter(o -> o.name().equals(name)).findFirst().orElseThrow()).toList();
         return new ItineraryIdeas(new ItineraryResearch.Findings(found.city(), found.retrievedAt(),
-                sights, found.cafes(), found.restaurants(), found.sources(), found.researchGaps()), discovery);
+                sights, found.cafes(), found.restaurants(), found.sources(), found.researchGaps(),
+                found.timezone()), discovery);
     }
 
     @Action public PointOfInterestFindings researchPointsOfInterest(ItineraryIdeas ideas, OperationContext context) {
@@ -144,8 +148,10 @@ public class BayesAgent {
                         ? evidence.pageUrl() + " title=" + evidence.pageTitle() + " clues=" + evidence.topicClues()
                         : "Venue website unavailable or absent.";
                 if (wiki.url() != null) evidenceText += "\n" + wiki.url() + " " + wiki.excerpt();
-                var drafted = tripperPort.research(o.name(), o.setting(), evidenceText,
-                        "What is useful about this place and what remains unverified?", context);
+                final TripperCityPort.ResearchDraft drafted;
+                try { drafted = tripperPort.research(o.name(), o.setting(), evidenceText,
+                        "What is useful about this place and what remains unverified?", context); }
+                catch (RuntimeException failure) { throw new IllegalStateException("LLM place research", failure); }
                 summary = drafted.research();
                 researchLinks = String.join(" ", drafted.sourceUrls());
             }
@@ -159,9 +165,11 @@ public class BayesAgent {
 
     @Action public ProposedTravelPlan proposeTravelPlan(OutingProfile profile, PointOfInterestFindings research,
             OperationContext context) {
-        var draft = tripperPort.plan(profile, research, context);
-        return new ProposedTravelPlan(itineraryPlanner.proposeFromDraft(profile.requirements(),
-                research.findings(), draft));
+        try {
+            var draft = tripperPort.plan(profile, research, context);
+            return new ProposedTravelPlan(itineraryPlanner.proposeFromDraft(profile.requirements(),
+                    research.findings(), draft));
+        } catch (RuntimeException failure) { throw new IllegalStateException("LLM plan proposal", failure); }
     }
 
     @Action public ItineraryReview decideItineraryWithResearch(OutingProfile profile,
@@ -169,12 +177,9 @@ public class BayesAgent {
         var first = decideItinerary(profile, research, proposal);
         try {
             return BoundedResearchLoop.run(first, 1, r -> r.choice().equals("research"), prior -> {
-            var gaps = proposal.alternatives().stream().filter(a -> !a.status().equals("invalid"))
-                    .flatMap(a -> a.openQuestions().stream()).distinct().limit(2).toList();
-            if (gaps.isEmpty()) return java.util.Optional.empty();
-            String question = gaps.getFirst();
-            for (var place : research.researched()) {
-                if (place.websiteEvidence() == null || place.websiteEvidence().pageUrl() == null) continue;
+            for (var target : followupTargets(proposal, research)) {
+                var place = target.place();
+                String question = target.question();
                 var page = publicWebResearch.targetedOfficialPage(place.websiteEvidence().pageUrl(), question);
                 if (!page.status().equals("retrieved_unverified") || page.excerpt().isBlank()
                         || place.researchLinks().contains(page.url())) continue;
@@ -203,6 +208,24 @@ public class BayesAgent {
             System.err.println("itineraryResearchRetryUnavailable class=" + retryFailure.getClass().getSimpleName());
             return first;
         }
+    }
+
+    static List<FollowupTarget> followupTargets(ProposedTravelPlan proposal,
+            PointOfInterestFindings research) {
+        var targets = new java.util.ArrayList<FollowupTarget>();
+        var seen = new java.util.HashSet<String>();
+        for (var alternative : proposal.alternatives()) {
+            if (alternative.status().equals("invalid")) continue;
+            for (var stop : alternative.stops()) {
+                if (stop.openQuestions().isEmpty() || !seen.add(stop.name())) continue;
+                var place = research.researched().stream().filter(r -> r.name().equals(stop.name())
+                        && r.websiteEvidence() != null && r.websiteEvidence().pageUrl() != null)
+                        .findFirst().orElse(null);
+                if (place != null) targets.add(new FollowupTarget(place, stop.openQuestions().getFirst()));
+                if (targets.size() == 2) return List.copyOf(targets);
+            }
+        }
+        return List.copyOf(targets);
     }
 
     public ItineraryReview decideItinerary(OutingProfile profile, PointOfInterestFindings research,
@@ -265,7 +288,7 @@ public class BayesAgent {
         return new TravelPlan(research.findings().city(), profile.requirements().date().toString(), status,
                 selected == null ? null : selected.id(), review.reviewedAlternatives(), review,
                 profile.memory(), research.findings().sources(), research.findings().retrievedAt().toString(),
-                review.reviewedResearch());
+                review.reviewedResearch(), research.findings().timezone());
     }
 
     static String itineraryDecisionInput(OutingProfile profile, List<ItineraryPlanner.Alternative> alternatives) {

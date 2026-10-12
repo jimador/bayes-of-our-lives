@@ -68,8 +68,9 @@ public class ItineraryPlanner {
             var scheduled = schedule(index++ == 0 ? "a" : "b", request, tasks, findings.researchGaps(), route);
             String title = choice.title() == null || choice.title().isBlank() ? scheduled.title()
                     : choice.title().substring(0, Math.min(80, choice.title().length()));
-            String reason = choice.reason() == null ? "" : choice.reason().substring(0,
-                    Math.min(400, choice.reason().length()));
+            String reason = choice.reason() == null ? "" : choice.reason()
+                    .replaceAll("https?://\\S+", "[source in research panel]");
+            reason = reason.substring(0, Math.min(400, reason.length()));
             alternatives.add(new Alternative(scheduled.id(), title, scheduled.status(), scheduled.stops(),
                     scheduled.openQuestions(), scheduled.elapsedMinutes(), reason));
         }

@@ -1,6 +1,8 @@
 package dev.jimador.bays;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
@@ -16,11 +18,16 @@ class ItineraryMemoryTest {
                 false, false, 2, 0, interests, pace, false, "", "local", true, false,
                 id, save, recall);
     }
-    @Test void preferencesPersistAcrossRepositoryInstancesAndRemainScoped() {
+    @Test void preferencesPersistAcrossRepositoryInstancesAndRemainScoped() throws Exception {
         Path file = temporary.resolve("dice/preferences.json");
         String owner = UUID.randomUUID().toString(), another = UUID.randomUUID().toString();
         var first = new ItineraryMemory(file);
         first.rememberForThisOuting(request(owner, "art and gardens", "relaxed", true, false));
+        try {
+            var permissions = Files.getPosixFilePermissions(file);
+            assertEquals(java.util.Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
+                    permissions);
+        } catch (UnsupportedOperationException ignored) { /* The filesystem does not expose POSIX modes. */ }
         var restarted = new ItineraryMemory(file);
         assertEquals("art and gardens", restarted.previous(owner).orElseThrow().interests());
         assertTrue(restarted.previous(another).isEmpty());
@@ -34,5 +41,9 @@ class ItineraryMemoryTest {
         String id = UUID.randomUUID().toString();
         new ItineraryMemory(file).rememberForThisOuting(request(id, "art", "steady", false, false));
         assertTrue(new ItineraryMemory(file).previous(id).isEmpty());
+    }
+    @Test void malformedProfileIdCannotSelectAnotherStorageScope() {
+        assertThrows(IllegalArgumentException.class,
+                () -> request("------------------------------------", "art", "steady", true, false).validateShape());
     }
 }

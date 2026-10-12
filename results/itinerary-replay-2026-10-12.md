@@ -21,7 +21,7 @@ One process per engine. Local rules, TypeSafe Jev, and OpenAI each had **one war
 
 The warmup decision/classification pairs were local 4.330/0.072 ms, Jev 410.186/197.411 ms, and OpenAI 2637.939/744.918 ms. CLEF's bridge reported **786** decision input tokens and **587** classification input tokens, within the prepared 1024-token limit. For its measured run, model inference was 1925.358/557.646 ms and bridge wall time 2223.603/847.568 ms for decision/classification respectively. Java call times include bridge launch and response parsing beyond those numbers. Remote call times include client adapter, network, provider processing, and parsing; provider inference time is not separately available. Local Java has no model/network component. None of these figures includes fresh place lookup or complete UI request time.
 
-The sample is too small for a distribution, speed ranking, quality ranking, or model comparison claim. Network conditions and provider load were uncontrolled. CLEF used a locally derived limited-context variant, not an untouched publisher multifunction artifact. Captured OSM facts can age; the fixed capture is for repeatability, not today's travel advice.
+The sample is too small for a distribution, speed ranking, quality ranking, or model comparison claim. Network conditions and provider load were uncontrolled. CLEF used a locally derived limited-context variant, not an untouched publisher multifunction artifact. Its Python bridge is an experimental legacy adapter pending a separate provider redesign. Captured OSM facts can age; the fixed capture is for repeatability, not today's travel advice.
 
 ## Reproduce
 

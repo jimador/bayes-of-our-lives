@@ -18,7 +18,7 @@ public final class OpeningHours {
             return Fit.UNKNOWN;
         if (expression.equals("24/7")) return Fit.TAGGED_OPEN;
         int wanted = date.getDayOfWeek().getValue() - 1;
-        boolean matched = false, open = false;
+        boolean matched = false, open = false, closed = false;
         for (String raw : expression.split(";")) {
             var part = SEGMENT.matcher(raw.trim());
             if (!part.matches()) return Fit.UNKNOWN; // PH, seasonal rules, multiple intervals, etc.
@@ -26,14 +26,16 @@ public final class OpeningHours {
             if (days == null) return Fit.UNKNOWN;
             if (!days.contains(wanted)) continue;
             matched = true;
-            if (part.group(2).equals("off")) { open = false; continue; }
+            if (part.group(2).equals("off")) { closed = true; continue; }
             String[] times = part.group(2).split("-");
             LocalTime opens, closes;
             try { opens = LocalTime.parse(times[0]); closes = LocalTime.parse(times[1]); }
             catch (RuntimeException failure) { return Fit.UNKNOWN; }
             if (!closes.isAfter(opens)) return Fit.UNKNOWN;
-            open = !start.isBefore(opens) && !end.isAfter(closes);
+            open |= !start.isBefore(opens) && !end.isAfter(closes);
         }
+        // Conflicting open/off rules need the full OSM precedence grammar, outside this subset.
+        if (closed && open) return Fit.UNKNOWN;
         return matched && open ? Fit.TAGGED_OPEN : Fit.TAGGED_CLOSED;
     }
 

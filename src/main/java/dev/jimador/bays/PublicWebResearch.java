@@ -53,15 +53,13 @@ public class PublicWebResearch {
             if (website == null) return new Page(null, "no_website", "");
             URI home = URI.create(website);
             if (!OfficialPageResearch.safePublicHttps(home)) return new Page(null, "unsafe_website", "");
-            var root = client.send(HttpRequest.newBuilder(home).timeout(Duration.ofSeconds(6)).GET().build(),
-                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (root.statusCode() != 200 || root.body().length() > 256_000) return new Page(null, "unavailable", "");
+            var root = PinnedHttps.get(home, 256_000);
+            if (root.status() != 200 || !root.contentType().toLowerCase(Locale.ROOT).contains("text/html"))
+                return new Page(null, "unavailable", "");
             URI target = relevantLink(home, root.body(), question);
             if (target == null) return new Page(null, "no_relevant_link", "");
-            var page = client.send(HttpRequest.newBuilder(target).timeout(Duration.ofSeconds(6)).GET().build(),
-                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (page.statusCode() != 200 || page.body().length() > 256_000 || !page.headers()
-                    .firstValue("content-type").orElse("").toLowerCase(Locale.ROOT).contains("text/html"))
+            var page = PinnedHttps.get(target, 256_000);
+            if (page.status() != 200 || !page.contentType().toLowerCase(Locale.ROOT).contains("text/html"))
                 return new Page(target.toString(), "unavailable", "");
             var clues = OfficialPageResearch.clues(page.body());
             return new Page(target.toString(), "retrieved_unverified", String.join(" | ", clues));

@@ -7,6 +7,7 @@ import com.embabel.dice.proposition.store.InMemoryPropositionRepository;
 import com.embabel.dice.proposition.store.JsonFilePropositionRepository;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,14 +23,22 @@ import org.springframework.stereotype.Component;
 public class ItineraryMemory {
     public record Accepted(String context, String interests, String pace, List<String> factIds) {}
     private final PropositionRepository saved;
+    private final Path file;
 
     @Autowired public ItineraryMemory(@Value("${bays.preference-store:.bayes-data/preferences.json}") String file) {
         this(Path.of(file));
     }
     ItineraryMemory(Path file) {
         try {
-            if (file.getParent() != null) Files.createDirectories(file.getParent());
+            this.file = file;
+            if (file.getParent() != null) {
+                boolean newDirectory = !Files.exists(file.getParent());
+                Files.createDirectories(file.getParent());
+                if (newDirectory || file.getParent().endsWith(".bayes-data"))
+                    restrict(file.getParent(), true);
+            }
             this.saved = new JsonFilePropositionRepository(file);
+            if (Files.exists(file)) restrict(file, false);
         } catch (Exception failure) {
             throw new IllegalStateException("The local Dice preference store is unavailable", failure);
         }
@@ -63,9 +72,22 @@ public class ItineraryMemory {
                         "confirmed outing input", List.of(), now, now, now, PropositionStatus.ACTIVE)
                         .withMetadataValue("key", entry.getKey())
                         .withMetadataValue("value", entry.getValue()));
+                if (persistent) try { restrict(file, false); }
+                catch (java.io.IOException failure) {
+                    throw new IllegalStateException("Could not protect local Dice preferences", failure);
+                }
             }
         }
         return accept(context, repository.findByContextIdValue(context));
+    }
+
+    private static void restrict(Path path, boolean directory) throws java.io.IOException {
+        try {
+            Files.setPosixFilePermissions(path, directory
+                    ? java.util.Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
+                            PosixFilePermission.OWNER_EXECUTE)
+                    : java.util.Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+        } catch (UnsupportedOperationException ignored) { /* Non-POSIX filesystems use their own ACLs. */ }
     }
 
     private static Accepted accept(String context, List<Proposition> retrieved) {

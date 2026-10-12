@@ -33,8 +33,11 @@ public class BayesItineraryController {
     }
     @ExceptionHandler(Exception.class)
     ResponseEntity<Map<String, String>> unavailable(Exception failure) {
+        String stage = failure.getMessage() != null && failure.getMessage().startsWith("LLM ")
+                ? failure.getMessage().replaceAll("[^A-Za-z -]", "") : "unreported";
         System.err.println("itineraryUnavailable class=" + failure.getClass().getSimpleName()
-                + " cause=" + (failure.getCause() == null ? "none" : failure.getCause().getClass().getSimpleName()));
+                + " cause=" + (failure.getCause() == null ? "none" : failure.getCause().getClass().getSimpleName())
+                + " stage=" + stage.substring(0, Math.min(90, stage.length())));
         return error(HttpStatus.BAD_GATEWAY, "RESEARCH_UNAVAILABLE",
                 "The itinerary could not finish. Try again or adjust the city or starting location.");
     }
