@@ -3,7 +3,6 @@ package dev.jimador.bays;
 import com.embabel.agent.api.annotation.Action;
 import com.embabel.agent.api.annotation.AchievesGoal;
 import com.embabel.agent.api.annotation.Agent;
-import com.embabel.agent.api.common.Ai;
 import com.embabel.agent.api.common.ranking.Ranker;
 import com.embabel.agent.api.common.ranking.Ranking;
 import com.embabel.agent.api.common.ranking.Rankings;
@@ -19,8 +18,9 @@ import java.util.List;
 
 /** A small spontaneous city guide: Dice memories enter typed questions before local ranking. */
 @Agent(description = "Find a provisional sight or meal research lead in the available time")
-public class BaysAgent {
-    public record Request(String city, String intent, int availableMinutes, String profile, String mode) {}
+public class BayesAgent {
+    public record Request(String city, String intent, int availableMinutes, String profile, String mode,
+                          String mealPeriod, String engine) {}
     public record Memories(GuideMemories.Snapshot snapshot) {}
     public record Discovery(GuidePlaces.Search search) {}
     public record Assessment(GuidePlaces.Option option, String hardStatus, String decisionInput,
@@ -59,9 +59,11 @@ public class BaysAgent {
 
     private final GuidePlaces places;
     private final GuideMemories memories;
-    public BaysAgent(GuidePlaces places, GuideMemories memories) {
+    private final BayesDecisionServices services;
+    public BayesAgent(GuidePlaces places, GuideMemories memories, BayesDecisionServices services) {
         this.places = places;
         this.memories = memories;
+        this.services = services;
     }
 
     @Action public Memories memories(Request request) { return new Memories(memories.read(request.profile())); }
@@ -69,7 +71,7 @@ public class BaysAgent {
     @Action public Discovery discover(Request request) {
         if (request.availableMinutes() < 30 || request.availableMinutes() > 240)
             throw new IllegalArgumentException("available minutes must be 30..240");
-        return new Discovery(places.search(request.mode(), request.city(), request.intent()));
+        return new Discovery(places.search(request.mode(), request.city(), request.intent(), request.mealPeriod()));
     }
 
     static String hardStatus(GuidePlaces.Option option, int availableMinutes) {
@@ -93,9 +95,8 @@ public class BaysAgent {
                 + "\nUnknown tags do not establish cuisine, quietness, opening hours, or dietary safety.";
     }
 
-    @Action public Assessments assess(Request request, Discovery discovery, Memories memory, Ai ai) {
-        var decisions = ai.decisions().named("baysDecisionService");
-        var classifications = ai.classifications().named("baysDecisionService");
+    @Action public Assessments assess(Request request, Discovery discovery, Memories memory) {
+        var decisions = services.forEngine(request.engine());
         List<Assessment> values = new ArrayList<>();
         for (var option : discovery.search().options()) {
             String hard = hardStatus(option, request.availableMinutes());
@@ -112,7 +113,7 @@ public class BaysAgent {
             var choice = ((DecisionAnswer.Choice) answer.answer("fit")).getOutcome();
             var rating = ((DecisionAnswer.Rating) answer.answer("strength")).getOutcome();
             started = System.nanoTime();
-            var setting = classifications.classify(ClassificationRequest.of(input, SETTING));
+            var setting = decisions.classify(ClassificationRequest.of(input, SETTING));
             long classNanos = System.nanoTime() - started;
             String model = proposition instanceof PropositionResult.Answered a && a.getProvenance() != null
                     ? a.getProvenance().getProvider() + "/" + a.getProvenance().getModelName() : "unreported";

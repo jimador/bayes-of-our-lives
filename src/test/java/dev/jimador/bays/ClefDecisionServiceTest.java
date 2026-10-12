@@ -46,11 +46,11 @@ class ClefDecisionServiceTest {
         assertNull(response.getRequestFailure());
         assertTrue(((PropositionResult.Answered) ((DecisionAnswer.Proposition) response.answer("interest-match"))
                 .getOutcome()).getAnswer());
-        assertEquals("prefer", BaysAgent.value(((DecisionAnswer.Choice) response.answer("fit")).getOutcome()));
+        assertEquals("prefer", BayesAgent.value(((DecisionAnswer.Choice) response.answer("fit")).getOutcome()));
         var rating = (RatingResult.Answered) ((DecisionAnswer.Rating) response.answer("strength")).getOutcome();
         assertEquals("strong", rating.getSelectedLevelId());
         assertEquals(3, rating.getDistribution().size());
-        assertEquals("indoor", BaysAgent.value(service.classify(ClassificationRequest.of("venue", SETTING))));
+        assertEquals("indoor", BayesAgent.value(service.classify(ClassificationRequest.of("venue", SETTING))));
     }
 
     @Test void missingArtifactAndMalformedResponseFailClosed() throws Exception {

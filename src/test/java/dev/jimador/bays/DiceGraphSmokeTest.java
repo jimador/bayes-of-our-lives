@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Explicit opt-in graph check; the initializer owns the disposable container. */
 @EnabledIfSystemProperty(named = "bays.dice-smoke", matches = "true")
 @ContextConfiguration(initializers = OwnedNeo4j.class)
-@SpringBootTest(classes = BaysApplication.class, properties = {
+@SpringBootTest(classes = BayesApplication.class, properties = {
         "demo.dice.enabled=true", "bays.mode=fixed", "bays.profile=art-quiet",
         "embabel.agent.platform.models.openai.api-key=unused-local-mode"
 })

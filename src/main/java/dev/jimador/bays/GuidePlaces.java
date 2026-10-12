@@ -32,15 +32,24 @@ public class GuidePlaces {
     }
 
     public Search search(String mode, String city, String intent) {
+        return search(mode, city, intent, "lunch");
+    }
+
+    public Search search(String mode, String city, String intent, String mealPeriod) {
         if (!List.of("sights", "meal").contains(intent)) throw new IllegalArgumentException("intent must be sights or meal");
+        if (!List.of("breakfast", "lunch", "dinner").contains(mealPeriod))
+            throw new IllegalArgumentException("meal period must be breakfast, lunch, or dinner");
         return switch (mode) {
-            case "fixed" -> fixed(intent);
-            case "live" -> live(city, intent);
+            case "fixed" -> fixed(intent, mealPeriod);
+            case "live" -> live(city, intent, mealPeriod);
             default -> throw new IllegalArgumentException("bays.mode must be fixed or live");
         };
     }
 
     static Search fixed(String intent) {
+        return fixed(intent, "lunch");
+    }
+    static Search fixed(String intent, String mealPeriod) {
         List<Option> options = intent.equals("sights") ? List.of(
                 new Option("Pocket Art Gallery", "synthetic://bays/art", "indoor", "art", "quiet", 8, 45),
                 new Option("Hands-On Science Hall", "synthetic://bays/science", "indoor", "science", "lively", 18, 45),
@@ -48,10 +57,15 @@ public class GuidePlaces {
                 new Option("Little Bakery", "synthetic://bays/bakery", "indoor", "bakery", "quiet", 9, 40),
                 new Option("Bright Noodle Counter", "synthetic://bays/noodles", "indoor", "spicy", "lively", 14, 40),
                 new Option("Market Lunch Room", "synthetic://bays/market", "indoor", "market", "lively", 7, 40));
+        if (intent.equals("meal")) options = switch (mealPeriod) {
+            case "breakfast" -> List.of(options.getFirst());
+            case "dinner" -> List.of(options.get(1));
+            default -> options;
+        };
         return new Search("Harborview (fictional)", "synthetic Bays catalog", Instant.now(), options);
     }
 
-    private Search live(String city, String intent) {
+    private Search live(String city, String intent, String mealPeriod) {
         try {
             if (city == null || city.isBlank()) throw new IllegalArgumentException("A city is required");
             String geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + enc(city)
@@ -60,7 +74,8 @@ public class GuidePlaces {
             if (!matches.isArray() || matches.isEmpty()) throw new IllegalArgumentException("City not geocoded: " + city);
             JsonNode center = matches.get(0);
             double lat = center.path("latitude").asDouble(), lon = center.path("longitude").asDouble();
-            String placeUrl = nominatim + "/search?q=" + enc((intent.equals("meal") ? "restaurant, " : "museum, ") + city)
+            String placeUrl = nominatim + "/search?q=" + enc((intent.equals("meal")
+                    ? (mealPeriod.equals("breakfast") ? "cafe, " : "restaurant, ") : "museum, ") + city)
                     + "&format=jsonv2&limit=3";
             List<Option> options = new ArrayList<>();
             for (JsonNode place : get(placeUrl)) {

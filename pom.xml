@@ -21,6 +21,7 @@
     <dependency><groupId>com.embabel.agent</groupId><artifactId>embabel-agent-starter-openai</artifactId><version>${embabel.version}</version></dependency>
     <dependency><groupId>com.embabel.agent</groupId><artifactId>embabel-agent-typesafe</artifactId><version>${embabel.version}</version></dependency>
     <dependency><groupId>com.embabel.agent</groupId><artifactId>embabel-agent-rag-core</artifactId><version>${embabel.version}</version></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
     <dependency><groupId>com.embabel.dice</groupId><artifactId>dice-storage-autoconfigure</artifactId><version>${dice.version}</version></dependency>
     <dependency><groupId>org.testcontainers</groupId><artifactId>neo4j</artifactId><version>1.21.4</version></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>

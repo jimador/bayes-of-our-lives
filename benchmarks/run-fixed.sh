@@ -15,6 +15,7 @@ if [[ "$engine" == openai && -z "${OPENAI_API_KEY:-}" ]]; then
   echo "OPENAI_API_KEY is required in the process environment" >&2; exit 2
 fi
 java -jar target/bays-0.1.0.jar \
+  --bays.cli=true \
   --bays.mode=fixed --bays.intent=sights --bays.profile=art-quiet --bays.available-minutes=90 \
   "--demo.engine=$engine" --embabel.agent.platform.decisions.llm.max-attempts=1 > "$output" 2>&1
 python3 benchmarks/verify_capture.py benchmarks/fixed-art-quiet.json "$output"
