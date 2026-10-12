@@ -135,4 +135,5 @@ footer{flex-direction:column}
 .itinerary-stop strong{display:block;color:#254f42}
 .itinerary-stop small{color:#667c71}
 .itinerary-stop a{display:inline-block;margin-top:7px;color:#24745d;font-size:12px}
+.follow-up{justify-content:flex-start;flex-wrap:wrap;margin:16px 0}
 .question-list{color:#885c3c;font-size:13px;line-height:1.5;padding-left:20px}

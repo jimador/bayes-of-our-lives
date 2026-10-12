@@ -32,7 +32,9 @@ public class BayesItineraryController {
         return error(HttpStatus.BAD_GATEWAY, "DECISION_FAILED", "The model did not return a complete typed itinerary answer.");
     }
     @ExceptionHandler(Exception.class)
-    ResponseEntity<Map<String, String>> unavailable() {
+    ResponseEntity<Map<String, String>> unavailable(Exception failure) {
+        System.err.println("itineraryUnavailable class=" + failure.getClass().getSimpleName()
+                + " cause=" + (failure.getCause() == null ? "none" : failure.getCause().getClass().getSimpleName()));
         return error(HttpStatus.BAD_GATEWAY, "RESEARCH_UNAVAILABLE",
                 "The itinerary could not finish. Try again or adjust the city or starting location.");
     }

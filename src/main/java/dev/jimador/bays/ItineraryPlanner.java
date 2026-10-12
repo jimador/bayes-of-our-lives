@@ -65,7 +65,6 @@ public class ItineraryPlanner {
             List<String> researchGaps, BetweenPlaces route) {
         List<Stop> stops = new ArrayList<>();
         List<String> questions = new ArrayList<>(researchGaps);
-        questions.add("Check live traffic and travel conditions before leaving; route times are base estimates.");
         LocalTime cursor = request.startTime();
         GuidePlaces.Option prior = null;
         boolean invalid = false;
@@ -97,8 +96,6 @@ public class ItineraryPlanner {
             List<String> stopQuestions = new ArrayList<>();
             if (hoursFit == OpeningHours.Fit.UNKNOWN)
                 stopQuestions.add("Verify opening hours for " + option.name() + " on the chosen date.");
-            else if (hoursFit == OpeningHours.Fit.TAGGED_OPEN)
-                stopQuestions.add("Confirm current opening hours with " + option.name() + "; map tags may be stale.");
             if (hoursFit == OpeningHours.Fit.TAGGED_CLOSED) {
                 invalid = true;
                 stopQuestions.add("Mapped hours mark " + option.name() + " closed at the planned time.");
@@ -106,25 +103,30 @@ public class ItineraryPlanner {
             String wheelchair = tags.getOrDefault("wheelchair", "unknown");
             if (request.stepFreeAccess()) {
                 if (wheelchair.equals("no")) invalid = true;
-                if (!wheelchair.equals("yes"))
-                    stopQuestions.add("Confirm step-free access for " + option.name() + ".");
+                stopQuestions.add("Confirm step-free access through " + option.name()
+                        + " and its approach; a mapped wheelchair tag cannot establish the whole route.");
             }
             boolean food = !task.kind().equals("sight");
             if (food && request.hasDietaryNeed())
                 stopQuestions.add("Confirm dietary and allergy needs directly with " + option.name() + ".");
-            if (request.childrenCount() > 0 && !tags.containsKey("kids_area"))
+            if (food && !tags.containsKey("cuisine"))
+                stopQuestions.add("Check cuisine and menu for " + option.name() + ".");
+            if (request.childrenCount() > 0)
                 stopQuestions.add("Confirm suitability for children at " + option.name() + ".");
-            if (task.kind().equals("sight") && !tags.containsKey("fee"))
-                stopQuestions.add("Check admission details for " + option.name() + ".");
+            if (task.kind().equals("sight") && !"no".equals(tags.get("fee")))
+                stopQuestions.add("Confirm admission price and availability for " + option.name() + ".");
             questions.addAll(stopQuestions);
             stops.add(new Stop(task.kind(), option.name(), starts, ends, travel, option.sourceUrl(),
-                    hours, hoursFit.name().toLowerCase(Locale.ROOT), wheelchair,
+                    hours, hoursFit == OpeningHours.Fit.TAGGED_OPEN ? "tagged_open_unverified"
+                            : hoursFit.name().toLowerCase(Locale.ROOT), wheelchair,
                     tags.getOrDefault("cuisine", "unknown"), tags.getOrDefault("fee", "unknown"),
                     List.copyOf(stopQuestions)));
             prior = option;
         }
         int elapsed = cursor == null ? -1 : (int) java.time.Duration.between(request.startTime(), cursor).toMinutes();
-        String status = invalid ? "invalid" : questions.isEmpty() ? "sourced" : "unresolved";
+        if (cursor != null && java.time.Duration.between(cursor, request.endTime()).toMinutes() < 30)
+            questions.add("Check live traffic before relying on this tight arrival window; routes are base estimates.");
+        String status = invalid ? "invalid" : questions.isEmpty() ? "provisional" : "unresolved";
         return new Alternative(id, "Outing " + id.toUpperCase(Locale.ROOT), status,
                 List.copyOf(stops), List.copyOf(questions), elapsed);
     }

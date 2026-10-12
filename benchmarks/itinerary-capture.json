@@ -1,0 +1,320 @@
+{
+  "schema": "bayes-itinerary-capture-v1",
+  "capturedUtc": "2026-10-12T03:12:27.728247Z",
+  "request": {
+    "city": "Miami, Florida",
+    "startingLocation": "Downtown Miami",
+    "date": "2026-10-14",
+    "startTime": "07:00",
+    "endTime": "14:00",
+    "breakfast": true,
+    "coffee": false,
+    "earlyFoodDeclined": false,
+    "lunch": true,
+    "dinner": false,
+    "partySize": 2,
+    "childrenCount": 0,
+    "interests": "art",
+    "pace": "steady",
+    "stepFreeAccess": false,
+    "dietaryOrAllergyNeeds": "",
+    "engine": "local",
+    "publicMapConsent": true,
+    "remoteModelConsent": false,
+    "profileId": null,
+    "rememberPreferences": false,
+    "useRememberedPreferences": false
+  },
+  "memory": {
+    "context": "captured-synthetic-art-steady",
+    "interests": "art",
+    "pace": "steady",
+    "factIds": [
+      "captured-interests",
+      "captured-pace"
+    ]
+  },
+  "alternatives": [
+    {
+      "id": "a",
+      "title": "Outing A",
+      "status": "invalid",
+      "stops": [
+        {
+          "kind": "breakfast",
+          "name": "Cafe Galleria",
+          "startsAt": "07:02:00",
+          "endsAt": "07:42:00",
+          "baseTravelMinutes": 2,
+          "sourceUrl": "https://www.openstreetmap.org/node/6114013485",
+          "openingHours": null,
+          "hoursFit": "unknown",
+          "wheelchairTag": "unknown",
+          "cuisineTag": "unknown",
+          "admissionTag": "unknown",
+          "openQuestions": [
+            "Verify opening hours for Cafe Galleria on the chosen date.",
+            "Check cuisine and menu for Cafe Galleria."
+          ]
+        },
+        {
+          "kind": "sight",
+          "name": "Pérez Art Museum Miami",
+          "startsAt": "07:46:00",
+          "endsAt": "08:46:00",
+          "baseTravelMinutes": 4,
+          "sourceUrl": "https://www.openstreetmap.org/way/484587327",
+          "openingHours": "Mo,Fr-Su 11:00-18:00; Tu-We off; Th 11:00-21:00",
+          "hoursFit": "tagged_closed",
+          "wheelchairTag": "unknown",
+          "cuisineTag": "unknown",
+          "admissionTag": "unknown",
+          "openQuestions": [
+            "Mapped hours mark Pérez Art Museum Miami closed at the planned time.",
+            "Confirm admission price and availability for Pérez Art Museum Miami."
+          ]
+        },
+        {
+          "kind": "lunch",
+          "name": "Versailles Restaurant",
+          "startsAt": "11:00:00",
+          "endsAt": "11:50:00",
+          "baseTravelMinutes": 12,
+          "sourceUrl": "https://www.openstreetmap.org/node/1576341770",
+          "openingHours": null,
+          "hoursFit": "unknown",
+          "wheelchairTag": "unknown",
+          "cuisineTag": "unknown",
+          "admissionTag": "unknown",
+          "openQuestions": [
+            "Verify opening hours for Versailles Restaurant on the chosen date.",
+            "Check cuisine and menu for Versailles Restaurant."
+          ]
+        }
+      ],
+      "openQuestions": [
+        "Verify opening hours for Cafe Galleria on the chosen date.",
+        "Check cuisine and menu for Cafe Galleria.",
+        "Mapped hours mark Pérez Art Museum Miami closed at the planned time.",
+        "Confirm admission price and availability for Pérez Art Museum Miami.",
+        "Verify opening hours for Versailles Restaurant on the chosen date.",
+        "Check cuisine and menu for Versailles Restaurant."
+      ],
+      "elapsedMinutes": 290
+    },
+    {
+      "id": "b",
+      "title": "Outing B",
+      "status": "unresolved",
+      "stops": [
+        {
+          "kind": "breakfast",
+          "name": "Cafe Con Leche",
+          "startsAt": "07:03:00",
+          "endsAt": "07:43:00",
+          "baseTravelMinutes": 3,
+          "sourceUrl": "https://www.openstreetmap.org/node/7844732317",
+          "openingHours": null,
+          "hoursFit": "unknown",
+          "wheelchairTag": "unknown",
+          "cuisineTag": "unknown",
+          "admissionTag": "unknown",
+          "openQuestions": [
+            "Verify opening hours for Cafe Con Leche on the chosen date.",
+            "Check cuisine and menu for Cafe Con Leche."
+          ]
+        },
+        {
+          "kind": "sight",
+          "name": "Patricia & Phillip Frost Art Museum",
+          "startsAt": "08:08:00",
+          "endsAt": "09:08:00",
+          "baseTravelMinutes": 25,
+          "sourceUrl": "https://www.openstreetmap.org/way/112768020",
+          "openingHours": null,
+          "hoursFit": "unknown",
+          "wheelchairTag": "unknown",
+          "cuisineTag": "unknown",
+          "admissionTag": "unknown",
+          "openQuestions": [
+            "Verify opening hours for Patricia & Phillip Frost Art Museum on the chosen date.",
+            "Confirm admission price and availability for Patricia & Phillip Frost Art Museum."
+          ]
+        },
+        {
+          "kind": "lunch",
+          "name": "El Cartel Colombian Restaurant",
+          "startsAt": "11:00:00",
+          "endsAt": "11:50:00",
+          "baseTravelMinutes": 23,
+          "sourceUrl": "https://www.openstreetmap.org/node/1024679363",
+          "openingHours": null,
+          "hoursFit": "unknown",
+          "wheelchairTag": "unknown",
+          "cuisineTag": "unknown",
+          "admissionTag": "unknown",
+          "openQuestions": [
+            "Verify opening hours for El Cartel Colombian Restaurant on the chosen date.",
+            "Check cuisine and menu for El Cartel Colombian Restaurant."
+          ]
+        }
+      ],
+      "openQuestions": [
+        "Verify opening hours for Cafe Con Leche on the chosen date.",
+        "Check cuisine and menu for Cafe Con Leche.",
+        "Verify opening hours for Patricia & Phillip Frost Art Museum on the chosen date.",
+        "Confirm admission price and availability for Patricia & Phillip Frost Art Museum.",
+        "Verify opening hours for El Cartel Colombian Restaurant on the chosen date.",
+        "Check cuisine and menu for El Cartel Colombian Restaurant."
+      ],
+      "elapsedMinutes": 290
+    }
+  ],
+  "researchedPlaces": [
+    {
+      "name": "Pérez Art Museum Miami",
+      "sourceUrl": "https://www.openstreetmap.org/way/484587327",
+      "openingHours": "Mo,Fr-Su 11:00-18:00; Tu-We off; Th 11:00-21:00",
+      "wheelchairTag": "unknown",
+      "cuisineTag": "unknown",
+      "admissionTag": "unknown",
+      "websiteEvidence": {
+        "venue": "Pérez Art Museum Miami",
+        "pageUrl": "https://www.pamm.org/",
+        "status": "unavailable",
+        "retrievedUtc": "2026-10-12T03:12:27.879827Z",
+        "pageTitle": null,
+        "topicClues": []
+      }
+    },
+    {
+      "name": "Patricia & Phillip Frost Art Museum",
+      "sourceUrl": "https://www.openstreetmap.org/way/112768020",
+      "openingHours": null,
+      "wheelchairTag": "unknown",
+      "cuisineTag": "unknown",
+      "admissionTag": "unknown",
+      "websiteEvidence": {
+        "venue": "Patricia & Phillip Frost Art Museum",
+        "pageUrl": "https://frost.fiu.edu/",
+        "status": "retrieved",
+        "retrievedUtc": "2026-10-12T03:12:28.346453Z",
+        "pageTitle": null,
+        "topicClues": []
+      }
+    },
+    {
+      "name": "Patricia and Phillip Frost Museum of Science",
+      "sourceUrl": "https://www.openstreetmap.org/way/319426548",
+      "openingHours": "Mo-Su 10:00-18:00",
+      "wheelchairTag": "unknown",
+      "cuisineTag": "unknown",
+      "admissionTag": "unknown",
+      "websiteEvidence": {
+        "venue": "Patricia and Phillip Frost Museum of Science",
+        "pageUrl": "https://www.frostscience.org/",
+        "status": "retrieved",
+        "retrievedUtc": "2026-10-12T03:12:29.024112Z",
+        "pageTitle": null,
+        "topicClues": []
+      }
+    },
+    {
+      "name": "Cafe Galleria",
+      "sourceUrl": "https://www.openstreetmap.org/node/6114013485",
+      "openingHours": null,
+      "wheelchairTag": "unknown",
+      "cuisineTag": "unknown",
+      "admissionTag": "unknown",
+      "websiteEvidence": {
+        "venue": "Cafe Galleria",
+        "pageUrl": null,
+        "status": "no_website_tag",
+        "retrievedUtc": "2026-10-12T03:12:29.027127Z",
+        "pageTitle": null,
+        "topicClues": []
+      }
+    },
+    {
+      "name": "Cafe Con Leche",
+      "sourceUrl": "https://www.openstreetmap.org/node/7844732317",
+      "openingHours": null,
+      "wheelchairTag": "unknown",
+      "cuisineTag": "unknown",
+      "admissionTag": "unknown",
+      "websiteEvidence": {
+        "venue": "Cafe Con Leche",
+        "pageUrl": null,
+        "status": "not_requested",
+        "retrievedUtc": null,
+        "pageTitle": null,
+        "topicClues": []
+      }
+    },
+    {
+      "name": "Cafe Papillon",
+      "sourceUrl": "https://www.openstreetmap.org/node/4235839089",
+      "openingHours": null,
+      "wheelchairTag": "unknown",
+      "cuisineTag": "unknown",
+      "admissionTag": "unknown",
+      "websiteEvidence": {
+        "venue": "Cafe Papillon",
+        "pageUrl": null,
+        "status": "not_requested",
+        "retrievedUtc": null,
+        "pageTitle": null,
+        "topicClues": []
+      }
+    },
+    {
+      "name": "Versailles Restaurant",
+      "sourceUrl": "https://www.openstreetmap.org/node/1576341770",
+      "openingHours": null,
+      "wheelchairTag": "unknown",
+      "cuisineTag": "unknown",
+      "admissionTag": "unknown",
+      "websiteEvidence": {
+        "venue": "Versailles Restaurant",
+        "pageUrl": null,
+        "status": "not_requested",
+        "retrievedUtc": null,
+        "pageTitle": null,
+        "topicClues": []
+      }
+    },
+    {
+      "name": "El Cartel Colombian Restaurant",
+      "sourceUrl": "https://www.openstreetmap.org/node/1024679363",
+      "openingHours": null,
+      "wheelchairTag": "unknown",
+      "cuisineTag": "unknown",
+      "admissionTag": "unknown",
+      "websiteEvidence": {
+        "venue": "El Cartel Colombian Restaurant",
+        "pageUrl": null,
+        "status": "not_requested",
+        "retrievedUtc": null,
+        "pageTitle": null,
+        "topicClues": []
+      }
+    },
+    {
+      "name": "Braga Portuguese Restaurant",
+      "sourceUrl": "https://www.openstreetmap.org/node/12631824771",
+      "openingHours": null,
+      "wheelchairTag": "unknown",
+      "cuisineTag": "unknown",
+      "admissionTag": "unknown",
+      "websiteEvidence": {
+        "venue": "Braga Portuguese Restaurant",
+        "pageUrl": null,
+        "status": "not_requested",
+        "retrievedUtc": null,
+        "pageTitle": null,
+        "topicClues": []
+      }
+    }
+  ],
+  "decisionInputSha256": "e835eaa08dd0c0c8eca1d5c3bc2ed71a368a1453fd8a600d8daaf7fa213db46d"
+}

@@ -11,7 +11,23 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
         boolean earlyFoodDeclined,
         boolean lunch, boolean dinner, int partySize, int childrenCount,
         String interests, String pace, boolean stepFreeAccess, String dietaryOrAllergyNeeds,
-        String engine, boolean publicMapConsent, boolean remoteModelConsent) {
+        String engine, boolean publicMapConsent, boolean remoteModelConsent,
+        String profileId, Boolean rememberPreferences, Boolean useRememberedPreferences) {
+
+    @com.fasterxml.jackson.annotation.JsonCreator public ItineraryRequest {
+        rememberPreferences = Boolean.TRUE.equals(rememberPreferences);
+        useRememberedPreferences = Boolean.TRUE.equals(useRememberedPreferences);
+    }
+
+    public ItineraryRequest(String city, String startingLocation, LocalDate date, LocalTime startTime,
+            LocalTime endTime, boolean breakfast, boolean coffee, boolean earlyFoodDeclined,
+            boolean lunch, boolean dinner, int partySize, int childrenCount, String interests,
+            String pace, boolean stepFreeAccess, String dietaryOrAllergyNeeds, String engine,
+            boolean publicMapConsent, boolean remoteModelConsent) {
+        this(city, startingLocation, date, startTime, endTime, breakfast, coffee, earlyFoodDeclined,
+                lunch, dinner, partySize, childrenCount, interests, pace, stepFreeAccess,
+                dietaryOrAllergyNeeds, engine, publicMapConsent, remoteModelConsent, null, false, false);
+    }
 
     public void validateShape() {
         if (city == null || city.isBlank() || city.length() > 100 || hasControl(city))
@@ -25,13 +41,17 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
             throw new IllegalArgumentException("Dietary notes must be at most 120 characters");
         if (partySize < 1 || partySize > 8 || childrenCount < 0 || childrenCount >= partySize)
             throw new IllegalArgumentException("Enter a party of 1 to 8, with fewer children than travelers");
-        if (pace == null || !List.of("relaxed", "steady", "busy").contains(pace))
+        if ((!useRememberedPreferences || (pace != null && !pace.isBlank()))
+                && (pace == null || !List.of("relaxed", "steady", "busy").contains(pace)))
             throw new IllegalArgumentException("Choose relaxed, steady, or busy pace");
-        if (engine == null || !List.of("local", "jev", "openai").contains(engine))
+        if ((rememberPreferences || useRememberedPreferences)
+                && (profileId == null || !profileId.matches("[0-9a-fA-F-]{36}")))
+            throw new IllegalArgumentException("A private profile ID is required to remember preferences");
+        if (engine == null || !List.of("local", "jev", "openai", "clef").contains(engine))
             throw new IllegalArgumentException("Choose a listed decision engine");
         if (!publicMapConsent)
             throw new IllegalArgumentException("Confirm sharing the city and start location with public map services");
-        if (!engine.equals("local") && !remoteModelConsent)
+        if (List.of("jev", "openai").contains(engine) && !remoteModelConsent)
             throw new IllegalArgumentException("Confirm remote model sharing before selecting Jev or GPT-4.1");
     }
 
@@ -52,7 +72,7 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
             if (dinner && (endTime.isBefore(LocalTime.of(17, 0)) || startTime.isAfter(LocalTime.of(21, 0))))
                 missing.add("Dinner falls outside this time window. Change the window or dinner requirement.");
         }
-        if (interests == null || interests.isBlank())
+        if (!useRememberedPreferences && (interests == null || interests.isBlank()))
             missing.add("What would you like to see or do? Add an interest before planning.");
         return List.copyOf(missing);
     }
@@ -60,6 +80,18 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
     public String safeInterests() { return interests == null ? "" : interests.trim(); }
     public boolean hasDietaryNeed() {
         return dietaryOrAllergyNeeds != null && !dietaryOrAllergyNeeds.isBlank();
+    }
+    public ItineraryRequest resolvedPreferences(String resolvedInterests, String resolvedPace) {
+        return new ItineraryRequest(city, startingLocation, date, startTime, endTime, breakfast, coffee,
+                earlyFoodDeclined, lunch, dinner, partySize, childrenCount, resolvedInterests, resolvedPace,
+                stepFreeAccess, dietaryOrAllergyNeeds, engine, publicMapConsent, remoteModelConsent,
+                profileId, rememberPreferences, useRememberedPreferences);
+    }
+    public ItineraryRequest withEngine(String selectedEngine) {
+        return new ItineraryRequest(city, startingLocation, date, startTime, endTime, breakfast, coffee,
+                earlyFoodDeclined, lunch, dinner, partySize, childrenCount, interests, pace,
+                stepFreeAccess, dietaryOrAllergyNeeds, selectedEngine, publicMapConsent, true,
+                profileId, rememberPreferences, useRememberedPreferences);
     }
     private static boolean hasControl(String text) {
         return text.chars().anyMatch(Character::isISOControl);

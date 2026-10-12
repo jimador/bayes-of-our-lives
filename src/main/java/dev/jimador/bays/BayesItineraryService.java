@@ -15,25 +15,32 @@ public class BayesItineraryService {
                          List<ItineraryPlanner.Alternative> alternatives, Answer decision,
                          String memoryContext, List<String> memoryFactIds, String rememberedInterests,
                          String rememberedPace, List<String> researchSources, String retrievedUtc,
-                         List<String> questions, long processMs) {}
+                         List<String> questions, long processMs,
+                         List<BayesAgent.ResearchedPointOfInterest> researchedPlaces) {}
 
     private final AgentPlatform platform;
     private final BayesDecisionServices decisions;
-    public BayesItineraryService(AgentPlatform platform, BayesDecisionServices decisions) {
-        this.platform = platform; this.decisions = decisions;
+    private final ItineraryMemory memory;
+    public BayesItineraryService(AgentPlatform platform, BayesDecisionServices decisions, ItineraryMemory memory) {
+        this.platform = platform; this.decisions = decisions; this.memory = memory;
     }
 
     public Result plan(ItineraryRequest request) {
         request.validateShape();
-        List<String> questions = request.questions();
+        if (request.useRememberedPreferences() && memory.previous(request.profileId()).isEmpty())
+            return new Result("needs_input", request.city(), request.date() == null ? null : request.date().toString(),
+                    null, List.of(), null, null, List.of(), null, null, List.of(), null,
+                    List.of("No saved preferences were found for this profile. Enter interests and pace, then choose to save them."), 0, List.of());
+        var effective = memory.resolve(request);
+        List<String> questions = effective.questions();
         if (!questions.isEmpty()) return new Result("needs_input", request.city(),
                 request.date() == null ? null : request.date().toString(), null, List.of(), null,
-                null, List.of(), null, null, List.of(), null, questions, 0);
+                null, List.of(), null, null, List.of(), null, questions, 0, List.of());
         decisions.forItineraryEngine(request.engine());
         var agent = platform.agents().stream().filter(a -> a.getName().contains("BayesAgent"))
                 .findFirst().orElseThrow(BayesGuideService.GuideUnavailableException::new);
         long started = System.nanoTime();
-        var process = platform.createAgentProcessFrom(agent, new ProcessOptions(), request).run();
+        var process = platform.createAgentProcessFrom(agent, new ProcessOptions(), effective).run();
         long elapsed = (System.nanoTime() - started) / 1_000_000;
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED)
             throw new BayesGuideService.GuideUnavailableException();
@@ -52,6 +59,6 @@ public class BayesItineraryService {
         return new Result(plan.status(), plan.city(), plan.date(), plan.selectedAlternative(),
                 plan.alternatives(), answer, plan.memory().context(), plan.memory().factIds(),
                 plan.memory().interests(), plan.memory().pace(), plan.researchSources(),
-                plan.retrievedUtc(), open, elapsed);
+                plan.retrievedUtc(), open, elapsed, plan.researchedPlaces());
     }
 }

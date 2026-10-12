@@ -72,4 +72,41 @@ class ItineraryTest {
         assertFalse(input.contains("peanut"));
         assertTrue(input.contains("Dietary verification required: true"));
     }
+    @Test void generousTaggedOutlineCanBeProvisionalWithoutTrafficBlockingEveryDay() {
+        var sight = place("Art Hall", "art", 4, Map.of("opening_hours", "24/7", "fee", "no"));
+        var r = new ItineraryRequest("Miami", "Downtown", LocalDate.now().plusDays(1),
+                LocalTime.of(10, 0), LocalTime.of(14, 0), false, false, false,
+                false, false, 2, 0, "art", "steady", false, "", "local", true, false);
+        var plan = ItineraryPlanner.propose(r, new ItineraryMemory.Accepted("ctx", "art", "steady", List.of()),
+                findings(List.of(sight), List.of(), List.of()), (a, b) -> 5).getFirst();
+        assertEquals("provisional", plan.status());
+        assertTrue(plan.openQuestions().isEmpty());
+        assertEquals("tagged_open_unverified", plan.stops().getFirst().hoursFit());
+    }
+    @Test void accessibilityAndChildTagsNeverProveWholeOutingSuitable() {
+        var sight = place("Art Hall", "art", 4, Map.of("opening_hours", "24/7", "wheelchair", "yes",
+                "kids_area", "yes", "fee", "yes"));
+        var r = new ItineraryRequest("Miami", "Downtown", LocalDate.now().plusDays(1),
+                LocalTime.of(10, 0), LocalTime.of(14, 0), false, false, false,
+                false, false, 3, 1, "art", "steady", true, "", "local", true, false);
+        var plan = ItineraryPlanner.propose(r, new ItineraryMemory.Accepted("ctx", "art", "steady", List.of()),
+                findings(List.of(sight), List.of(), List.of()), (a, b) -> 5).getFirst();
+        assertEquals("unresolved", plan.status());
+        assertTrue(plan.openQuestions().stream().anyMatch(q -> q.contains("whole route")));
+        assertTrue(plan.openQuestions().stream().anyMatch(q -> q.contains("children")));
+        assertTrue(plan.openQuestions().stream().anyMatch(q -> q.contains("admission price")));
+    }
+
+    @Test void jacksonAcceptsRequestsWithoutOptionalMemoryFields() throws Exception {
+        String json = """
+            {"city":"Miami","startingLocation":"Downtown","date":"2026-10-14",
+             "startTime":"10:00","endTime":"14:00","partySize":2,"childrenCount":0,
+             "interests":"art","pace":"steady","engine":"local","publicMapConsent":true}
+            """;
+        var request = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules()
+                .readValue(json, ItineraryRequest.class);
+        assertEquals("Miami", request.city());
+        assertFalse(request.rememberPreferences());
+    }
+
 }

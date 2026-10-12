@@ -3,6 +3,9 @@ const result = document.querySelector('#result');
 const submitButton = document.querySelector('#submit');
 const cancelButton = document.querySelector('#cancel');
 const remoteConsent = document.querySelector('#remote-consent');
+const recallChoice = document.querySelector('#recall-choice');
+let savedProfileId = localStorage.getItem('bayes-profile-id');
+recallChoice.hidden = !savedProfileId;
 let pending = null, generation = 0;
 
 function node(tag, className, value) {
@@ -58,6 +61,25 @@ function renderItinerary(data) {
   if (data.status === 'needs_input') {
     wrap.append(node('span', 'result-kicker', 'A FEW DETAILS FIRST'), node('h2', '', 'Let’s fill the gaps.'));
     questions(wrap, data.questions);
+    if (data.questions.some(q => q.startsWith('With an early start'))) {
+      const choices = node('div', 'actions follow-up');
+      for (const [label, field] of [['Add breakfast', 'breakfast'], ['Add coffee', 'coffee'], ['Neither', 'earlyFoodDeclined']]) {
+        const button = node('button', 'button secondary', label);
+        button.type = 'button';
+        button.addEventListener('click', () => {
+          form.elements.breakfast.checked = field === 'breakfast';
+          form.elements.coffee.checked = field === 'coffee';
+          form.elements.earlyFoodDeclined.checked = field === 'earlyFoodDeclined';
+          form.requestSubmit();
+        });
+        choices.append(button);
+      }
+      wrap.append(choices);
+    }
+    const revise = node('button', 'button secondary', 'Edit the day and try again');
+    revise.type = 'button';
+    revise.addEventListener('click', () => form.scrollIntoView({behavior:'smooth', block:'start'}));
+    wrap.append(revise);
     show(wrap);
     return;
   }
@@ -81,14 +103,41 @@ function renderItinerary(data) {
     list.append(card);
   }
   wrap.append(list);
+  const revise = node('button', 'button secondary', 'Revise requirements');
+  revise.type = 'button';
+  revise.addEventListener('click', () => form.scrollIntoView({behavior:'smooth', block:'start'}));
+  wrap.append(revise);
   const detail = node('details', 'memory-details');
   detail.append(node('summary', '', 'See Dice memory and typed decision evidence'));
   detail.append(node('p', '', `Accepted for this outing: ${data.rememberedInterests}; ${data.rememberedPace} pace. Dice facts: ${(data.memoryFactIds || []).join(', ')}`));
   detail.append(node('p', '', `Typed result: ${data.decision?.completeness}; choice ${data.decision?.choice}; rating ${data.decision?.rating}; classification ${data.decision?.classification}. Input SHA-256: ${data.decision?.inputSha256}. Decision call ${Math.round(data.decision?.decisionMs || 0)} ms.`));
   wrap.append(detail);
+  const research = node('details', 'memory-details');
+  research.append(node('summary', '', 'Independent venue-page research'));
+  research.append(node('p', '', 'A website link recorded in OpenStreetMap is a research lead. Page snippets do not verify current hours, admission, access, menus, or food safety.'));
+  for (const place of data.researchedPlaces || []) {
+    const evidence = place.websiteEvidence;
+    const item = node('div', 'itinerary-stop');
+    item.append(node('strong', '', `${place.name}: ${evidence.status.replaceAll('_', ' ')}`));
+    if (/^https:\/\//.test(evidence.pageUrl || '')) {
+      const link = node('a', '', evidence.pageTitle || 'View venue website ↗');
+      link.href = evidence.pageUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; item.append(link);
+    }
+    for (const clue of evidence.topicClues || []) item.append(node('p', '', clue));
+    research.append(item);
+  }
+  wrap.append(research);
   show(wrap);
 }
-function updateEngine() { remoteConsent.hidden = form.elements.engine.value === 'local'; }
+function updateEngine() { remoteConsent.hidden = !['jev', 'openai'].includes(form.elements.engine.value); }
+function updateRecall() {
+  const recall = form.elements.useRememberedPreferences.checked;
+  form.elements.interests.disabled = recall;
+  form.elements.interests.required = !recall;
+  form.elements.pace.disabled = recall;
+}
+form.elements.useRememberedPreferences.addEventListener('change', updateRecall);
+updateRecall();
 form.elements.engine.addEventListener('change', updateEngine);
 updateEngine();
 form.elements.date.min = new Date().toISOString().slice(0, 10);
@@ -116,7 +165,10 @@ form.addEventListener('submit', async event => {
     partySize: Number(fields.partySize.value), childrenCount: Number(fields.childrenCount.value),
     interests: fields.interests.value.trim(), pace: fields.pace.value, stepFreeAccess: fields.stepFreeAccess.checked,
     dietaryOrAllergyNeeds: fields.dietaryOrAllergyNeeds.value.trim(), engine: fields.engine.value,
-    publicMapConsent: fields.publicMapConsent.checked, remoteModelConsent: fields.remoteModelConsent.checked
+    publicMapConsent: fields.publicMapConsent.checked, remoteModelConsent: fields.remoteModelConsent.checked,
+    profileId: savedProfileId || (fields.rememberPreferences.checked ? crypto.randomUUID() : null),
+    rememberPreferences: fields.rememberPreferences.checked,
+    useRememberedPreferences: fields.useRememberedPreferences.checked
   };
   busy(true);
   message('RESEARCHING', 'Building your day…', 'Looking up mapped places and base routes, retrieving accepted Dice preferences, and comparing itinerary alternatives.');
@@ -126,7 +178,14 @@ form.addEventListener('submit', async event => {
     const data = await response.json();
     if (current !== generation) return;
     if (!response.ok) message(data.code || 'ERROR', 'Bayes could not finish.', data.message || 'Check the details and try again.');
-    else renderItinerary(data);
+    else {
+      if (query.rememberPreferences && data.status !== 'needs_input') {
+        localStorage.setItem('bayes-profile-id', query.profileId);
+        savedProfileId = query.profileId;
+        recallChoice.hidden = false;
+      }
+      renderItinerary(data);
+    }
   } catch (error) {
     if (current !== generation || error.name === 'AbortError') return;
     message('CONNECTION ERROR', 'Bayes could not connect.', 'Check that the local app is running, then try again.');
