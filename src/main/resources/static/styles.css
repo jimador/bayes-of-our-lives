@@ -119,3 +119,20 @@ footer{flex-direction:column}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}
 .loading-orb{animation:none}
 }
+.time-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.checks{border:0;padding:0;margin:28px 0 0}
+.checks legend{font-size:12px;font-weight:800;color:#39564f;margin-bottom:12px}
+.check-grid{display:flex;flex-wrap:wrap;gap:12px 20px}
+.check-grid label,.consents label{font-size:13px;color:#39564f;cursor:pointer}
+.checks small{display:block;margin-top:10px;color:#899990;font-size:11px}
+.consents{display:grid;gap:12px;margin-top:25px}
+.checks input,.consents input{accent-color:#478d70}
+.itinerary-list{display:grid;gap:18px;margin-top:22px}
+.itinerary-card{border:1px solid #dbe5da;border-radius:12px;background:#fff;padding:20px}
+.itinerary-card.selected{border-color:#4e9a73;background:#f4faf3}
+.itinerary-card h3{margin:0;color:#285748}
+.itinerary-stop{border-left:3px solid #bdd8c5;padding:5px 0 8px 16px;margin:16px 0}
+.itinerary-stop strong{display:block;color:#254f42}
+.itinerary-stop small{color:#667c71}
+.itinerary-stop a{display:inline-block;margin-top:7px;color:#24745d;font-size:12px}
+.question-list{color:#885c3c;font-size:13px;line-height:1.5;padding-left:20px}

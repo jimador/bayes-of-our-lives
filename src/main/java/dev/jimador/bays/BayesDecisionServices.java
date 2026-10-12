@@ -35,6 +35,10 @@ public class BayesDecisionServices {
         return services.computeIfAbsent(engine, this::create);
     }
 
+    public DecisionService forItineraryEngine(String engine) {
+        return engine.equals("local") ? new LocalItineraryDecisions() : forEngine(engine);
+    }
+
     private DecisionService create(String engine) {
         return switch (engine) {
             case "local" -> new LocalGuideDecisions();
