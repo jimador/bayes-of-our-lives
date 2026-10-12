@@ -98,6 +98,7 @@ function renderItinerary(data) {
     const card = node('article', `itinerary-card${alternative.id === data.selectedAlternative ? ' selected' : ''}`);
     card.append(node('h3', '', `${alternative.title}${alternative.id === data.selectedAlternative ? ' · selected' : ''}`),
       node('p', '', `Evidence status: ${alternative.status}. ${alternative.elapsedMinutes < 0 ? 'Timeline unresolved.' : `${alternative.elapsedMinutes} minutes from start to last stop.`}`));
+    if (alternative.planReason) card.append(node('p', '', `Planner rationale (unverified): ${alternative.planReason}`));
     for (const stop of alternative.stops) card.append(renderStop(stop));
     questions(card, alternative.openQuestions);
     list.append(card);
@@ -110,11 +111,11 @@ function renderItinerary(data) {
   const detail = node('details', 'memory-details');
   detail.append(node('summary', '', 'See Dice memory and typed decision evidence'));
   detail.append(node('p', '', `Accepted for this outing: ${data.rememberedInterests}; ${data.rememberedPace} pace. Dice facts: ${(data.memoryFactIds || []).join(', ')}`));
-  detail.append(node('p', '', `Typed result: ${data.decision?.completeness}; choice ${data.decision?.choice}; rating ${data.decision?.rating}; classification ${data.decision?.classification}. Input SHA-256: ${data.decision?.inputSha256}. Decision call ${Math.round(data.decision?.decisionMs || 0)} ms.`));
+  detail.append(node('p', '', `Typed result: ${data.decision?.completeness}; choice ${data.decision?.choice}; rating ${data.decision?.rating}; classification ${data.decision?.classification}. Targeted research retries: ${data.decision?.followupCount || 0}. Input SHA-256: ${data.decision?.inputSha256}. Decision calls ${Math.round(data.decision?.decisionMs || 0)} ms total.`));
   wrap.append(detail);
   const research = node('details', 'memory-details');
-  research.append(node('summary', '', 'Independent venue-page research'));
-  research.append(node('p', '', 'A website link recorded in OpenStreetMap is a research lead. Page snippets do not verify current hours, admission, access, menus, or food safety.'));
+  research.append(node('summary', '', 'Tripper-style LLM place research and sources'));
+  research.append(node('p', '', 'Venue websites and Wikipedia search leads are independent research inputs. Their clues and LLM summaries do not verify current hours, admission, access, menus, or food safety.'));
   for (const place of data.researchedPlaces || []) {
     const evidence = place.websiteEvidence;
     const item = node('div', 'itinerary-stop');
@@ -124,12 +125,17 @@ function renderItinerary(data) {
       link.href = evidence.pageUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; item.append(link);
     }
     for (const clue of evidence.topicClues || []) item.append(node('p', '', clue));
+    if (place.researchSummary) item.append(node('p', '', place.researchSummary));
+    for (const url of place.researchLinks || []) if (/^https:\/\//.test(url)) {
+      const source = node('a', '', 'Research source ↗');
+      source.href = url; source.target = '_blank'; source.rel = 'noopener noreferrer'; item.append(source);
+    }
     research.append(item);
   }
   wrap.append(research);
   show(wrap);
 }
-function updateEngine() { remoteConsent.hidden = !['jev', 'openai'].includes(form.elements.engine.value); }
+function updateEngine() { remoteConsent.hidden = false; }
 function updateRecall() {
   const recall = form.elements.useRememberedPreferences.checked;
   form.elements.interests.disabled = recall;

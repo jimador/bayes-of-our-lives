@@ -17,7 +17,12 @@ public class ItineraryPlanner {
                        String hoursFit, String wheelchairTag, String cuisineTag,
                        String admissionTag, List<String> openQuestions) {}
     public record Alternative(String id, String title, String status, List<Stop> stops,
-                              List<String> openQuestions, int elapsedMinutes) {}
+                              List<String> openQuestions, int elapsedMinutes, String planReason) {
+        public Alternative(String id, String title, String status, List<Stop> stops,
+                List<String> openQuestions, int elapsedMinutes) {
+            this(id, title, status, stops, openQuestions, elapsedMinutes, "");
+        }
+    }
     private record Task(String kind, GuidePlaces.Option option, int durationMinutes,
                         LocalTime earliest, LocalTime latest) {}
     @FunctionalInterface public interface BetweenPlaces {
@@ -31,6 +36,50 @@ public class ItineraryPlanner {
         return propose(request, memory, findings, (from, to) -> from.longitude() == null || from.latitude() == null
                 || to.longitude() == null || to.latitude() == null ? null
                 : places.route(from.longitude(), from.latitude(), to.longitude(), to.latitude()));
+    }
+
+    /** Validate and schedule the LLM's Tripper-style proposal; it cannot bypass mapped hard rules. */
+    public List<Alternative> proposeFromDraft(ItineraryRequest request, ItineraryResearch.Findings findings,
+            TripperCityPort.PlanDraft draft) {
+        return proposeFromDraft(request, findings, draft, (from, to) -> from.longitude() == null
+                || from.latitude() == null || to.longitude() == null || to.latitude() == null ? null
+                : places.route(from.longitude(), from.latitude(), to.longitude(), to.latitude()));
+    }
+
+    static List<Alternative> proposeFromDraft(ItineraryRequest request, ItineraryResearch.Findings findings,
+            TripperCityPort.PlanDraft draft, BetweenPlaces route) {
+        List<Alternative> alternatives = new ArrayList<>();
+        int index = 0;
+        for (var choice : draft.alternatives()) {
+            var sight = named(findings.sights(), choice.sight());
+            var cafe = named(findings.cafes(), choice.cafe());
+            var restaurant = named(findings.restaurants(), choice.restaurant());
+            List<Task> tasks = new ArrayList<>();
+            if (request.breakfast()) tasks.add(new Task("breakfast", cafe, 40, LocalTime.of(7, 0), LocalTime.of(10, 30)));
+            if (request.coffee()) tasks.add(new Task("coffee", cafe, 20, LocalTime.of(7, 0), LocalTime.of(11, 30)));
+            if (request.lunch() && choice.lunchBeforeSight())
+                tasks.add(new Task("lunch", restaurant, 50, LocalTime.of(11, 0), LocalTime.of(15, 0)));
+            tasks.add(new Task("sight", sight, switch (request.pace()) {
+                case "busy" -> 45; case "relaxed" -> 90; default -> 60;
+            }, request.startTime(), request.endTime()));
+            if (request.lunch() && !choice.lunchBeforeSight())
+                tasks.add(new Task("lunch", restaurant, 50, LocalTime.of(11, 0), LocalTime.of(15, 0)));
+            if (request.dinner()) tasks.add(new Task("dinner", restaurant, 60, LocalTime.of(17, 0), LocalTime.of(21, 0)));
+            var scheduled = schedule(index++ == 0 ? "a" : "b", request, tasks, findings.researchGaps(), route);
+            String title = choice.title() == null || choice.title().isBlank() ? scheduled.title()
+                    : choice.title().substring(0, Math.min(80, choice.title().length()));
+            String reason = choice.reason() == null ? "" : choice.reason().substring(0,
+                    Math.min(400, choice.reason().length()));
+            alternatives.add(new Alternative(scheduled.id(), title, scheduled.status(), scheduled.stops(),
+                    scheduled.openQuestions(), scheduled.elapsedMinutes(), reason));
+        }
+        return List.copyOf(alternatives);
+    }
+
+    private static GuidePlaces.Option named(List<GuidePlaces.Option> options, String name) {
+        if (name == null || name.isBlank()) return null;
+        return options.stream().filter(o -> o.name().equals(name)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("A proposal named an unmapped venue"));
     }
 
     static List<Alternative> propose(ItineraryRequest request, ItineraryMemory.Accepted memory,

@@ -3,6 +3,7 @@ package dev.jimador.bays;
 import com.embabel.agent.api.annotation.Action;
 import com.embabel.agent.api.annotation.AchievesGoal;
 import com.embabel.agent.api.annotation.Agent;
+import com.embabel.agent.api.common.OperationContext;
 import com.embabel.agent.api.common.ranking.Ranker;
 import com.embabel.agent.api.common.ranking.Ranking;
 import com.embabel.agent.api.common.ranking.Rankings;
@@ -40,15 +41,25 @@ public class BayesAgent {
 
     /** Tripper's brief, researched POIs, proposal and final plan as bounded typed Java values. */
     public record OutingProfile(ItineraryMemory.Accepted memory, ItineraryRequest requirements) {}
-    public record ItineraryIdeas(ItineraryResearch.Findings findings) {}
+    public record ItineraryIdeas(ItineraryResearch.Findings findings, TripperCityPort.DiscoveryDraft discovery) {}
     public record ResearchedPointOfInterest(String name, String sourceUrl, String openingHours,
             String wheelchairTag, String cuisineTag, String admissionTag,
-            OfficialPageResearch.Evidence websiteEvidence) {}
+            OfficialPageResearch.Evidence websiteEvidence, String researchSummary,
+            List<String> researchLinks) {
+        public ResearchedPointOfInterest(String name, String sourceUrl, String openingHours,
+                String wheelchairTag, String cuisineTag, String admissionTag,
+                OfficialPageResearch.Evidence websiteEvidence) {
+            this(name, sourceUrl, openingHours, wheelchairTag, cuisineTag, admissionTag,
+                    websiteEvidence, "", List.of());
+        }
+    }
     public record PointOfInterestFindings(ItineraryResearch.Findings findings,
             List<ResearchedPointOfInterest> researched) {}
     public record ProposedTravelPlan(List<ItineraryPlanner.Alternative> alternatives) {}
     public record ItineraryReview(String decisionInput, String completeness, String choice,
-            String rating, String classification, String model, long decisionNanos, long classificationNanos) {}
+            String rating, String classification, String model, long decisionNanos, long classificationNanos,
+            List<ItineraryPlanner.Alternative> reviewedAlternatives,
+            List<ResearchedPointOfInterest> reviewedResearch, int followupCount) {}
     public record TravelPlan(String city, String date, String status, String selectedAlternative,
             List<ItineraryPlanner.Alternative> alternatives, ItineraryReview review,
             ItineraryMemory.Accepted memory, List<String> researchSources, String retrievedUtc,
@@ -81,9 +92,12 @@ public class BayesAgent {
     private final ItineraryResearch itineraryResearch;
     private final ItineraryPlanner itineraryPlanner;
     private final OfficialPageResearch websiteResearch;
+    private final PublicWebResearch publicWebResearch;
+    private final TripperCityPort tripperPort;
     @Autowired public BayesAgent(GuidePlaces places, GuideMemories memories, BayesDecisionServices services,
             ItineraryMemory itineraryMemory, ItineraryResearch itineraryResearch, ItineraryPlanner itineraryPlanner,
-            OfficialPageResearch websiteResearch) {
+            OfficialPageResearch websiteResearch, PublicWebResearch publicWebResearch,
+            TripperCityPort tripperPort) {
         this.places = places;
         this.memories = memories;
         this.services = services;
@@ -91,9 +105,11 @@ public class BayesAgent {
         this.itineraryResearch = itineraryResearch;
         this.itineraryPlanner = itineraryPlanner;
         this.websiteResearch = websiteResearch;
+        this.publicWebResearch = publicWebResearch;
+        this.tripperPort = tripperPort;
     }
     BayesAgent(GuidePlaces places, GuideMemories memories, BayesDecisionServices services) {
-        this(places, memories, services, null, null, null, null);
+        this(places, memories, services, null, null, null, null, null, null);
     }
 
     @Action public OutingProfile collectProfile(ItineraryRequest request) {
@@ -102,32 +118,94 @@ public class BayesAgent {
         return new OutingProfile(itineraryMemory.rememberForThisOuting(request), request);
     }
 
-    @Action public ItineraryIdeas findPointsOfInterest(OutingProfile profile) {
-        return new ItineraryIdeas(itineraryResearch.findAndResearch(profile.requirements()));
+    @Action public ItineraryIdeas findPointsOfInterest(OutingProfile profile, OperationContext context) {
+        var found = itineraryResearch.findAndResearch(profile.requirements());
+        var discovery = tripperPort.discover(profile, found, context);
+        var sights = discovery.prioritizedPlaceNames().stream().map(name -> found.sights().stream()
+                .filter(o -> o.name().equals(name)).findFirst().orElseThrow()).toList();
+        return new ItineraryIdeas(new ItineraryResearch.Findings(found.city(), found.retrievedAt(),
+                sights, found.cafes(), found.restaurants(), found.sources(), found.researchGaps()), discovery);
     }
 
-    @Action public PointOfInterestFindings researchPointsOfInterest(ItineraryIdeas ideas) {
+    @Action public PointOfInterestFindings researchPointsOfInterest(ItineraryIdeas ideas, OperationContext context) {
         var found = ideas.findings();
         List<ResearchedPointOfInterest> values = new java.util.ArrayList<>();
         var researchUrls = java.util.stream.Stream.of(found.sights().stream().limit(2),
-                        found.cafes().stream().limit(2), found.restaurants().stream().limit(2))
+                        found.cafes().stream().limit(1), found.restaurants().stream().limit(1))
                 .flatMap(s -> s).map(GuidePlaces.Option::sourceUrl).collect(java.util.stream.Collectors.toSet());
         for (var o : java.util.stream.Stream.of(found.sights(), found.cafes(), found.restaurants())
                 .flatMap(List::stream).toList()) {
             OfficialPageResearch.Evidence evidence = researchUrls.contains(o.sourceUrl()) ? websiteResearch.research(o)
                     : new OfficialPageResearch.Evidence(o.name(), null, "not_requested", null, null, List.of());
+            String summary = "", researchLinks = "";
+            if (researchUrls.contains(o.sourceUrl())) {
+                var wiki = publicWebResearch.wikipedia(o.name(), found.city());
+                String evidenceText = evidence.status().equals("retrieved")
+                        ? evidence.pageUrl() + " title=" + evidence.pageTitle() + " clues=" + evidence.topicClues()
+                        : "Venue website unavailable or absent.";
+                if (wiki.url() != null) evidenceText += "\n" + wiki.url() + " " + wiki.excerpt();
+                var drafted = tripperPort.research(o.name(), o.setting(), evidenceText,
+                        "What is useful about this place and what remains unverified?", context);
+                summary = drafted.research();
+                researchLinks = String.join(" ", drafted.sourceUrls());
+            }
             values.add(new ResearchedPointOfInterest(o.name(), o.sourceUrl(),
                     o.osmTags().get("opening_hours"), o.osmTags().getOrDefault("wheelchair", "unknown"),
-                    o.osmTags().getOrDefault("cuisine", "unknown"), o.osmTags().getOrDefault("fee", "unknown"), evidence));
+                    o.osmTags().getOrDefault("cuisine", "unknown"), o.osmTags().getOrDefault("fee", "unknown"),
+                    evidence, summary, researchLinks.isBlank() ? List.of() : List.of(researchLinks.split(" "))));
         }
         return new PointOfInterestFindings(found, List.copyOf(values));
     }
 
-    @Action public ProposedTravelPlan proposeTravelPlan(OutingProfile profile, PointOfInterestFindings research) {
-        return new ProposedTravelPlan(itineraryPlanner.propose(profile.requirements(), profile.memory(), research.findings()));
+    @Action public ProposedTravelPlan proposeTravelPlan(OutingProfile profile, PointOfInterestFindings research,
+            OperationContext context) {
+        var draft = tripperPort.plan(profile, research, context);
+        return new ProposedTravelPlan(itineraryPlanner.proposeFromDraft(profile.requirements(),
+                research.findings(), draft));
     }
 
-    @Action public ItineraryReview decideItinerary(OutingProfile profile, PointOfInterestFindings research,
+    @Action public ItineraryReview decideItineraryWithResearch(OutingProfile profile,
+            PointOfInterestFindings research, ProposedTravelPlan proposal, OperationContext context) {
+        var first = decideItinerary(profile, research, proposal);
+        try {
+            return BoundedResearchLoop.run(first, 1, r -> r.choice().equals("research"), prior -> {
+            var gaps = proposal.alternatives().stream().filter(a -> !a.status().equals("invalid"))
+                    .flatMap(a -> a.openQuestions().stream()).distinct().limit(2).toList();
+            if (gaps.isEmpty()) return java.util.Optional.empty();
+            String question = gaps.getFirst();
+            for (var place : research.researched()) {
+                if (place.websiteEvidence() == null || place.websiteEvidence().pageUrl() == null) continue;
+                var page = publicWebResearch.targetedOfficialPage(place.websiteEvidence().pageUrl(), question);
+                if (!page.status().equals("retrieved_unverified") || page.excerpt().isBlank()
+                        || place.researchLinks().contains(page.url())) continue;
+                var drafted = tripperPort.research(place.name(), "venue", page.url() + " " + page.excerpt(),
+                        question, context);
+                var improved = new java.util.ArrayList<ResearchedPointOfInterest>();
+                for (var old : research.researched()) improved.add(old == place
+                        ? new ResearchedPointOfInterest(old.name(), old.sourceUrl(), old.openingHours(),
+                                old.wheelchairTag(), old.cuisineTag(), old.admissionTag(), old.websiteEvidence(),
+                                old.researchSummary() + "\nFollow-up: " + drafted.research(),
+                                java.util.stream.Stream.concat(old.researchLinks().stream(),
+                                        drafted.sourceUrls().stream()).distinct().toList()) : old);
+                var findings = new PointOfInterestFindings(research.findings(), List.copyOf(improved));
+                var newProposal = new ProposedTravelPlan(itineraryPlanner.proposeFromDraft(profile.requirements(),
+                        findings.findings(), tripperPort.plan(profile, findings, context)));
+                var second = decideItinerary(profile, findings, newProposal);
+                return java.util.Optional.of(new ItineraryReview(second.decisionInput(), second.completeness(),
+                        second.choice(), second.rating(), second.classification(), second.model(),
+                        first.decisionNanos() + second.decisionNanos(),
+                        first.classificationNanos() + second.classificationNanos(),
+                        newProposal.alternatives(), findings.researched(), 1));
+            }
+            return java.util.Optional.empty();
+            });
+        } catch (RuntimeException retryFailure) {
+            System.err.println("itineraryResearchRetryUnavailable class=" + retryFailure.getClass().getSimpleName());
+            return first;
+        }
+    }
+
+    public ItineraryReview decideItinerary(OutingProfile profile, PointOfInterestFindings research,
             ProposedTravelPlan proposal) {
         var alternatives = proposal.alternatives();
         String input = itineraryDecisionInput(profile, alternatives) + "\nIndependent venue pages retrieved: "
@@ -171,22 +249,23 @@ public class BayesAgent {
         return new ItineraryReview(input,
                 proposition instanceof PropositionResult.Answered a ? Boolean.toString(a.getAnswer())
                         : proposition instanceof PropositionResult.Failure f ? "failure:" + f.getReason() : "inconclusive",
-                selected, ratingValue(rating), value(classification), model, decisionNanos, classificationNanos);
+                selected, ratingValue(rating), value(classification), model, decisionNanos,
+                classificationNanos, alternatives, research.researched(), 0);
     }
 
     @Action @AchievesGoal(description = "Return sourced city itinerary alternatives with unresolved facts visible")
     public TravelPlan completeItinerary(OutingProfile profile, PointOfInterestFindings research,
             ProposedTravelPlan proposal, ItineraryReview review) {
-        var selected = proposal.alternatives().stream().filter(a -> a.id().equals(review.choice())
+        var selected = review.reviewedAlternatives().stream().filter(a -> a.id().equals(review.choice())
                 && !a.status().equals("invalid")).findFirst().orElse(null);
         String status = review.choice().startsWith("failure:") || review.rating().startsWith("failure:")
                 || review.classification().startsWith("failure:") ? "decision_failed"
                 : selected == null ? "needs_research" : selected.status().equals("unresolved")
                         ? "unresolved" : "provisional";
         return new TravelPlan(research.findings().city(), profile.requirements().date().toString(), status,
-                selected == null ? null : selected.id(), proposal.alternatives(), review,
+                selected == null ? null : selected.id(), review.reviewedAlternatives(), review,
                 profile.memory(), research.findings().sources(), research.findings().retrievedAt().toString(),
-                research.researched());
+                review.reviewedResearch());
     }
 
     static String itineraryDecisionInput(OutingProfile profile, List<ItineraryPlanner.Alternative> alternatives) {
