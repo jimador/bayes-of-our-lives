@@ -24,7 +24,7 @@ All three runs researched the same eight places: NSU Art Museum Fort Lauderdale,
 - Jev: A "Modern Art Morning & Classic Island Estate" (Bonnet House) and B "Downtown Art Discovery" (NSU). No sourced breakfast or lunch venue. Four open questions each. Still `research` after one follow-up lap.
 - OpenAI: A "Artful Morning at NSU Art Museum" and B "Bonnet House Gardens and Art Escape". No sourced breakfast or lunch venue. Four open questions each. Still `research` after one follow-up lap.
 
-Open questions were missing breakfast (all runs) and lunch (Jev and OpenAI runs) venues, unverified hours on the chosen date, admission, and cuisine for Restaurante Brasil. Hours fit stayed `unknown` because the planner did not assign stop times. The breakfast gap is real for a 7 a.m. start since both sights open at 11:00.
+Open questions were unselected breakfast (all runs) and lunch (Jev and OpenAI runs) venues, unverified hours on the chosen date, admission, and cuisine for Restaurante Brasil. The lookup did return three mapped cafés—Cafe Siena, Cafe Sportivo, and Cafe Cita—but their records did not establish 7 a.m. opening or full-breakfast service, and the planner left its café choices blank. Hours fit stayed `unknown` because the planner did not assign stop times. This is a gap in the search evidence and plan, not a finding that the city has no early breakfast.
 
 The server log repeated an `AStarGoapPlanner` ERROR about unsatisfied conditions for the goal `BayesAgent.finish` during each request. The itinerary requests still completed.
 

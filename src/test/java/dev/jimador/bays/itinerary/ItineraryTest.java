@@ -58,6 +58,23 @@ class ItineraryTest {
         assertEquals(OpeningHours.Fit.UNKNOWN, OpeningHours.fit("PH off; Mo-Su 07:00-18:00", tue,
                 LocalTime.of(7, 20), LocalTime.of(8, 0)));
     }
+    @Test void blankPlannerCafeShowsMappedLeadsWithoutPretendingBreakfastIsConfirmed() {
+        var sight = place("Art Hall", "art", 5, Map.of("opening_hours", "24/7"));
+        var cafe = place("Cafe Siena", "food", 5, Map.of());
+        var draft = new dev.jimador.bays.provider.TripperCityPort.PlanDraft(List.of(
+                new dev.jimador.bays.provider.TripperCityPort.PlanChoice(
+                        "Art Hall", "", "", false, "Art morning", "Cafe service is unknown.")));
+        var plans = ItineraryPlanner.proposeFromDraft(request(true, false, false, ""),
+                findings(List.of(sight), List.of(cafe), List.of()), draft, (a, b) -> 5);
+        var plan = plans.getFirst();
+        var breakfast = plan.stops().getFirst();
+        assertEquals("Venue needed", breakfast.name());
+        assertEquals("unresolved", plan.status());
+        assertEquals("unknown", breakfast.mealServiceEvidence());
+        assertTrue(plan.openQuestions().stream().anyMatch(q -> q.contains("Mapped cafe leads")
+                && q.contains("Cafe Siena") && q.contains("hours and meal service")));
+        assertFalse(breakfast.openQuestions().contains("No mapped venue was returned"));
+    }
     @Test void refusesClosedSightAndKeepsMissingMealUnresolved() {
         var closed = place("Museum", "art", 5, Map.of("opening_hours", "Tu off"));
         var open = place("Art Hall", "art", 7, Map.of("opening_hours", "Mo-Su 07:00-18:00"));

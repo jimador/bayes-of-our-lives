@@ -81,13 +81,17 @@ public class ItineraryPlanner {
                 tasks.add(new Task("lunch", restaurant, 50, LocalTime.of(11, 0), LocalTime.of(15, 0)));
             if (request.dinner()) tasks.add(new Task("dinner", restaurant, 60, LocalTime.of(17, 0), LocalTime.of(21, 0)));
             var scheduled = schedule(index++ == 0 ? "a" : "b", request, tasks, findings.researchGaps(), route, researched);
+            List<String> questions = new ArrayList<>(scheduled.openQuestions());
+            if (cafe == null && (request.breakfast() || request.coffee()) && !findings.cafes().isEmpty())
+                questions.add("Mapped cafe leads to check for hours and meal service: "
+                        + findings.cafes().stream().map(GuidePlaces.Option::name).toList() + ".");
             String title = choice.title() == null || choice.title().isBlank() ? scheduled.title()
                     : choice.title().substring(0, Math.min(80, choice.title().length()));
             String reason = choice.reason() == null ? "" : choice.reason()
                     .replaceAll("https?://\\S+", "[source in research panel]");
             reason = reason.substring(0, Math.min(400, reason.length()));
             alternatives.add(new Alternative(scheduled.id(), title, scheduled.status(), scheduled.stops(),
-                    scheduled.openQuestions(), scheduled.elapsedMinutes(), reason));
+                    List.copyOf(questions), scheduled.elapsedMinutes(), reason));
         }
         return List.copyOf(alternatives);
     }
@@ -137,9 +141,9 @@ public class ItineraryPlanner {
         for (Task task : tasks) {
             GuidePlaces.Option option = task.option();
             if (option == null) {
-                questions.add("Find a sourced " + task.kind() + " venue before this itinerary can be confirmed.");
+                questions.add("Confirm a " + task.kind() + " venue before this itinerary can be confirmed.");
                 stops.add(new Stop(task.kind(), "Venue needed", null, null, null, null,
-                        null, "unknown", "unknown", "unknown", "unknown", List.of("No mapped venue was returned"),
+                        null, "unknown", "unknown", "unknown", "unknown", List.of("No suitable venue was selected"),
                         "unknown", "unknown", "unknown", "unknown"));
                 cursor = null;
                 continue;
