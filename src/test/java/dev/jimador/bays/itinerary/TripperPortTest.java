@@ -31,6 +31,24 @@ class TripperPortTest {
         assertTrue(prompt.toString().contains("<untrusted-evidence>"));
     }
 
+    @Test void researchFoodClaimsNeedCitedMatchingClues() {
+        TripperCityPort.Generator fake = new TripperCityPort.Generator() {
+            @Override public <T> T create(com.embabel.agent.api.common.OperationContext c, String m,
+                    String p, Class<T> type) {
+                return type.cast(new TripperCityPort.ResearchDraft("Menu needs confirmation",
+                        List.of("https://venue.example/menu"), "Italian", "full_breakfast"));
+            }
+        };
+        var port = new TripperCityPort(fake, "test", "test");
+        var absent = port.research("Cafe", "food", "https://venue.example/menu Coffee only", "food?", null);
+        assertEquals("unknown", absent.cuisineEvidence());
+        assertEquals("unknown", absent.breakfastServiceEvidence());
+        var present = port.research("Cafe", "food",
+                "https://venue.example/menu Italian breakfast served at 7am", "food?", null);
+        assertEquals("italian", present.cuisineEvidence());
+        assertEquals("full_breakfast", present.breakfastServiceEvidence());
+    }
+
     @Test void researchRetryStopsAfterOneAndStopsWhenNoNewEvidence() {
         var calls = new AtomicInteger();
         String result = BoundedResearchLoop.run("research", 1, "research"::equals, previous -> {
@@ -94,9 +112,10 @@ class TripperPortTest {
     }
 
     @Test void plannerPromptKeepsExactOriginOutOfRemoteModelInput() {
-        var request = new ItineraryRequest("Miami", "123 Private House", LocalDate.of(2026, 10, 14),
+        var request = new ItineraryRequest("Fort Lauderdale", "Synthetic Private Origin", LocalDate.of(2026, 10, 20),
                 LocalTime.of(10, 0), LocalTime.of(16, 0), false, false, false,
-                false, false, 2, 0, "art", "steady", false, "allergy detail", "local", true, true);
+                false, false, 2, 0, "art", "steady", false, "synthetic allergy marker", "local", true, true,
+                null, false, false, "Brazilian", "Italian");
         var sight = new GuidePlaces.Option("Art Hall", "https://www.openstreetmap.org/node/1", "indoor", "art",
                 "quiet", 10, 60, 25.7, -80.2, Map.of());
         var findings = new ItineraryResearch.Findings("Miami", Instant.now(), List.of(sight), List.of(),
@@ -113,8 +132,10 @@ class TripperPortTest {
             }
         };
         new TripperCityPort(fake, "test", "test").plan(profile, researched, null);
-        assertFalse(prompt.toString().contains("123 Private House"));
-        assertFalse(prompt.toString().contains("allergy detail"));
+        assertFalse(prompt.toString().contains("Synthetic Private Origin"));
+        assertFalse(prompt.toString().contains("synthetic allergy marker"));
+        assertTrue(prompt.toString().contains("Cuisine likes: brazilian"));
+        assertTrue(prompt.toString().contains("Cuisine dislikes: italian"));
         assertTrue(prompt.toString().contains("America/New_York"));
     }
 }

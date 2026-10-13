@@ -44,7 +44,7 @@ public class BayesItineraryService {
                 null, List.of(), null, null, List.of(), null, questions, 0, List.of(), null);
         if (!request.remoteModelConsent()) return new Result("needs_input", request.city(),
                 request.date().toString(), null, List.of(), null, null, List.of(), null, null,
-                List.of(), null, List.of("Confirm sharing city, date, group, interests, pace, and access requirements with OpenAI for research and planning. Exact origin and allergy text stay out of model prompts."),
+                List.of(), null, List.of("Confirm sharing city, date, group, interests, pace, cuisine likes/dislikes, and access requirements with OpenAI for research and planning. Exact origin and allergy text stay out of model prompts."),
                 0, List.of(), null);
         if (System.getenv("OPENAI_API_KEY") == null || System.getenv("OPENAI_API_KEY").isBlank())
             throw new BayesDecisionServices.ModelUnavailableException(

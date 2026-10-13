@@ -15,9 +15,9 @@ mvn test package
 java -jar target/bays-0.1.0.jar
 ```
 
-Open **http://127.0.0.1:8080/** and fill in the city, starting point, destination-local date and window, meal choices, group, interests, pace and any optional needs. The form asks for public-map consent and remote-model consent separately.
+Open **http://127.0.0.1:8080/** and fill in the city, starting point, destination-local date and window, meal choices, group, interests, pace and any optional needs. Optional cuisine likes and dislikes accept common cuisine names such as `brazilian`, `thai` and `italian`, separated by commas. Use the separate dietary field for allergies or restrictions; cuisine fields reject that wording. The form asks for public-map consent and remote-model consent separately.
 
-The model sees the city, date/window, group, interests, pace, access requirement, mapped places and research evidence. It does not see the exact starting point or allergy text. The exact starting point goes to public map and route services. If you pick Jev or OpenAI for the decision, the itinerary alternatives are sent to that engine. If early-food choices are missing, Bayes asks about them before calling any provider. Answering or revising the form resubmits the request.
+The model sees the city, date/window, group, interests, pace, cuisine preferences, access requirement, mapped places and research evidence. It does not see the exact starting point or allergy text. The exact starting point goes to public map and route services. If you pick Jev or OpenAI for the decision, the itinerary alternatives are sent to that engine. If early-food choices are missing, Bayes asks about them before calling any provider. Answering or revising the form resubmits the request.
 
 Dice captures confirmed interests and pace. **Remember preferences** saves those fields under a browser-generated profile ID in the ignored `.bayes-data/preferences.json` file, restricted to the owner on POSIX systems. A later outing can opt to use them. Meals, party, access and dietary needs always come from the current form. Exact allergy text stays out of map and model inputs, and food stops need direct confirmation. To clear saved preferences, delete the local file.
 
@@ -25,7 +25,7 @@ Dice captures confirmed interests and pace. **Remember preferences** saves those
 
 Public lookup adapters use [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api), [Nominatim](https://nominatim.org/release-docs/latest/api/Search/) and [Photon](https://github.com/komoot/photon/blob/master/docs/api-v1.md) for places, [OSRM](https://project-osrm.org/docs/v5.24.0/api/) for base driving time, OSM-recorded HTTPS venue pages and Wikipedia search leads. Places © OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright). Public services can go down or change their results. Venue-page requests validate public addresses, pin the checked IP with `curl --resolve`, verify the HTTPS hostname and disable proxies and redirects. External pages and model output are treated as untrusted data.
 
-Bayes uses the geocoded destination timezone to check the requested window and flags daylight-saving crossings. A tagged closure invalidates an alternative. Tagged opening hours, access, fees and cuisine stay provisional. Missing admission, menus, child suitability, step-free details or food safety stay as open questions. OSRM does not supply live traffic.
+Bayes uses the geocoded destination timezone to check the requested window and flags daylight-saving crossings. A tagged closure invalidates an alternative. Tagged opening hours, access, fees and cuisine stay provisional. For food stops, the decision input carries mapped cuisine tags, cited but unverified page clues, preference matches, breakfast service clues and the fit of the requested time against mapped hours. A cafe or coffee tag does not establish full breakfast, and open hours do not establish meal service. Missing admission, menus, child suitability, step-free details or food safety stay as open questions. OSRM does not supply live traffic.
 
 Embabel's web, maps and browser tool-group roles existed in the tested API, but their MCP providers were not registered in this app's runtime. The named public adapters above supply the place and page evidence.
 
@@ -33,9 +33,9 @@ This repository does **not** include a native local CLEF model path. An earlier 
 
 ## Tests and measured observations
 
-`mvn test package` runs model-free request, Dice memory, proposal hard-rule, research, consent, timezone and decision-adapter tests. CI uses no API keys.
+`mvn test package` runs model-free request, Dice memory, proposal hard-rule, food evidence, research, consent, timezone and decision-adapter tests. CI uses no API keys. A bounded [Fort Lauderdale live check](results/live-fort-lauderdale-check-2026-10-13.md) and [fixed decision replay](results/itinerary-replay-fort-lauderdale-2026-10-13.md) record separate observations from the earlier build without cuisine preferences. The live check used one request per engine and no warmups; the engines saw different changing public evidence. These files are functional observations, not controlled timing comparisons.
 
-The numbers below are **historical small-sample observations**. They are not a performance ranking. The raw capture and result files were removed from the current tree during cleanup and can be recovered from Git history.
+The numbers below are **historical small-sample observations**. They are not a performance ranking. The earlier Miami raw capture and result files were removed during cleanup and can be recovered from Git history.
 
 For the decision-only comparison, one synthetic captured Miami itinerary was passed byte-for-byte to `BayesAgent.decideItinerary` for each engine. A was invalid because of mapped hours and B was unresolved. Local rules, Jev and OpenAI each ran one warmup and two measured calls, and typed outputs and input SHA-256 were checked.
 

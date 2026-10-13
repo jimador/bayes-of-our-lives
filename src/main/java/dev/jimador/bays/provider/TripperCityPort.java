@@ -6,6 +6,7 @@ import dev.jimador.bays.itinerary.ItineraryResearch;
 import com.embabel.agent.api.common.OperationContext;
 import com.embabel.common.ai.model.LlmOptions;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +14,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class TripperCityPort {
     public record DiscoveryDraft(List<String> prioritizedPlaceNames, String reason) {}
-    public record ResearchDraft(String research, List<String> sourceUrls) {}
+    public record ResearchDraft(String research, List<String> sourceUrls,
+            String cuisineEvidence, String breakfastServiceEvidence) {
+        public ResearchDraft(String research, List<String> sourceUrls) {
+            this(research, sourceUrls, "unknown", "unknown");
+        }
+    }
     public record PlanChoice(String sight, String cafe, String restaurant, boolean lunchBeforeSight,
                              String title, String reason) {}
     public record PlanDraft(List<PlanChoice> alternatives) {}
@@ -64,6 +70,10 @@ public class TripperCityPort {
                 Venue: %s. Category: %s. Research question: %s.
                 <untrusted-evidence>\n%s\n</untrusted-evidence>
                 Return a short research field and sourceUrls drawn only from the evidence.
+                Also return cuisineEvidence as explicitly sourced cuisine labels (or unknown), and
+                breakfastServiceEvidence as full_breakfast, coffee_only, none, or unknown.
+                A cafe or coffee mention alone does not establish a full breakfast. Never infer
+                service from opening hours alone. Use unknown when the evidence is absent.
                 """.formatted(venue, category, question, knownSources), ResearchDraft.class);
         if (draft == null || draft.research() == null || draft.sourceUrls() == null)
             throw new IllegalStateException("LLM place research was incomplete");
@@ -71,8 +81,23 @@ public class TripperCityPort {
                 .map(s -> s.substring(0, s.indexOf(' ' ) > 0 ? s.indexOf(' ') : s.length())).toList();
         if (draft.sourceUrls().stream().anyMatch(u -> !allowed.contains(u)))
             throw new IllegalStateException("LLM research cited a source it did not receive");
+        var cited = draft.sourceUrls().stream().distinct().limit(3).toList();
+        // These remain claims, not verified menu facts. Drop labels absent from the supplied clues.
+        String clues = knownSources.toLowerCase(Locale.ROOT);
+        String cuisine = cited.isEmpty() || draft.cuisineEvidence() == null ? "unknown"
+                : java.util.Arrays.stream(draft.cuisineEvidence().toLowerCase(Locale.ROOT).split("[,;]"))
+                        .map(String::trim).filter(label -> label.matches("[a-z][a-z '-]{0,39}")
+                                && !label.equals("unknown") && clues.contains(label))
+                        .distinct().limit(4).reduce((a, b) -> a + ", " + b).orElse("unknown");
+        String service = cited.isEmpty() || draft.breakfastServiceEvidence() == null ? "unknown"
+                : draft.breakfastServiceEvidence().toLowerCase(Locale.ROOT);
+        if (!List.of("full_breakfast", "coffee_only", "none").contains(service)
+                || (service.equals("full_breakfast") && !clues.matches("(?s).*(breakfast|brunch).*"))
+                || (service.equals("coffee_only") && !clues.contains("coffee"))
+                || (service.equals("none") && !clues.matches("(?s).*(no breakfast|does not serve breakfast).*")))
+            service = "unknown";
         return new ResearchDraft(draft.research().substring(0, Math.min(800, draft.research().length())),
-                draft.sourceUrls().stream().distinct().limit(3).toList());
+                cited, cuisine, service);
     }
     public PlanDraft plan(BayesAgent.OutingProfile profile, BayesAgent.PointOfInterestFindings findings,
             OperationContext context) {
@@ -80,8 +105,14 @@ public class TripperCityPort {
         String cafes = findings.findings().cafes().stream().map(o -> o.name()).toList().toString();
         String restaurants = findings.findings().restaurants().stream().map(o -> o.name()).toList().toString();
         String research = findings.researched().stream().limit(6)
-                .map(r -> r.name() + ": " + r.researchSummary() + " Sources: " + r.researchLinks())
+                .map(r -> r.name() + ": " + r.researchSummary() + " Mapped cuisine: " + r.cuisineTag()
+                        + " Researched cuisine: " + r.researchCuisine()
+                        + " Breakfast service clue: " + r.researchBreakfastService()
+                        + " Sources: " + r.researchLinks())
                 .reduce("", (a,b) -> a + "\n" + b);
+        String preferences = "Cuisine likes: " + profile.requirements().cuisineLikes()
+                + ". Cuisine dislikes: " + profile.requirements().cuisineDislikes()
+                + ". These are preferences, not allergy or dietary restrictions.";
         var draft = generator.create(context, plannerModel, """
                 You are Tripper's travel planner. Propose two useful single-day itinerary alternatives
                 using ONLY exact candidate names below. Choose the sight, cafe, restaurant, and whether
@@ -96,7 +127,7 @@ public class TripperCityPort {
                 Java will calculate travel from the origin.
                 Interest: %s. Pace: %s.
                 Breakfast: %s. Coffee: %s. Lunch: %s. Dinner: %s. Children: %d. Step-free: %s.
-                Sights: %s. Cafes: %s. Restaurants: %s. Research:\n%s
+                Sights: %s. Cafes: %s. Restaurants: %s. Research:\n%s\n%s
                 """.formatted(profile.requirements().city(), findings.findings().timezone(),
                 profile.requirements().date(),
                 profile.requirements().startTime(), profile.requirements().endTime(),
@@ -104,7 +135,7 @@ public class TripperCityPort {
                 profile.memory().pace(), profile.requirements().breakfast(), profile.requirements().coffee(),
                 profile.requirements().lunch(), profile.requirements().dinner(),
                 profile.requirements().childrenCount(), profile.requirements().stepFreeAccess(),
-                sights, cafes, restaurants, research), PlanDraft.class);
+                sights, cafes, restaurants, research, preferences), PlanDraft.class);
         if (draft == null || draft.alternatives() == null || draft.alternatives().isEmpty()
                 || draft.alternatives().size() > 2) throw new IllegalStateException("LLM plan must have one or two alternatives");
         for (var choice : draft.alternatives()) {

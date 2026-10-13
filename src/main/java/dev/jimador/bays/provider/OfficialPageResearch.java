@@ -14,7 +14,7 @@ public class OfficialPageResearch {
     public record Evidence(String venue, String pageUrl, String status, Instant retrievedUtc,
                            String pageTitle, List<String> topicClues) {}
     private static final Pattern TITLE = Pattern.compile("(?is)<title[^>]*>(.*?)</title>");
-    private static final Pattern TOPIC = Pattern.compile("(?i)hours|open|admission|tickets|accessib|wheelchair|menu|allerg|cuisine");
+    private static final Pattern TOPIC = Pattern.compile("(?i)hours|open|admission|tickets|accessib|wheelchair|menu|allerg|cuisine|breakfast|brunch|coffee");
 
     public Evidence research(GuidePlaces.Option place) {
         String link = place.osmTags().getOrDefault("website", place.osmTags().get("contact:website"));
@@ -45,7 +45,7 @@ public class OfficialPageResearch {
                 .replaceAll("(?is)<[^>]+>", " ").replaceAll("\\s+", " ");
         var found = TOPIC.matcher(visible);
         List<String> result = new ArrayList<>();
-        while (found.find() && result.size() < 4) {
+        while (found.find() && result.size() < 8) {
             int left = Math.max(0, found.start() - 45), right = Math.min(visible.length(), found.end() + 75);
             String clue = clean(visible.substring(left, right));
             if (!clue.isBlank() && result.stream().noneMatch(x -> x.equals(clue))) result.add(clue);

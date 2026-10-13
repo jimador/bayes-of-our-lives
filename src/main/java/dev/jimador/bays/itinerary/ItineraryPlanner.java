@@ -18,7 +18,8 @@ public class ItineraryPlanner {
     public record Stop(String kind, String name, LocalTime startsAt, LocalTime endsAt,
                        Integer baseTravelMinutes, String sourceUrl, String openingHours,
                        String hoursFit, String wheelchairTag, String cuisineTag,
-                       String admissionTag, List<String> openQuestions) {}
+                       String admissionTag, List<String> openQuestions, String cuisineEvidence,
+                       String cuisinePreferenceFit, String mealServiceEvidence, String mealTimeFit) {}
     public record Alternative(String id, String title, String status, List<Stop> stops,
                               List<String> openQuestions, int elapsedMinutes, String planReason) {
         public Alternative(String id, String title, String status, List<Stop> stops,
@@ -44,13 +45,24 @@ public class ItineraryPlanner {
     /** Validate and schedule the LLM's Tripper-style proposal; it cannot bypass mapped hard rules. */
     public List<Alternative> proposeFromDraft(ItineraryRequest request, ItineraryResearch.Findings findings,
             TripperCityPort.PlanDraft draft) {
+        return proposeFromDraft(request, findings, draft, List.of());
+    }
+
+    public List<Alternative> proposeFromDraft(ItineraryRequest request, ItineraryResearch.Findings findings,
+            TripperCityPort.PlanDraft draft, List<BayesAgent.ResearchedPointOfInterest> researched) {
         return proposeFromDraft(request, findings, draft, (from, to) -> from.longitude() == null
                 || from.latitude() == null || to.longitude() == null || to.latitude() == null ? null
-                : places.route(from.longitude(), from.latitude(), to.longitude(), to.latitude()));
+                : places.route(from.longitude(), from.latitude(), to.longitude(), to.latitude()), researched);
     }
 
     static List<Alternative> proposeFromDraft(ItineraryRequest request, ItineraryResearch.Findings findings,
             TripperCityPort.PlanDraft draft, BetweenPlaces route) {
+        return proposeFromDraft(request, findings, draft, route, List.of());
+    }
+
+    static List<Alternative> proposeFromDraft(ItineraryRequest request, ItineraryResearch.Findings findings,
+            TripperCityPort.PlanDraft draft, BetweenPlaces route,
+            List<BayesAgent.ResearchedPointOfInterest> researched) {
         List<Alternative> alternatives = new ArrayList<>();
         int index = 0;
         for (var choice : draft.alternatives()) {
@@ -68,7 +80,7 @@ public class ItineraryPlanner {
             if (request.lunch() && !choice.lunchBeforeSight())
                 tasks.add(new Task("lunch", restaurant, 50, LocalTime.of(11, 0), LocalTime.of(15, 0)));
             if (request.dinner()) tasks.add(new Task("dinner", restaurant, 60, LocalTime.of(17, 0), LocalTime.of(21, 0)));
-            var scheduled = schedule(index++ == 0 ? "a" : "b", request, tasks, findings.researchGaps(), route);
+            var scheduled = schedule(index++ == 0 ? "a" : "b", request, tasks, findings.researchGaps(), route, researched);
             String title = choice.title() == null || choice.title().isBlank() ? scheduled.title()
                     : choice.title().substring(0, Math.min(80, choice.title().length()));
             String reason = choice.reason() == null ? "" : choice.reason()
@@ -109,13 +121,14 @@ public class ItineraryPlanner {
                 tasks.add(new Task("lunch", restaurant, 50, LocalTime.of(11, 0), LocalTime.of(15, 0)));
             if (request.dinner())
                 tasks.add(new Task("dinner", restaurant, 60, LocalTime.of(17, 0), LocalTime.of(21, 0)));
-            alternatives.add(schedule(i == 0 ? "a" : "b", request, tasks, findings.researchGaps(), route));
+            alternatives.add(schedule(i == 0 ? "a" : "b", request, tasks, findings.researchGaps(), route, List.of()));
         }
         return List.copyOf(alternatives);
     }
 
     private static Alternative schedule(String id, ItineraryRequest request, List<Task> tasks,
-            List<String> researchGaps, BetweenPlaces route) {
+            List<String> researchGaps, BetweenPlaces route,
+            List<BayesAgent.ResearchedPointOfInterest> researched) {
         List<Stop> stops = new ArrayList<>();
         List<String> questions = new ArrayList<>(researchGaps);
         LocalTime cursor = request.startTime();
@@ -126,7 +139,8 @@ public class ItineraryPlanner {
             if (option == null) {
                 questions.add("Find a sourced " + task.kind() + " venue before this itinerary can be confirmed.");
                 stops.add(new Stop(task.kind(), "Venue needed", null, null, null, null,
-                        null, "unknown", "unknown", "unknown", "unknown", List.of("No mapped venue was returned")));
+                        null, "unknown", "unknown", "unknown", "unknown", List.of("No mapped venue was returned"),
+                        "unknown", "unknown", "unknown", "unknown"));
                 cursor = null;
                 continue;
             }
@@ -162,8 +176,19 @@ public class ItineraryPlanner {
             boolean food = !task.kind().equals("sight");
             if (food && request.hasDietaryNeed())
                 stopQuestions.add("Confirm dietary and allergy needs directly with " + option.name() + ".");
-            if (food && !tags.containsKey("cuisine"))
+            BayesAgent.ResearchedPointOfInterest venueResearch = researched.stream()
+                    .filter(r -> r.sourceUrl().equals(option.sourceUrl()) && r.name().equals(option.name()))
+                    .findFirst().orElse(null);
+            FoodEvidence.Assessment foodEvidence = food
+                    ? FoodEvidence.assess(task.kind(), option, venueResearch, request, hoursFit)
+                    : new FoodEvidence.Assessment("unknown", "unknown", "not_food", "not_food");
+            if (food && foodEvidence.cuisine().equals("unknown"))
                 stopQuestions.add("Check cuisine and menu for " + option.name() + ".");
+            if (food && task.kind().equals("breakfast"))
+                stopQuestions.add("Confirm full breakfast service at " + option.name() + " on "
+                        + request.date() + " at " + (starts == null ? "the planned time" : starts) + ".");
+            if (food && foodEvidence.service().equals("conflicting"))
+                stopQuestions.add("Resolve conflicting meal-service evidence for " + option.name() + ".");
             if (request.childrenCount() > 0)
                 stopQuestions.add("Confirm suitability for children at " + option.name() + ".");
             if (task.kind().equals("sight") && !"no".equals(tags.get("fee")))
@@ -173,7 +198,8 @@ public class ItineraryPlanner {
                     hours, hoursFit == OpeningHours.Fit.TAGGED_OPEN ? "tagged_open_unverified"
                             : hoursFit.name().toLowerCase(Locale.ROOT), wheelchair,
                     tags.getOrDefault("cuisine", "unknown"), tags.getOrDefault("fee", "unknown"),
-                    List.copyOf(stopQuestions)));
+                    List.copyOf(stopQuestions), foodEvidence.cuisine(), foodEvidence.preference(),
+                    foodEvidence.service(), foodEvidence.timeFit()));
             prior = option;
         }
         int elapsed = cursor == null ? -1 : (int) java.time.Duration.between(request.startTime(), cursor).toMinutes();

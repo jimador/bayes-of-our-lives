@@ -44,6 +44,10 @@ function renderStop(stop) {
   meta.append(node('span', '', `OSM hours: ${stop.hoursFit.replaceAll('_', ' ')}`));
   meta.append(node('span', '', `Step-free tag: ${stop.wheelchairTag}`));
   meta.append(node('span', '', `Cuisine tag: ${stop.cuisineTag}`));
+  meta.append(node('span', '', `Cuisine evidence: ${stop.cuisineEvidence || 'unknown'}`));
+  meta.append(node('span', '', `Preference fit: ${stop.cuisinePreferenceFit || 'unknown'}`));
+  meta.append(node('span', '', `Meal service: ${(stop.mealServiceEvidence || 'unknown').replaceAll('_', ' ')}`));
+  meta.append(node('span', '', `Meal time: ${(stop.mealTimeFit || 'unknown').replaceAll('_', ' ')}`));
   meta.append(node('span', '', `Admission tag: ${stop.admissionTag}`));
   wrap.append(meta);
   if (/^https:\/\/www\.openstreetmap\.org\/(node|way|relation)\/\d+$/.test(stop.sourceUrl || '')) {
@@ -171,6 +175,7 @@ form.addEventListener('submit', async event => {
     earlyFoodDeclined: fields.earlyFoodDeclined.checked, lunch: fields.lunch.checked, dinner: fields.dinner.checked,
     partySize: Number(fields.partySize.value), childrenCount: Number(fields.childrenCount.value),
     interests: fields.interests.value.trim(), pace: fields.pace.value, stepFreeAccess: fields.stepFreeAccess.checked,
+    cuisineLikes: fields.cuisineLikes.value.trim(), cuisineDislikes: fields.cuisineDislikes.value.trim(),
     dietaryOrAllergyNeeds: fields.dietaryOrAllergyNeeds.value.trim(), engine: fields.engine.value,
     publicMapConsent: fields.publicMapConsent.checked, remoteModelConsent: fields.remoteModelConsent.checked,
     profileId: savedProfileId || (fields.rememberPreferences.checked ? crypto.randomUUID() : null),

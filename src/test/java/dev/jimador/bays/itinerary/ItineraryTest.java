@@ -46,6 +46,12 @@ class ItineraryTest {
         assertEquals(OpeningHours.Fit.TAGGED_OPEN, OpeningHours.fit(
                 "Mo-Su 07:00-12:00; Mo-Su 13:00-18:00", tue,
                 LocalTime.of(8, 0), LocalTime.of(9, 0)));
+        assertEquals(OpeningHours.Fit.TAGGED_OPEN, OpeningHours.fit(
+                "Tu 07:00-08:00; Tu 08:00-10:00", tue,
+                LocalTime.of(7, 30), LocalTime.of(8, 10)));
+        assertEquals(OpeningHours.Fit.TAGGED_CLOSED, OpeningHours.fit(
+                "Tu 07:00-08:00; Tu 08:30-10:00", tue,
+                LocalTime.of(7, 30), LocalTime.of(8, 40)));
         assertEquals(OpeningHours.Fit.UNKNOWN, OpeningHours.fit(
                 "Mo-Su 07:00-18:00; Tu off", tue,
                 LocalTime.of(8, 0), LocalTime.of(9, 0)));

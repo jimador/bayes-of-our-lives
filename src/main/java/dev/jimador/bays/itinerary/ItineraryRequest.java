@@ -12,11 +12,22 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
         boolean lunch, boolean dinner, int partySize, int childrenCount,
         String interests, String pace, boolean stepFreeAccess, String dietaryOrAllergyNeeds,
         String engine, boolean publicMapConsent, boolean remoteModelConsent,
-        String profileId, Boolean rememberPreferences, Boolean useRememberedPreferences) {
+        String profileId, Boolean rememberPreferences, Boolean useRememberedPreferences,
+        String cuisineLikes, String cuisineDislikes) {
+    // Keep food preferences separate from free-text medical needs, which never leave this app.
+    private static final java.util.Set<String> CUISINES = java.util.Set.of(
+            "american", "argentinian", "barbecue", "brazilian", "british", "caribbean",
+            "chinese", "colombian", "cuban", "ethiopian", "filipino", "french", "german",
+            "greek", "indian", "indonesian", "italian", "jamaican", "japanese", "korean",
+            "lebanese", "malaysian", "mediterranean", "mexican", "middle eastern", "moroccan",
+            "nepali", "pakistani", "persian", "peruvian", "pizza", "portuguese", "seafood",
+            "southern", "spanish", "sushi", "thai", "turkish", "vietnamese");
 
     @com.fasterxml.jackson.annotation.JsonCreator public ItineraryRequest {
         rememberPreferences = Boolean.TRUE.equals(rememberPreferences);
         useRememberedPreferences = Boolean.TRUE.equals(useRememberedPreferences);
+        cuisineLikes = normalizeCuisinePreferences(cuisineLikes);
+        cuisineDislikes = normalizeCuisinePreferences(cuisineDislikes);
     }
 
     public ItineraryRequest(String city, String startingLocation, LocalDate date, LocalTime startTime,
@@ -26,7 +37,19 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
             boolean publicMapConsent, boolean remoteModelConsent) {
         this(city, startingLocation, date, startTime, endTime, breakfast, coffee, earlyFoodDeclined,
                 lunch, dinner, partySize, childrenCount, interests, pace, stepFreeAccess,
-                dietaryOrAllergyNeeds, engine, publicMapConsent, remoteModelConsent, null, false, false);
+                dietaryOrAllergyNeeds, engine, publicMapConsent, remoteModelConsent, null, false, false, "", "");
+    }
+
+    public ItineraryRequest(String city, String startingLocation, LocalDate date, LocalTime startTime,
+            LocalTime endTime, boolean breakfast, boolean coffee, boolean earlyFoodDeclined,
+            boolean lunch, boolean dinner, int partySize, int childrenCount, String interests,
+            String pace, boolean stepFreeAccess, String dietaryOrAllergyNeeds, String engine,
+            boolean publicMapConsent, boolean remoteModelConsent, String profileId,
+            Boolean rememberPreferences, Boolean useRememberedPreferences) {
+        this(city, startingLocation, date, startTime, endTime, breakfast, coffee, earlyFoodDeclined,
+                lunch, dinner, partySize, childrenCount, interests, pace, stepFreeAccess,
+                dietaryOrAllergyNeeds, engine, publicMapConsent, remoteModelConsent, profileId,
+                rememberPreferences, useRememberedPreferences, "", "");
     }
 
     public void validateShape() {
@@ -39,6 +62,8 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
             throw new IllegalArgumentException("Interests must be at most 100 characters");
         if (dietaryOrAllergyNeeds != null && (dietaryOrAllergyNeeds.length() > 120 || hasControl(dietaryOrAllergyNeeds)))
             throw new IllegalArgumentException("Dietary notes must be at most 120 characters");
+        if (likedCuisines().stream().anyMatch(dislikedCuisines()::contains))
+            throw new IllegalArgumentException("A cuisine cannot be both liked and disliked");
         if (partySize < 1 || partySize > 8 || childrenCount < 0 || childrenCount >= partySize)
             throw new IllegalArgumentException("Enter a party of 1 to 8, with fewer children than travelers");
         if ((!useRememberedPreferences || (pace != null && !pace.isBlank()))
@@ -81,6 +106,8 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
     }
 
     public String safeInterests() { return interests == null ? "" : interests.trim(); }
+    public List<String> likedCuisines() { return cuisineLikes.isBlank() ? List.of() : List.of(cuisineLikes.split(", ")); }
+    public List<String> dislikedCuisines() { return cuisineDislikes.isBlank() ? List.of() : List.of(cuisineDislikes.split(", ")); }
     public boolean hasDietaryNeed() {
         return dietaryOrAllergyNeeds != null && !dietaryOrAllergyNeeds.isBlank();
     }
@@ -88,13 +115,28 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
         return new ItineraryRequest(city, startingLocation, date, startTime, endTime, breakfast, coffee,
                 earlyFoodDeclined, lunch, dinner, partySize, childrenCount, resolvedInterests, resolvedPace,
                 stepFreeAccess, dietaryOrAllergyNeeds, engine, publicMapConsent, remoteModelConsent,
-                profileId, rememberPreferences, useRememberedPreferences);
+                profileId, rememberPreferences, useRememberedPreferences, cuisineLikes, cuisineDislikes);
     }
     public ItineraryRequest withEngine(String selectedEngine) {
         return new ItineraryRequest(city, startingLocation, date, startTime, endTime, breakfast, coffee,
                 earlyFoodDeclined, lunch, dinner, partySize, childrenCount, interests, pace,
                 stepFreeAccess, dietaryOrAllergyNeeds, selectedEngine, publicMapConsent, true,
-                profileId, rememberPreferences, useRememberedPreferences);
+                profileId, rememberPreferences, useRememberedPreferences, cuisineLikes, cuisineDislikes);
+    }
+    private static String normalizeCuisinePreferences(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        if (raw.length() > 120 || hasControl(raw))
+            throw new IllegalArgumentException("Cuisine preferences must be at most 120 characters");
+        var values = new java.util.LinkedHashSet<String>();
+        for (String part : raw.split("[,;]")) {
+            String value = part.trim().toLowerCase(java.util.Locale.ROOT).replaceAll("\\s+", " ");
+            if (value.isBlank()) continue;
+            if (!CUISINES.contains(value))
+                throw new IllegalArgumentException("Choose listed cuisines only; put dietary or allergy needs in the private dietary field");
+            values.add(value);
+        }
+        if (values.size() > 8) throw new IllegalArgumentException("Enter at most eight cuisine preferences");
+        return String.join(", ", values);
     }
     private static boolean hasControl(String text) {
         return text.chars().anyMatch(Character::isISOControl);

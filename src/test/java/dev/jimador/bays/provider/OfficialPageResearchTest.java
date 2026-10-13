@@ -17,4 +17,9 @@ class OfficialPageResearchTest {
         assertTrue(OfficialPageResearch.clues(html).stream().anyMatch(s -> s.contains("Opening hours")));
         assertFalse(OfficialPageResearch.clues(html).stream().anyMatch(s -> s.contains("fake hours")));
     }
+    @Test void keepsExplicitBreakfastCluesWithoutTreatingCoffeeAsFullService() {
+        String html = "<p>Breakfast served at 7am. Coffee and brunch listed on our menu.</p>";
+        assertTrue(OfficialPageResearch.clues(html).stream().anyMatch(s -> s.contains("Breakfast served at 7am")));
+        assertTrue(OfficialPageResearch.clues(html).stream().anyMatch(s -> s.contains("Coffee and brunch")));
+    }
 }

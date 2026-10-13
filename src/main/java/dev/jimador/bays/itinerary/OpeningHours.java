@@ -3,6 +3,9 @@ package dev.jimador.bays.itinerary;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -18,7 +21,8 @@ public final class OpeningHours {
             return Fit.UNKNOWN;
         if (expression.equals("24/7")) return Fit.TAGGED_OPEN;
         int wanted = date.getDayOfWeek().getValue() - 1;
-        boolean matched = false, open = false, closed = false;
+        boolean matched = false, closed = false;
+        List<LocalTime[]> intervals = new ArrayList<>();
         for (String raw : expression.split(";")) {
             var part = SEGMENT.matcher(raw.trim());
             if (!part.matches()) return Fit.UNKNOWN; // PH, seasonal rules, multiple intervals, etc.
@@ -32,11 +36,19 @@ public final class OpeningHours {
             try { opens = LocalTime.parse(times[0]); closes = LocalTime.parse(times[1]); }
             catch (RuntimeException failure) { return Fit.UNKNOWN; }
             if (!closes.isAfter(opens)) return Fit.UNKNOWN;
-            open |= !start.isBefore(opens) && !end.isAfter(closes);
+            intervals.add(new LocalTime[] {opens, closes});
         }
         // Conflicting open/off rules need the full OSM precedence grammar, outside this subset.
-        if (closed && open) return Fit.UNKNOWN;
-        return matched && open ? Fit.TAGGED_OPEN : Fit.TAGGED_CLOSED;
+        if (closed && !intervals.isEmpty()) return Fit.UNKNOWN;
+        if (!matched || intervals.isEmpty()) return Fit.TAGGED_CLOSED;
+        intervals.sort(Comparator.comparing(interval -> interval[0]));
+        LocalTime coveredUntil = start;
+        for (LocalTime[] interval : intervals) {
+            if (interval[0].isAfter(coveredUntil)) break;
+            if (interval[1].isAfter(coveredUntil)) coveredUntil = interval[1];
+            if (!coveredUntil.isBefore(end)) return Fit.TAGGED_OPEN;
+        }
+        return Fit.TAGGED_CLOSED;
     }
 
     private static Set<Integer> parseDays(String expression) {

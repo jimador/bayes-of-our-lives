@@ -41,9 +41,16 @@ public final class LocalItineraryDecisions implements DecisionService, RatingAss
             int value = status.equals("provisional") ? 100 : status.equals("unresolved") ? 50 : -100;
             int gaps = number(field(input, "Alternative " + id + " open questions"));
             value -= gaps;
+            value -= 80 * count(field(input, "Alternative " + id + " disliked food stops"));
+            value += 8 * count(field(input, "Alternative " + id + " liked food stops"));
+            value += 15 * count(field(input, "Alternative " + id + " supported breakfast stops"));
+            value -= 8 * count(field(input, "Alternative " + id + " uncertain breakfast stops"));
             if (value > score && value >= 0) { best = id; score = value; }
         }
         return best;
+    }
+    private static int count(String value) {
+        try { return Integer.parseInt(value); } catch (NumberFormatException failure) { return 0; }
     }
     private static int number(String value) {
         try { return Integer.parseInt(value); } catch (NumberFormatException failure) { return 99; }
