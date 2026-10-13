@@ -58,7 +58,7 @@ class ItineraryTest {
         assertEquals(OpeningHours.Fit.UNKNOWN, OpeningHours.fit("PH off; Mo-Su 07:00-18:00", tue,
                 LocalTime.of(7, 20), LocalTime.of(8, 0)));
     }
-    @Test void blankPlannerCafeShowsMappedLeadsWithoutPretendingBreakfastIsConfirmed() {
+    @Test void blankPlannerCafeCanUseMappedLeadWithoutPretendingBreakfastIsConfirmed() {
         var sight = place("Art Hall", "art", 5, Map.of("opening_hours", "24/7"));
         var cafe = place("Cafe Siena", "food", 5, Map.of());
         var draft = new dev.jimador.bays.provider.TripperCityPort.PlanDraft(List.of(
@@ -68,12 +68,56 @@ class ItineraryTest {
                 findings(List.of(sight), List.of(cafe), List.of()), draft, (a, b) -> 5);
         var plan = plans.getFirst();
         var breakfast = plan.stops().getFirst();
-        assertEquals("Venue needed", breakfast.name());
+        assertEquals("Cafe Siena", breakfast.name());
         assertEquals("unresolved", plan.status());
-        assertEquals("unknown", breakfast.mealServiceEvidence());
-        assertTrue(plan.openQuestions().stream().anyMatch(q -> q.contains("Mapped cafe leads")
-                && q.contains("Cafe Siena") && q.contains("hours and meal service")));
+        assertEquals("full_breakfast_unknown", breakfast.mealServiceEvidence());
+        assertTrue(plan.openQuestions().stream().anyMatch(q -> q.contains("full breakfast service")
+                && q.contains("Cafe Siena")));
         assertFalse(breakfast.openQuestions().contains("No mapped venue was returned"));
+    }
+    @Test void waitsForKnownOpeningWindowBeforeSchedulingSight() {
+        var sight = place("Art Hall", "art", 5, Map.of("opening_hours", "Tu 11:00-16:00"));
+        var cafe = place("Breakfast Cafe", "food", 5, Map.of("opening_hours", "24/7"));
+        var lunch = place("Seafood House", "food", 5, Map.of("opening_hours", "Tu 11:00-16:00", "cuisine", "seafood"));
+        var draft = new dev.jimador.bays.provider.TripperCityPort.PlanDraft(List.of(
+                new dev.jimador.bays.provider.TripperCityPort.PlanChoice(
+                        "Art Hall", "Breakfast Cafe", "Seafood House", false, "Art day", "Mapped choices")));
+        var plan = ItineraryPlanner.proposeFromDraft(request(true, true, false, ""),
+                findings(List.of(sight), List.of(cafe), List.of(lunch)), draft, (a, b) -> 5).getFirst();
+        assertNotEquals("invalid", plan.status());
+        var art = plan.stops().stream().filter(s -> s.kind().equals("sight")).findFirst().orElseThrow();
+        assertEquals(LocalTime.of(11, 0), art.startsAt());
+        assertEquals("tagged_open_unverified", art.hoursFit());
+        assertTrue(art.openQuestions().stream().anyMatch(q -> q.contains("current opening hours")));
+        assertTrue(plan.stops().getLast().endsAt().isBefore(LocalTime.of(14, 0)));
+    }
+    @Test void repairsAllDayClosureWithDistinctMappedSight() {
+        var closed = place("Closed Museum", "art", 5, Map.of("opening_hours", "Tu off"));
+        var open = place("Open Gallery", "art", 6, Map.of("opening_hours", "Tu 09:00-17:00"));
+        var cafe = place("Cafe", "food", 5, Map.of("opening_hours", "24/7"));
+        var lunch = place("Lunch", "food", 5, Map.of("opening_hours", "Tu 11:00-16:00"));
+        var draft = new dev.jimador.bays.provider.TripperCityPort.PlanDraft(List.of(
+                new dev.jimador.bays.provider.TripperCityPort.PlanChoice(
+                        "Closed Museum", "Cafe", "Lunch", false, "A", "Closed site"),
+                new dev.jimador.bays.provider.TripperCityPort.PlanChoice(
+                        "Closed Museum", "Cafe", "Lunch", false, "B", "Duplicate")));
+        var plans = ItineraryPlanner.proposeFromDraft(request(true, true, false, ""),
+                findings(List.of(closed, open), List.of(cafe), List.of(lunch)), draft, (a, b) -> 5);
+        assertEquals(2, plans.size());
+        assertTrue(plans.stream().anyMatch(p -> !p.status().equals("invalid")
+                && p.stops().stream().anyMatch(s -> s.name().equals("Open Gallery"))));
+        assertNotEquals(plans.get(0).stops(), plans.get(1).stops());
+    }
+    @Test void boundedRepairDoesNotClaimImpossibleHoursFit() {
+        var closed = place("Closed Museum", "art", 5, Map.of("opening_hours", "Tu off"));
+        var draft = new dev.jimador.bays.provider.TripperCityPort.PlanDraft(List.of(
+                new dev.jimador.bays.provider.TripperCityPort.PlanChoice(
+                        "Closed Museum", "", "", false, "A", "No alternative")));
+        var plans = ItineraryPlanner.proposeFromDraft(request(false, false, false, ""),
+                findings(List.of(closed), List.of(), List.of()), draft, (a, b) -> 5);
+        assertEquals(1, plans.size());
+        assertEquals("invalid", plans.getFirst().status());
+        assertTrue(plans.getFirst().openQuestions().stream().anyMatch(q -> q.contains("No supported sight slot")));
     }
     @Test void refusesClosedSightAndKeepsMissingMealUnresolved() {
         var closed = place("Museum", "art", 5, Map.of("opening_hours", "Tu off"));
@@ -104,15 +148,15 @@ class ItineraryTest {
         assertFalse(input.contains("peanut"));
         assertTrue(input.contains("Dietary verification required: true"));
     }
-    @Test void generousTaggedOutlineCanBeProvisionalWithoutTrafficBlockingEveryDay() {
+    @Test void taggedOpenOutlineStillAsksForCurrentHoursWithoutInventingTraffic() {
         var sight = place("Art Hall", "art", 4, Map.of("opening_hours", "24/7", "fee", "no"));
         var r = new ItineraryRequest("Miami", "Downtown", LocalDate.now().plusDays(1),
                 LocalTime.of(10, 0), LocalTime.of(14, 0), false, false, false,
                 false, false, 2, 0, "art", "steady", false, "", "local", true, false);
         var plan = ItineraryPlanner.propose(r, new ItineraryMemory.Accepted("ctx", "art", "steady", List.of()),
                 findings(List.of(sight), List.of(), List.of()), (a, b) -> 5).getFirst();
-        assertEquals("provisional", plan.status());
-        assertTrue(plan.openQuestions().isEmpty());
+        assertEquals("unresolved", plan.status());
+        assertTrue(plan.openQuestions().stream().anyMatch(q -> q.contains("current opening hours")));
         assertEquals("tagged_open_unverified", plan.stops().getFirst().hoursFit());
     }
     @Test void accessibilityAndChildTagsNeverProveWholeOutingSuitable() {

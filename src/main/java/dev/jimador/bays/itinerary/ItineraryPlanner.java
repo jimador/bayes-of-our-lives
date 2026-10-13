@@ -10,6 +10,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /** Port of Tripper's researched-POI → proposed-plan boundary for one bounded city outing. */
@@ -63,38 +66,94 @@ public class ItineraryPlanner {
     static List<Alternative> proposeFromDraft(ItineraryRequest request, ItineraryResearch.Findings findings,
             TripperCityPort.PlanDraft draft, BetweenPlaces route,
             List<BayesAgent.ResearchedPointOfInterest> researched) {
+        // Cache base routes within this one planning call. The search below never asks the
+        // public route service for the same leg twice.
+        Map<String, Optional<Integer>> routes = new LinkedHashMap<>();
+        BetweenPlaces cachedRoute = (from, to) -> routes.computeIfAbsent(
+                from.sourceUrl() + "|" + to.sourceUrl(),
+                ignored -> Optional.ofNullable(route.minutes(from, to))).orElse(null);
         List<Alternative> alternatives = new ArrayList<>();
+        LinkedHashSet<String> selected = new LinkedHashSet<>();
         int index = 0;
         for (var choice : draft.alternatives()) {
             var sight = named(findings.sights(), choice.sight());
             var cafe = named(findings.cafes(), choice.cafe());
             var restaurant = preferredRestaurant(request, findings.restaurants(),
                     named(findings.restaurants(), choice.restaurant()));
-            List<Task> tasks = new ArrayList<>();
-            if (request.breakfast()) tasks.add(new Task("breakfast", cafe, 40, LocalTime.of(7, 0), LocalTime.of(10, 30)));
-            if (request.coffee()) tasks.add(new Task("coffee", cafe, 20, LocalTime.of(7, 0), LocalTime.of(11, 30)));
-            if (request.lunch() && choice.lunchBeforeSight())
-                tasks.add(new Task("lunch", restaurant, 50, LocalTime.of(11, 0), LocalTime.of(15, 0)));
-            tasks.add(new Task("sight", sight, switch (request.pace()) {
-                case "busy" -> 45; case "relaxed" -> 90; default -> 60;
-            }, request.startTime(), request.endTime()));
-            if (request.lunch() && !choice.lunchBeforeSight())
-                tasks.add(new Task("lunch", restaurant, 50, LocalTime.of(11, 0), LocalTime.of(15, 0)));
-            if (request.dinner()) tasks.add(new Task("dinner", restaurant, 60, LocalTime.of(17, 0), LocalTime.of(21, 0)));
-            var scheduled = schedule(index++ == 0 ? "a" : "b", request, tasks, findings.researchGaps(), route, researched);
-            List<String> questions = new ArrayList<>(scheduled.openQuestions());
-            if (cafe == null && (request.breakfast() || request.coffee()) && !findings.cafes().isEmpty())
-                questions.add("Mapped cafe leads to check for hours and meal service: "
-                        + findings.cafes().stream().map(GuidePlaces.Option::name).toList() + ".");
-            String title = choice.title() == null || choice.title().isBlank() ? scheduled.title()
-                    : choice.title().substring(0, Math.min(80, choice.title().length()));
-            String reason = choice.reason() == null ? "" : choice.reason()
-                    .replaceAll("https?://\\S+", "[source in research panel]");
-            reason = reason.substring(0, Math.min(400, reason.length()));
-            alternatives.add(new Alternative(scheduled.id(), title, scheduled.status(), scheduled.stops(),
-                    List.copyOf(questions), scheduled.elapsedMinutes(), reason));
+            List<GuidePlaces.Option> sights = options(sight, findings.sights(), 3);
+            List<GuidePlaces.Option> cafes = request.breakfast() || request.coffee()
+                    ? options(cafe, findings.cafes(), 2) : java.util.Collections.singletonList(null);
+            List<GuidePlaces.Option> restaurants = request.lunch() || request.dinner()
+                    ? options(restaurant, CuisineEvidence.ranked(findings.restaurants(), request, true), 3)
+                    : java.util.Collections.singletonList(null);
+            List<RepairCandidate> attempts = new ArrayList<>();
+            for (var s : sights) for (var c : cafes) for (var r : restaurants)
+                for (boolean lunchFirst : request.lunch()
+                        ? new boolean[] {choice.lunchBeforeSight(), !choice.lunchBeforeSight()}
+                        : new boolean[] {false}) {
+                    var plan = schedule("candidate", request, tasks(request, s, c, r, lunchFirst),
+                            findings.researchGaps(), cachedRoute, researched);
+                    String key = plan.stops().stream().map(stop -> stop.kind() + ":" + stop.name())
+                            .reduce((a, b) -> a + "|" + b).orElse("");
+                    if (attempts.stream().noneMatch(existing -> existing.key().equals(key)))
+                        attempts.add(new RepairCandidate(plan, key, s == sight && c == cafe
+                                && r == restaurant && lunchFirst == choice.lunchBeforeSight(),
+                                r == null ? -1000 : CuisineEvidence.score(r, request, true)));
+                }
+            attempts.sort(Comparator.comparingInt((RepairCandidate a) -> repairScore(a)).reversed());
+            for (var attempt : attempts) {
+                if (!selected.add(attempt.key())) continue;
+                var scheduled = attempt.plan();
+                String id = index++ == 0 ? "a" : "b";
+                String title = attempt.original() && choice.title() != null && !choice.title().isBlank()
+                        ? choice.title().substring(0, Math.min(80, choice.title().length()))
+                        : "Outing " + id.toUpperCase(Locale.ROOT);
+                String reason = attempt.original() && choice.reason() != null
+                        ? choice.reason().replaceAll("https?://\\S+", "[source in research panel]")
+                        : "Adjusted mapped venues or order to fit known hours, base routes, and the outing window.";
+                alternatives.add(new Alternative(id, title, scheduled.status(), scheduled.stops(),
+                        scheduled.openQuestions(), scheduled.elapsedMinutes(),
+                        reason.substring(0, Math.min(400, reason.length()))));
+                break;
+            }
+            if (alternatives.size() == 2) break;
         }
         return List.copyOf(alternatives);
+    }
+
+    private record RepairCandidate(Alternative plan, String key, boolean original, int cuisineScore) {}
+
+    private static int repairScore(RepairCandidate candidate) {
+        var plan = candidate.plan();
+        int missing = (int) plan.stops().stream().filter(s -> s.name().equals("Venue needed")).count();
+        return (plan.status().equals("invalid") ? -100_000 : 0) - missing * 10_000
+                + candidate.cuisineScore() * 10 + (candidate.original() ? 5 : 0)
+                - plan.openQuestions().size() - Math.max(0, plan.elapsedMinutes()) / 60;
+    }
+
+    private static List<GuidePlaces.Option> options(GuidePlaces.Option first,
+            List<GuidePlaces.Option> available, int maximum) {
+        var values = new LinkedHashSet<GuidePlaces.Option>();
+        if (first != null) values.add(first);
+        values.addAll(available);
+        if (values.isEmpty()) values.add(null);
+        return values.stream().limit(maximum).toList();
+    }
+
+    private static List<Task> tasks(ItineraryRequest request, GuidePlaces.Option sight,
+            GuidePlaces.Option cafe, GuidePlaces.Option restaurant, boolean lunchFirst) {
+        List<Task> tasks = new ArrayList<>();
+        if (request.breakfast()) tasks.add(new Task("breakfast", cafe, 40, LocalTime.of(7, 0), LocalTime.of(10, 30)));
+        if (request.coffee()) tasks.add(new Task("coffee", cafe, 20, LocalTime.of(7, 0), LocalTime.of(11, 30)));
+        if (request.lunch() && lunchFirst)
+            tasks.add(new Task("lunch", restaurant, 50, LocalTime.of(11, 0), LocalTime.of(15, 0)));
+        tasks.add(new Task("sight", sight, switch (request.pace()) {
+            case "busy" -> 45; case "relaxed" -> 90; default -> 60;
+        }, request.startTime(), request.endTime()));
+        if (request.lunch() && !lunchFirst)
+            tasks.add(new Task("lunch", restaurant, 50, LocalTime.of(11, 0), LocalTime.of(15, 0)));
+        if (request.dinner()) tasks.add(new Task("dinner", restaurant, 60, LocalTime.of(17, 0), LocalTime.of(21, 0)));
+        return tasks;
     }
 
     private static GuidePlaces.Option preferredRestaurant(ItineraryRequest request,
@@ -170,20 +229,38 @@ public class ItineraryPlanner {
                 questions.add("Get a base route to " + option.name() + " before relying on the timeline.");
                 cursor = null;
             }
-            LocalTime starts = null, ends = null;
-            if (cursor != null) {
-                starts = cursor.plusMinutes(travel);
-                if (starts.isBefore(task.earliest())) starts = task.earliest();
-                ends = starts.plusMinutes(task.durationMinutes());
-                if (ends.isAfter(task.latest()) || ends.isAfter(request.endTime()) || ends.isBefore(starts)) invalid = true;
-                cursor = ends;
-            }
             Map<String, String> tags = option.osmTags();
             String hours = tags.get("opening_hours");
+            LocalTime starts = null, ends = null;
+            if (cursor != null) {
+                LocalTime ready = cursor.plusMinutes(travel);
+                if (ready.isBefore(cursor)) {
+                    invalid = true; // A same-day outing cannot wrap past midnight.
+                    questions.add("Travel to " + option.name() + " crosses the requested day.");
+                    cursor = null;
+                } else {
+                    if (ready.isBefore(task.earliest())) ready = task.earliest();
+                    LocalTime latestEnd = task.latest().isBefore(request.endTime())
+                            ? task.latest() : request.endTime();
+                    LocalTime openStart = OpeningHours.nextStart(hours, request.date(), ready,
+                            task.durationMinutes(), latestEnd);
+                    starts = openStart == null ? ready : openStart;
+                    ends = starts.plusMinutes(task.durationMinutes());
+                    if (openStart == null || !ends.isAfter(starts) || ends.isAfter(latestEnd)) {
+                        invalid = true;
+                        questions.add("No supported " + task.kind() + " slot at " + option.name()
+                                + " fits mapped hours, travel, and the outing window.");
+                    }
+                    cursor = ends;
+                }
+            }
             OpeningHours.Fit hoursFit = OpeningHours.fit(hours, request.date(), starts, ends);
             List<String> stopQuestions = new ArrayList<>();
             if (hoursFit == OpeningHours.Fit.UNKNOWN)
                 stopQuestions.add("Verify opening hours for " + option.name() + " on the chosen date.");
+            if (hoursFit == OpeningHours.Fit.TAGGED_OPEN)
+                stopQuestions.add("Confirm current opening hours for " + option.name()
+                        + "; mapped hours are not live confirmation.");
             if (hoursFit == OpeningHours.Fit.TAGGED_CLOSED) {
                 invalid = true;
                 stopQuestions.add("Mapped hours mark " + option.name() + " closed at the planned time.");

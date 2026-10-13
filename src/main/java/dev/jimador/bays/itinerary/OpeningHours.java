@@ -51,6 +51,24 @@ public final class OpeningHours {
         return Fit.TAGGED_CLOSED;
     }
 
+    /** Earliest whole-minute slot known open; unknown tags leave the proposed time provisional. */
+    public static LocalTime nextStart(String expression, LocalDate date, LocalTime ready,
+            int durationMinutes, LocalTime latestEnd) {
+        if (ready == null || latestEnd == null) return null;
+        LocalTime end = ready.plusMinutes(durationMinutes);
+        if (!end.isAfter(ready) || end.isAfter(latestEnd)) return null;
+        Fit initial = fit(expression, date, ready, end);
+        if (initial != Fit.TAGGED_CLOSED) return ready;
+        LocalTime candidate = ready.plusMinutes(1);
+        while (candidate.isAfter(ready) && !candidate.plusMinutes(durationMinutes).isAfter(latestEnd)
+                && candidate.plusMinutes(durationMinutes).isAfter(candidate)) {
+            if (fit(expression, date, candidate, candidate.plusMinutes(durationMinutes)) == Fit.TAGGED_OPEN)
+                return candidate;
+            candidate = candidate.plusMinutes(1);
+        }
+        return null;
+    }
+
     private static Set<Integer> parseDays(String expression) {
         Set<Integer> result = new HashSet<>();
         for (String segment : expression.split(",")) {

@@ -60,6 +60,8 @@ public final class CuisineEvidence {
         int value = switch (fit) {
             case "liked" -> 50; case "disliked" -> -100; case "neutral" -> 0; default -> -5;
         };
+        if (fit.equals("liked") && preference(labels(place.osmTags().get("cuisine")), request).equals("liked"))
+            value += 20; // A mapped cuisine tag is stronger than a clue in the venue name.
         if (meal && request.date() != null) {
             LocalTime at = request.dinner() && !request.lunch() ? LocalTime.of(18, 0) : LocalTime.of(12, 0);
             var hours = OpeningHours.fit(place.osmTags().get("opening_hours"), request.date(), at, at.plusMinutes(50));
