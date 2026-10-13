@@ -1,4 +1,4 @@
-# Bayes of Our Lives: Teaching an Embabel Agent When to Stop Researching Lunch
+# Bayes of Our Lives: Decision Models in Embabel Agent
 
 Ask a language model to plan a morning in Miami and it will happily read venue pages and write you an itinerary. Picking between two of those itineraries is a different job. You need to know which one fits what you already know about the day, and when to stop and go find more evidence. TypeSafe built [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) for that kind of question: structured decisions with declared answer types. Decision models are getting enough attention that [Hugging Face added a decision-model tag and filter](https://huggingface.co/changelog/decision-models-on-the-hub) to the Hub.
 
