@@ -1,7 +1,6 @@
 package dev.jimador.bays.itinerary;
 
 import dev.jimador.bays.decision.BayesDecisionServices;
-import dev.jimador.bays.guide.BayesGuideService;
 import dev.jimador.bays.decision.DecisionInputHash;
 
 import com.embabel.agent.core.AgentPlatform;
@@ -23,6 +22,9 @@ public class BayesItineraryService {
                          List<String> questions, long processMs,
                          List<BayesAgent.ResearchedPointOfInterest> researchedPlaces,
                          String destinationTimezone) {}
+
+    public static class ItineraryUnavailableException extends RuntimeException {}
+    public static class DecisionResponseException extends RuntimeException {}
 
     private final AgentPlatform platform;
     private final BayesDecisionServices decisions;
@@ -51,17 +53,17 @@ public class BayesItineraryService {
                     "OPENAI_API_KEY is required for Tripper-style research and planning");
         decisions.forItineraryEngine(request.engine());
         var agent = platform.agents().stream().filter(a -> a.getName().contains("BayesAgent"))
-                .findFirst().orElseThrow(BayesGuideService.GuideUnavailableException::new);
+                .findFirst().orElseThrow(ItineraryUnavailableException::new);
         long started = System.nanoTime();
         var process = platform.createAgentProcessFrom(agent, new ProcessOptions(), effective).run();
         long elapsed = (System.nanoTime() - started) / 1_000_000;
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED)
-            throw new BayesGuideService.GuideUnavailableException();
+            throw new ItineraryUnavailableException();
         var plan = process.last(BayesAgent.TravelPlan.class);
-        if (plan == null) throw new BayesGuideService.GuideUnavailableException();
+        if (plan == null) throw new ItineraryUnavailableException();
         if (plan.status().equals("decision_failed") || plan.review().choice().equals("inconclusive")
                 || plan.review().rating().equals("unselected"))
-            throw new BayesGuideService.DecisionResponseException();
+            throw new DecisionResponseException();
         var review = plan.review();
         Answer answer = new Answer(review.completeness(), review.choice(), review.rating(),
                 review.classification(), review.model(), DecisionInputHash.sha256(review.decisionInput()),

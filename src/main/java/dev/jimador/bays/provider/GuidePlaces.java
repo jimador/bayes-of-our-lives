@@ -17,7 +17,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/** Three fixed research leads or a bounded user-triggered public OSM city search. */
+/** Bounded public lookup of named places for an itinerary. */
 @Component
 public class GuidePlaces {
     public record Option(String name, String sourceUrl, String setting, String interestTag,
@@ -45,53 +45,14 @@ public class GuidePlaces {
         this.nominatim = base.replaceAll("/+$", "");
     }
 
-    public Search search(String mode, String city, String intent) {
-        return search(mode, city, intent, "lunch");
-    }
-
-    public Search search(String mode, String city, String intent, String mealPeriod) {
-        if (!List.of("sights", "meal").contains(intent)) throw new IllegalArgumentException("intent must be sights or meal");
-        if (!List.of("breakfast", "lunch", "dinner").contains(mealPeriod))
-            throw new IllegalArgumentException("meal period must be breakfast, lunch, or dinner");
-        return switch (mode) {
-            case "fixed" -> fixed(intent, mealPeriod);
-            case "live" -> live(city, intent, mealPeriod);
-            default -> throw new IllegalArgumentException("bays.mode must be fixed or live");
-        };
-    }
-
     /** Named real-world categories used by the itinerary research stage. */
     public Search searchCategory(String city, String startingLocation, String category) {
         if (!List.of("museum", "park", "breakfast", "cafe", "restaurant").contains(category))
             throw new IllegalArgumentException("Unsupported place category");
-        return live(city, List.of("museum", "park").contains(category) ? "sights" : "meal",
-                List.of("breakfast", "cafe").contains(category) ? "breakfast" : "lunch", startingLocation, category);
+        return live(city, startingLocation, category);
     }
 
-    public static Search fixed(String intent) {
-        return fixed(intent, "lunch");
-    }
-    public static Search fixed(String intent, String mealPeriod) {
-        List<Option> options = intent.equals("sights") ? List.of(
-                new Option("Pocket Art Gallery", "synthetic://bays/art", "indoor", "art", "quiet", 8, 45),
-                new Option("Hands-On Science Hall", "synthetic://bays/science", "indoor", "science", "lively", 18, 45),
-                new Option("Riverside Garden", "synthetic://bays/garden", "outdoor", "nature", "quiet", 12, 45)) : List.of(
-                new Option("Little Bakery", "synthetic://bays/bakery", "indoor", "bakery", "quiet", 9, 40),
-                new Option("Bright Noodle Counter", "synthetic://bays/noodles", "indoor", "spicy", "lively", 14, 40),
-                new Option("Market Lunch Room", "synthetic://bays/market", "indoor", "market", "lively", 7, 40));
-        if (intent.equals("meal")) options = switch (mealPeriod) {
-            case "breakfast" -> List.of(options.getFirst());
-            case "dinner" -> List.of(options.get(1));
-            default -> options;
-        };
-        return new Search("Harborview (fictional)", "synthetic Bays catalog", Instant.now(), options);
-    }
-
-    private Search live(String city, String intent, String mealPeriod) {
-        return live(city, intent, mealPeriod, city, null);
-    }
-
-    private Search live(String city, String intent, String mealPeriod, String startingLocation, String category) {
+    private Search live(String city, String startingLocation, String category) {
         try {
             if (city == null || city.isBlank()) throw new IllegalArgumentException("A city is required");
             String geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + enc(city)
@@ -111,10 +72,10 @@ public class GuidePlaces {
                 if (distanceKm(lat, lon, startLat, startLon) > 25)
                     throw new IllegalArgumentException("Starting location is outside the selected city area");
             }
-            String kind = category != null ? category : intent.equals("meal")
-                    ? (mealPeriod.equals("breakfast") ? "cafe" : "restaurant") : "museum";
+            String kind = category;
+            boolean sightCategory = List.of("museum", "park").contains(category);
             boolean breakfastCategory = "breakfast".equals(category);
-            boolean foodCategory = category != null && List.of("breakfast", "cafe", "restaurant").contains(category);
+            boolean foodCategory = !sightCategory;
             String placeUrl = breakfastCategory
                     ? breakfastSearchUrl(startLat, startLon)
                     : foodCategory
@@ -145,7 +106,7 @@ public class GuidePlaces {
                         if (entry.getValue().isTextual()) tags.put(entry.getKey(), entry.getValue().asText());
                     });
                     options.add(new Option(name, "https://www.openstreetmap.org/" + osmType + "/"
-                            + properties.path("osm_id").asText(), "unknown", nameTag(name, intent),
+                            + properties.path("osm_id").asText(), "unknown", nameTag(name, sightCategory ? "sights" : "meal"),
                             "unknown", drive, 40, pLat, pLon, Map.copyOf(tags)));
                     if (options.size() == 3) break;
                     continue;
@@ -165,8 +126,8 @@ public class GuidePlaces {
                 });
                 // A literal word in the mapped name can signal interest, not venue quality or safety.
                 // Public search results do not establish cuisine, noise, opening hours, or dietary safety.
-                options.add(new Option(name, source, "unknown", nameTag(name, intent), "unknown", drive,
-                        intent.equals("meal") ? 40 : 45, pLat, pLon, Map.copyOf(tags)));
+                options.add(new Option(name, source, "unknown", nameTag(name, sightCategory ? "sights" : "meal"), "unknown", drive,
+                        sightCategory ? 45 : 40, pLat, pLon, Map.copyOf(tags)));
             }
             String tagSource = "";
             if (breakfastCategory && !options.isEmpty()) {

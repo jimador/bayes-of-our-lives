@@ -24,20 +24,16 @@ public class BayesDecisionServices {
         this.model = model;
     }
 
-    public DecisionService forEngine(String engine) {
+    public DecisionService forItineraryEngine(String engine) {
         if (!ENGINES.contains(engine)) throw new IllegalArgumentException("engine must be local, jev, or openai");
         if (engine.equals("jev")) requiredKey("TYPESAFE_API_KEY");
         if (engine.equals("openai")) requiredKey("OPENAI_API_KEY");
         return services.computeIfAbsent(engine, this::create);
     }
 
-    public DecisionService forItineraryEngine(String engine) {
-        return engine.equals("local") ? new LocalItineraryDecisions() : forEngine(engine);
-    }
-
     private DecisionService create(String engine) {
         return switch (engine) {
-            case "local" -> new LocalGuideDecisions();
+            case "local" -> new LocalItineraryDecisions();
             case "jev" -> new TypeSafeModelFactory(() -> requiredKey("TYPESAFE_API_KEY")).build();
             case "openai" -> {
                 requiredKey("OPENAI_API_KEY");

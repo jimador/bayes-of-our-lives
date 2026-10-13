@@ -1,12 +1,12 @@
 package dev.jimador.bays;
 
 import com.embabel.agent.core.AgentPlatform;
-import dev.jimador.bays.web.BayesGuideController;
 import dev.jimador.bays.web.BayesItineraryController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,12 +16,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 })
 class PackageScanTest {
     @Autowired AgentPlatform platform;
-    @Autowired BayesGuideController guideController;
     @Autowired BayesItineraryController itineraryController;
 
     @Test void discoversAgentAndControllersAcrossSubpackages() {
-        assertTrue(platform.agents().stream().anyMatch(agent -> agent.getName().contains("BayesAgent")));
-        assertNotNull(guideController);
+        var bayes = platform.agents().stream().filter(agent -> agent.getName().contains("BayesAgent"))
+                .findFirst().orElseThrow();
+        assertEquals(1, bayes.getGoals().size());
+        assertTrue(bayes.getGoals().iterator().next().getName().contains("completeItinerary"));
         assertNotNull(itineraryController);
     }
 }

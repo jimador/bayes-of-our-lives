@@ -1,7 +1,6 @@
 package dev.jimador.bays.web;
 
 import dev.jimador.bays.decision.BayesDecisionServices;
-import dev.jimador.bays.guide.BayesGuideService;
 import dev.jimador.bays.itinerary.BayesItineraryService;
 import dev.jimador.bays.itinerary.ItineraryRequest;
 
@@ -32,7 +31,7 @@ public class BayesItineraryController {
     ResponseEntity<Map<String, String>> unavailableModel(BayesDecisionServices.ModelUnavailableException failure) {
         return error(HttpStatus.SERVICE_UNAVAILABLE, "MODEL_UNAVAILABLE", failure.getMessage());
     }
-    @ExceptionHandler(BayesGuideService.DecisionResponseException.class)
+    @ExceptionHandler(BayesItineraryService.DecisionResponseException.class)
     ResponseEntity<Map<String, String>> failedDecision() {
         return error(HttpStatus.BAD_GATEWAY, "DECISION_FAILED", "The model did not return a complete typed itinerary answer.");
     }
