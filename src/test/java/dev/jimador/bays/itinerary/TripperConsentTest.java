@@ -37,12 +37,16 @@ class TripperConsentTest {
         when(places.searchCategory(anyString(), anyString(), anyString())).thenReturn(
                 new GuidePlaces.Search("Fort Lauderdale", "synthetic source", Instant.now(),
                         List.of(), "America/New_York"));
+        when(places.searchCategory(anyString(), anyString(), anyString(), anyList())).thenReturn(
+                new GuidePlaces.Search("Fort Lauderdale", "synthetic source", Instant.now(),
+                        List.of(), "America/New_York"));
         var request = new ItineraryRequest("Fort Lauderdale", "Synthetic airport area", LocalDate.now().plusDays(7),
                 LocalTime.of(7, 0), LocalTime.of(14, 0), true, false, false,
                 true, false, 2, 0, "art", "steady", false, "synthetic allergy marker", "local", true, true,
                 null, false, false, "Brazilian", "Italian");
         new ItineraryResearch(places).findAndResearch(request);
-        verify(places, times(4)).searchCategory(eq("Fort Lauderdale"), eq("Synthetic airport area"), anyString());
+        verify(places, times(3)).searchCategory(eq("Fort Lauderdale"), eq("Synthetic airport area"), anyString());
+        verify(places).searchCategory("Fort Lauderdale", "Synthetic airport area", "restaurant", List.of("brazilian"));
         verify(places).searchCategory("Fort Lauderdale", "Synthetic airport area", "breakfast");
         verifyNoMoreInteractions(places);
     }

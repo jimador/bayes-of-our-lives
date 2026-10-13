@@ -71,7 +71,7 @@ class FoodEvidenceTest {
         var r = request("thai", "italian", "private dietary marker");
         var conflict = FoodEvidence.assess("breakfast", italian, research(italian, "thai", "full_breakfast"),
                 r, OpeningHours.Fit.TAGGED_OPEN);
-        assertTrue(conflict.cuisine().startsWith("conflicting; map=italian; research=thai"));
+        assertTrue(conflict.cuisine().startsWith("conflicting; map=italian; name=unknown (inferred, unverified); research=thai"));
         assertEquals("disliked", conflict.preference());
         assertEquals("research_full_breakfast_claim", conflict.service());
         var unreferenced = new BayesAgent.ResearchedPointOfInterest(italian.name(), italian.sourceUrl(), null,

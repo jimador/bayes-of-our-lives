@@ -1,0 +1,83 @@
+{
+  "inputSha256" : "6faecb8798faf30d1b385ba0103d5046c60c1dc7c8a4c99cc3d2206cdcfff881",
+  "repetitions" : 2,
+  "rows" : [ {
+    "engine" : "local",
+    "repetition" : 1,
+    "status" : "ok",
+    "completeness" : "false",
+    "choice" : "research",
+    "rating" : "weak",
+    "classification" : "unknown",
+    "model" : "local/bayes-itinerary-rules-v1",
+    "decisionMs" : 5.809625,
+    "classificationMs" : 0.110792,
+    "totalMs" : 8.866458,
+    "note" : ""
+  }, {
+    "engine" : "local",
+    "repetition" : 2,
+    "status" : "ok",
+    "completeness" : "false",
+    "choice" : "research",
+    "rating" : "weak",
+    "classification" : "unknown",
+    "model" : "local/bayes-itinerary-rules-v1",
+    "decisionMs" : 0.612834,
+    "classificationMs" : 0.024125,
+    "totalMs" : 0.690583,
+    "note" : ""
+  }, {
+    "engine" : "jev",
+    "repetition" : 1,
+    "status" : "ok",
+    "completeness" : "false",
+    "choice" : "research",
+    "rating" : "weak",
+    "classification" : "unknown",
+    "model" : "TypeSafe/jev-1.13.0",
+    "decisionMs" : 380.231125,
+    "classificationMs" : 158.773625,
+    "totalMs" : 564.86075,
+    "note" : ""
+  }, {
+    "engine" : "jev",
+    "repetition" : 2,
+    "status" : "ok",
+    "completeness" : "false",
+    "choice" : "research",
+    "rating" : "weak",
+    "classification" : "unknown",
+    "model" : "TypeSafe/jev-1.13.0",
+    "decisionMs" : 150.154208,
+    "classificationMs" : 136.018208,
+    "totalMs" : 286.368333,
+    "note" : ""
+  }, {
+    "engine" : "openai",
+    "repetition" : 1,
+    "status" : "ok",
+    "completeness" : "false",
+    "choice" : "research",
+    "rating" : "weak",
+    "classification" : "unknown",
+    "model" : "OpenAI/gpt-4.1",
+    "decisionMs" : 1098.759167,
+    "classificationMs" : 844.735458,
+    "totalMs" : 1945.635042,
+    "note" : ""
+  }, {
+    "engine" : "openai",
+    "repetition" : 2,
+    "status" : "ok",
+    "completeness" : "false",
+    "choice" : "research",
+    "rating" : "weak",
+    "classification" : "unknown",
+    "model" : "OpenAI/gpt-4.1",
+    "decisionMs" : 1074.781709,
+    "classificationMs" : 550.209083,
+    "totalMs" : 1625.2905,
+    "note" : ""
+  } ]
+}

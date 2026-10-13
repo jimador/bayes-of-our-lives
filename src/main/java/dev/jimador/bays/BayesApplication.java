@@ -14,7 +14,9 @@ public class BayesApplication {
         var app = new SpringApplication(BayesApplication.class);
         if (System.getenv("OPENAI_API_KEY") == null || System.getenv("OPENAI_API_KEY").isBlank())
             app.setDefaultProperties(java.util.Map.of("embabel.agent.platform.models.openai.api-key", "unused-local-mode"));
-        app.run(args);
+        var context = app.run(args);
+        if (java.util.Arrays.stream(args).anyMatch(a -> a.startsWith("--bays.replay.run-file=")))
+            SpringApplication.exit(context);
     }
 
     @Bean("baysDecisionService")

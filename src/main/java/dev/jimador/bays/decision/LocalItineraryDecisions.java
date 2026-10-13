@@ -28,8 +28,12 @@ public final class LocalItineraryDecisions implements DecisionService, RatingAss
     @Override public RatingResult rate(String input, RatingQuestionSpec question) {
         String choice = choice(input, List.of("a", "b", "research"));
         String status = field(input, "Alternative " + choice + " status");
-        return new RatingResult.Answered(PROVENANCE, switch (status) {
-            case "provisional", "unresolved" -> "possible"; default -> "weak";
+        int disliked = count(field(input, "Alternative " + choice + " disliked food stops"));
+        int liked = count(field(input, "Alternative " + choice + " liked food stops"));
+        return new RatingResult.Answered(PROVENANCE, disliked > 0 ? "weak" : switch (status) {
+            case "provisional" -> liked > 0 ? "strong" : "possible";
+            case "unresolved" -> "possible";
+            default -> "weak";
         });
     }
     private static String choice(String input, List<String> ids) {

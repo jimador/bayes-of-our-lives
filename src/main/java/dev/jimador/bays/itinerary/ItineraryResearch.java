@@ -42,7 +42,8 @@ public class ItineraryResearch {
                 .filter(s -> s != null && !s.isBlank()).findFirst().orElse(null);
         validateDestinationTime(request, timezone, gaps);
         return new Findings(city, Instant.now(), List.copyOf(sights), List.copyOf(cafes),
-                List.copyOf(restaurants), List.copyOf(sources), List.copyOf(gaps), timezone);
+                CuisineEvidence.ranked(restaurants, request, true).stream().limit(5).toList(),
+                List.copyOf(sources), List.copyOf(gaps), timezone);
     }
 
     static void validateDestinationTime(ItineraryRequest request, String timezone, List<String> gaps) {
@@ -71,7 +72,9 @@ public class ItineraryResearch {
     private GuidePlaces.Search lookup(ItineraryRequest request, String category,
             List<GuidePlaces.Option> into, List<String> sources, List<String> gaps) {
         try {
-            var found = places.searchCategory(request.city(), request.startingLocation(), category);
+            var found = category.equals("restaurant") && !request.likedCuisines().isEmpty()
+                    ? places.searchCategory(request.city(), request.startingLocation(), category, request.likedCuisines())
+                    : places.searchCategory(request.city(), request.startingLocation(), category);
             into.addAll(found.options());
             sources.add(found.source());
             if (found.options().isEmpty()) gaps.add("No mapped " + category + " lead was returned for this city.");

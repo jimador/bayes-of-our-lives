@@ -2,6 +2,7 @@ package dev.jimador.bays;
 
 import com.embabel.agent.core.AgentPlatform;
 import dev.jimador.bays.web.BayesItineraryController;
+import dev.jimador.bays.itinerary.ReplayRunner;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PackageScanTest {
     @Autowired AgentPlatform platform;
     @Autowired BayesItineraryController itineraryController;
+    @Autowired ReplayRunner replayRunner;
 
     @Test void discoversAgentAndControllersAcrossSubpackages() {
         var bayes = platform.agents().stream().filter(agent -> agent.getName().contains("BayesAgent"))
@@ -24,5 +26,6 @@ class PackageScanTest {
         assertEquals(1, bayes.getGoals().size());
         assertTrue(bayes.getGoals().iterator().next().getName().contains("completeItinerary"));
         assertNotNull(itineraryController);
+        assertEquals(2, org.springframework.test.util.ReflectionTestUtils.getField(replayRunner, "runs"));
     }
 }

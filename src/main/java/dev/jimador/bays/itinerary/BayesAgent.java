@@ -56,17 +56,19 @@ public class BayesAgent {
             List<ResearchedPointOfInterest> researchedPlaces, String destinationTimezone) {}
 
     private final BayesDecisionServices services;
+    private final ReplayCaptureStore replayCapture;
     private final ItineraryMemory itineraryMemory;
     private final ItineraryResearch itineraryResearch;
     private final ItineraryPlanner itineraryPlanner;
     private final OfficialPageResearch websiteResearch;
     private final PublicWebResearch publicWebResearch;
     private final TripperCityPort tripperPort;
-    @Autowired public BayesAgent(BayesDecisionServices services,
+    @Autowired public BayesAgent(BayesDecisionServices services, ReplayCaptureStore replayCapture,
             ItineraryMemory itineraryMemory, ItineraryResearch itineraryResearch, ItineraryPlanner itineraryPlanner,
             OfficialPageResearch websiteResearch, PublicWebResearch publicWebResearch,
             TripperCityPort tripperPort) {
         this.services = services;
+        this.replayCapture = replayCapture;
         this.itineraryMemory = itineraryMemory;
         this.itineraryResearch = itineraryResearch;
         this.itineraryPlanner = itineraryPlanner;
@@ -97,7 +99,7 @@ public class BayesAgent {
         var found = ideas.findings();
         List<ResearchedPointOfInterest> values = new java.util.ArrayList<>();
         var researchUrls = java.util.stream.Stream.of(found.sights().stream().limit(2),
-                        found.cafes().stream().limit(1), found.restaurants().stream().limit(1))
+                        found.cafes().stream().limit(1), found.restaurants().stream().limit(2))
                 .flatMap(s -> s).map(GuidePlaces.Option::sourceUrl).collect(java.util.stream.Collectors.toSet());
         for (var o : java.util.stream.Stream.of(found.sights(), found.cafes(), found.restaurants())
                 .flatMap(List::stream).toList()) {
@@ -203,47 +205,12 @@ public class BayesAgent {
         var alternatives = proposal.alternatives();
         String input = itineraryDecisionInput(profile, alternatives) + "\nIndependent venue pages retrieved: "
                 + research.researched().stream().filter(p -> p.websiteEvidence().status().equals("retrieved")).count();
-        var builder = DecisionSpec.builder()
-                .proposition("fully-sourced", q -> q.asking("Is any alternative marked provisional with no open questions? This is still not a confirmed booking."))
-                .choice("next", q -> {
-                    q.asking("Choose a non-invalid alternative that best fits the confirmed profile and sourced timing."
-                            + " Choose research if material gaps prevent a useful tentative itinerary."
-                            + " Never claim an unresolved alternative is confirmed.");
-                    for (var alternative : alternatives)
-                        q.option(alternative.id(), alternative.title() + " (" + alternative.status() + ")");
-                    q.option("research", "Ask or research before choosing an itinerary");
-                })
-                .rating("fit", q -> q.asking("Rate the best non-invalid alternative's fit and evidence")
-                        .level("strong", "Provisionally fits with mapped evidence")
-                        .level("possible", "Tentative with open questions")
-                        .level("weak", "No usable alternative"))
-                .build();
-        var service = services.forItineraryEngine(profile.requirements().engine());
-        long started = System.nanoTime();
-        var answer = service.ask(DecisionRequest.of(input, builder));
-        long decisionNanos = System.nanoTime() - started;
-        var proposition = ((DecisionAnswer.Proposition) answer.answer("fully-sourced")).getOutcome();
-        var choice = ((DecisionAnswer.Choice) answer.answer("next")).getOutcome();
-        var rating = ((DecisionAnswer.Rating) answer.answer("fit")).getOutcome();
-        String selected = value(choice);
-        String type = alternatives.stream().filter(a -> a.id().equals(selected)).findFirst()
-                .map(a -> a.stops().stream().anyMatch(s -> !s.kind().equals("sight"))
-                        ? "sight-and-meal" : "sight-only").orElse("unknown");
-        var shape = ClassificationSpec.builder().asking("Report the supplied selected itinerary type")
-                .category("sight-and-meal", "The selected itinerary contains a sight and a meal or coffee")
-                .category("sight-only", "The selected itinerary contains only a sight")
-                .category("unknown", "No itinerary was selected")
-                .build();
-        started = System.nanoTime();
-        var classification = service.classify(ClassificationRequest.of(input + "\nSelected itinerary type: " + type, shape));
-        long classificationNanos = System.nanoTime() - started;
-        String model = proposition instanceof PropositionResult.Answered a && a.getProvenance() != null
-                ? a.getProvenance().getProvider() + "/" + a.getProvenance().getModelName() : "unreported";
-        return new ItineraryReview(input,
-                proposition instanceof PropositionResult.Answered a ? Boolean.toString(a.getAnswer())
-                        : proposition instanceof PropositionResult.Failure f ? "failure:" + f.getReason() : "inconclusive",
-                selected, ratingValue(rating), value(classification), model, decisionNanos,
-                classificationNanos, alternatives, research.researched(), 0);
+        var capture = DecisionReplay.capture(input, alternatives);
+        replayCapture.save(capture, profile.requirements());
+        var answer = DecisionReplay.evaluate(capture, services.forItineraryEngine(profile.requirements().engine()));
+        return new ItineraryReview(input, answer.completeness(), answer.choice(), answer.rating(),
+                answer.classification(), answer.model(), Math.round(answer.decisionMs() * 1_000_000),
+                Math.round(answer.classificationMs() * 1_000_000), alternatives, research.researched(), 0);
     }
 
     @Action @AchievesGoal(description = "Return sourced city itinerary alternatives with unresolved facts visible")

@@ -76,7 +76,7 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
         if (engine == null || !List.of("local", "jev", "openai").contains(engine))
             throw new IllegalArgumentException("Choose a listed decision engine");
         if (!publicMapConsent)
-            throw new IllegalArgumentException("Confirm sharing the city and start location with public map services");
+            throw new IllegalArgumentException("Confirm sharing the city, start location, and liked cuisine terms with public map services");
         if (List.of("jev", "openai").contains(engine) && !remoteModelConsent)
             throw new IllegalArgumentException("Confirm remote model sharing before selecting Jev or GPT-4.1");
     }
@@ -129,7 +129,7 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
             throw new IllegalArgumentException("Cuisine preferences must be at most 120 characters");
         var values = new java.util.LinkedHashSet<String>();
         for (String part : raw.split("[,;]")) {
-            String value = part.trim().toLowerCase(java.util.Locale.ROOT).replaceAll("\\s+", " ");
+            String value = CuisineEvidence.normalize(part);
             if (value.isBlank()) continue;
             if (!CUISINES.contains(value))
                 throw new IllegalArgumentException("Choose listed cuisines only; put dietary or allergy needs in the private dietary field");

@@ -1,11 +1,8 @@
 package dev.jimador.bays.itinerary;
 
 import dev.jimador.bays.provider.GuidePlaces;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /** Bounded, attributed food clues; none of these establish a current menu or dietary safety. */
 final class FoodEvidence {
@@ -13,20 +10,21 @@ final class FoodEvidence {
 
     static Assessment assess(String slot, GuidePlaces.Option place,
             BayesAgent.ResearchedPointOfInterest research, ItineraryRequest request, OpeningHours.Fit hours) {
-        Set<String> mapped = labels(place.osmTags().get("cuisine"));
+        Set<String> mapped = CuisineEvidence.labels(place.osmTags().get("cuisine"));
+        Set<String> inferred = CuisineEvidence.nameClues(place.name());
         Set<String> researched = research == null || research.researchLinks().isEmpty()
-                ? Set.of() : labels(research.researchCuisine());
+                ? Set.of() : CuisineEvidence.labels(research.researchCuisine());
         boolean conflict = !mapped.isEmpty() && !researched.isEmpty()
                 && mapped.stream().noneMatch(researched::contains);
-        Set<String> all = java.util.stream.Stream.concat(mapped.stream(), researched.stream())
-                .collect(Collectors.toSet());
-        String cuisine = mapped.isEmpty() && researched.isEmpty() ? "unknown"
-                : (conflict ? "conflicting; " : "") + "map=" + display(mapped)
-                        + "; research=" + display(researched) + " (unverified)";
-        String preference = all.stream().anyMatch(request.dislikedCuisines()::contains) ? "disliked"
-                : conflict ? "conflicting"
-                : all.stream().anyMatch(request.likedCuisines()::contains) ? "liked"
-                : all.isEmpty() ? "unknown" : "neutral";
+        Set<String> all = new java.util.LinkedHashSet<>(mapped);
+        all.addAll(inferred);
+        all.addAll(researched);
+        String cuisine = all.isEmpty() ? "unknown"
+                : (conflict ? "conflicting; " : "") + "map=" + CuisineEvidence.display(mapped)
+                        + "; name=" + CuisineEvidence.display(inferred) + " (inferred, unverified)"
+                        + "; research=" + CuisineEvidence.display(researched) + " (unverified)";
+        String preference = CuisineEvidence.preference(all, request);
+        if (!preference.equals("disliked") && conflict) preference = "conflicting";
 
         boolean mappedBreakfast = mapped.contains("breakfast");
         boolean mappedCafe = mapped.contains("cafe") || mapped.contains("coffee shop")
@@ -60,13 +58,5 @@ final class FoodEvidence {
         return new Assessment(cuisine, preference, service, timeFit);
     }
 
-    private static Set<String> labels(String raw) {
-        if (raw == null || raw.isBlank() || raw.equalsIgnoreCase("unknown")) return Set.of();
-        return Arrays.stream(raw.toLowerCase(Locale.ROOT).split("[;,]"))
-                .map(s -> s.trim().replace('_', ' ').replaceAll("\\s+", " "))
-                .filter(s -> s.matches("[\\p{L}][\\p{L} '-]{0,39}"))
-                .limit(8).collect(Collectors.toCollection(java.util.LinkedHashSet::new));
-    }
-    private static String display(Set<String> labels) { return labels.isEmpty() ? "unknown" : String.join(", ", labels); }
     private FoodEvidence() {}
 }

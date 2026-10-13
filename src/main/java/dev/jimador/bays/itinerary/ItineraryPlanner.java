@@ -68,7 +68,8 @@ public class ItineraryPlanner {
         for (var choice : draft.alternatives()) {
             var sight = named(findings.sights(), choice.sight());
             var cafe = named(findings.cafes(), choice.cafe());
-            var restaurant = named(findings.restaurants(), choice.restaurant());
+            var restaurant = preferredRestaurant(request, findings.restaurants(),
+                    named(findings.restaurants(), choice.restaurant()));
             List<Task> tasks = new ArrayList<>();
             if (request.breakfast()) tasks.add(new Task("breakfast", cafe, 40, LocalTime.of(7, 0), LocalTime.of(10, 30)));
             if (request.coffee()) tasks.add(new Task("coffee", cafe, 20, LocalTime.of(7, 0), LocalTime.of(11, 30)));
@@ -94,6 +95,22 @@ public class ItineraryPlanner {
                     List.copyOf(questions), scheduled.elapsedMinutes(), reason));
         }
         return List.copyOf(alternatives);
+    }
+
+    private static GuidePlaces.Option preferredRestaurant(ItineraryRequest request,
+            List<GuidePlaces.Option> options, GuidePlaces.Option proposed) {
+        if (options.isEmpty()) return proposed;
+        var ranked = CuisineEvidence.ranked(options, request, true);
+        if (ranked.isEmpty()) return proposed;
+        var best = ranked.getFirst();
+        if (proposed != null && CuisineEvidence.preference(CuisineEvidence.known(proposed), request)
+                .equals("disliked") && !CuisineEvidence.preference(CuisineEvidence.known(best), request)
+                .equals("disliked")) return best;
+        if (request.likedCuisines().isEmpty()
+                || !CuisineEvidence.preference(CuisineEvidence.known(best), request).equals("liked"))
+            return proposed;
+        return proposed == null || CuisineEvidence.score(best, request, true)
+                > CuisineEvidence.score(proposed, request, true) ? best : proposed;
     }
 
     private static GuidePlaces.Option named(List<GuidePlaces.Option> options, String name) {
