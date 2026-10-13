@@ -42,7 +42,8 @@ class TripperConsentTest {
                 true, false, 2, 0, "art", "steady", false, "synthetic allergy marker", "local", true, true,
                 null, false, false, "Brazilian", "Italian");
         new ItineraryResearch(places).findAndResearch(request);
-        verify(places, times(3)).searchCategory(eq("Fort Lauderdale"), eq("Synthetic airport area"), anyString());
+        verify(places, times(4)).searchCategory(eq("Fort Lauderdale"), eq("Synthetic airport area"), anyString());
+        verify(places).searchCategory("Fort Lauderdale", "Synthetic airport area", "breakfast");
         verifyNoMoreInteractions(places);
     }
 }

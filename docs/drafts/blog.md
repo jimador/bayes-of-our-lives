@@ -14,6 +14,8 @@ That's the request I gave Bayes, a Tuesday in Fort Lauderdale with two adults, a
 
 In a live check, Bayes found the NSU Art Museum Fort Lauderdale and Bonnet House Museum and Gardens, along with three mapped cafés and several restaurants. Each request proposed two plans, one built around each art stop. Both places are mapped as open on Tuesday, NSU from 11:00 and Bonnet House from 11:00 to 4:00. No plan was invalid. Every plan was still unresolved: the café records lacked opening hours and full-breakfast evidence, so the planner selected none for 7 a.m. That says something about this search and its evidence, not about whether Fort Lauderdale serves breakfast. Admission and hours on the specific date also remained unverified.
 
+So I changed the search. For a breakfast request, Bayes now looks for named breakfast restaurants and cafés near the starting point and looks up the exact OSM records for cuisine and hours. One bounded follow-up browser run found OB House – Breakfast All day. Its mapped tags say `breakfast;coffee;lunch` and Tuesday hours of 7 a.m. to 1 p.m.; Bayes placed it at 7:05 a.m. and still asked for direct confirmation of full breakfast service. The selected itinerary remained unresolved. The improvement is a real candidate with attributed clues, not a promise that the kitchen will be open next Tuesday.
+
 The language model does the open-ended research and drafting here, whatever decides at the end. The decision engine sees the same alternatives with their statuses, timing and open-question counts. A model cannot turn an invalid alternative into a valid one by sounding pleased with it. A closure is a fact in the input, and the status arrives with it.
 
 ## What the decision action asks

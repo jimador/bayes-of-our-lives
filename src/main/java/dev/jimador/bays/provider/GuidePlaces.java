@@ -62,10 +62,10 @@ public class GuidePlaces {
 
     /** Named real-world categories used by the itinerary research stage. */
     public Search searchCategory(String city, String startingLocation, String category) {
-        if (!List.of("museum", "park", "cafe", "restaurant").contains(category))
+        if (!List.of("museum", "park", "breakfast", "cafe", "restaurant").contains(category))
             throw new IllegalArgumentException("Unsupported place category");
         return live(city, List.of("museum", "park").contains(category) ? "sights" : "meal",
-                category.equals("cafe") ? "breakfast" : "lunch", startingLocation, category);
+                List.of("breakfast", "cafe").contains(category) ? "breakfast" : "lunch", startingLocation, category);
     }
 
     public static Search fixed(String intent) {
@@ -113,9 +113,12 @@ public class GuidePlaces {
             }
             String kind = category != null ? category : intent.equals("meal")
                     ? (mealPeriod.equals("breakfast") ? "cafe" : "restaurant") : "museum";
-            boolean foodCategory = category != null && List.of("cafe", "restaurant").contains(category);
-            String placeUrl = foodCategory
-                    ? "https://photon.komoot.io/api/?q=" + enc(kind) + "&lat=" + lat + "&lon=" + lon
+            boolean breakfastCategory = "breakfast".equals(category);
+            boolean foodCategory = category != null && List.of("breakfast", "cafe", "restaurant").contains(category);
+            String placeUrl = breakfastCategory
+                    ? breakfastSearchUrl(startLat, startLon)
+                    : foodCategory
+                    ? "https://photon.komoot.io/api/?q=" + enc(kind) + "&lat=" + startLat + "&lon=" + startLon
                         + "&limit=8&osm_tag=" + enc("amenity:" + kind)
                     : nominatim + "/search?q=" + enc(kind + ", " + city)
                         + "&format=jsonv2&extratags=1&limit=3";
@@ -128,11 +131,12 @@ public class GuidePlaces {
                     JsonNode coordinates = place.path("geometry").path("coordinates");
                     if (!coordinates.isArray() || coordinates.size() < 2) continue;
                     double pLon = coordinates.get(0).asDouble(), pLat = coordinates.get(1).asDouble();
-                    if (distanceKm(lat, lon, pLat, pLon) > 25) continue;
+                    if (distanceKm(startLat, startLon, pLat, pLon) > (breakfastCategory ? 12 : 25)) continue;
                     String osmType = switch (properties.path("osm_type").asText()) {
                         case "N" -> "node"; case "W" -> "way"; case "R" -> "relation"; default -> "";
                     };
-                    if (osmType.isBlank() || !properties.hasNonNull("osm_id")) continue;
+                    if (osmType.isBlank() || !properties.hasNonNull("osm_id")
+                            || !properties.path("osm_id").asText().matches("[0-9]+")) continue;
                     String name = properties.path("name").asText();
                     if (name.isBlank()) continue;
                     Integer drive = route(startLon, startLat, pLon, pLat);
@@ -164,13 +168,73 @@ public class GuidePlaces {
                 options.add(new Option(name, source, "unknown", nameTag(name, intent), "unknown", drive,
                         intent.equals("meal") ? 40 : 45, pLat, pLon, Map.copyOf(tags)));
             }
+            String tagSource = "";
+            if (breakfastCategory && !options.isEmpty()) {
+                String ids = osmIds(options);
+                if (!ids.isBlank()) {
+                    tagSource = nominatim + "/lookup?osm_ids=" + enc(ids) + "&format=jsonv2&extratags=1";
+                    options = new ArrayList<>(enrichBreakfastTags(options, tagSource));
+                }
+            }
             return new Search(center.path("name").asText() + ", " + center.path("country").asText(),
-                    geoUrl + " ; " + placeUrl, Instant.now(), List.copyOf(options),
+                    geoUrl + " ; " + placeUrl + (tagSource.isBlank() ? "" : " ; " + tagSource),
+                    Instant.now(), List.copyOf(options),
                     center.path("timezone").asText(""));
         } catch (IOException | InterruptedException failure) {
             if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
             throw new IllegalStateException("Public city provider unavailable: " + failure.getClass().getSimpleName(), failure);
         }
+    }
+
+    /** Named breakfast places close to the user's start, not a citywide generic cafe search. */
+    static String breakfastSearchUrl(double lat, double lon) {
+        double latRadius = 0.12, lonRadius = 0.12 / Math.cos(Math.toRadians(lat));
+        String bbox = (lon - lonRadius) + "," + (lat - latRadius) + ","
+                + (lon + lonRadius) + "," + (lat + latRadius);
+        return "https://photon.komoot.io/api/?q=breakfast&lat=" + lat + "&lon=" + lon
+                + "&bbox=" + enc(bbox) + "&limit=12&osm_tag=" + enc("amenity:restaurant")
+                + "&osm_tag=" + enc("amenity:cafe");
+    }
+
+    private static String osmIds(List<Option> options) {
+        return options.stream().map(o -> {
+            String[] parts = o.sourceUrl().split("/");
+            String type = switch (parts[parts.length - 2]) {
+                case "node" -> "N"; case "way" -> "W"; case "relation" -> "R"; default -> "";
+            };
+            return type + parts[parts.length - 1];
+        }).filter(id -> id.matches("[NWR][0-9]+"))
+                .reduce((a, b) -> a + "," + b).orElse("");
+    }
+
+    private List<Option> enrichBreakfastTags(List<Option> options, String lookupUrl) {
+        try {
+            Map<String, Map<String, String>> byUrl = breakfastTags(get(lookupUrl));
+            return options.stream().map(o -> {
+                Map<String, String> tags = new java.util.HashMap<>(o.osmTags());
+                tags.putAll(byUrl.getOrDefault(o.sourceUrl(), Map.of()));
+                return new Option(o.name(), o.sourceUrl(), o.setting(), o.interestTag(), o.ambience(),
+                        o.oneWayDriveMinutes(), o.minimumVisitMinutes(), o.latitude(), o.longitude(), Map.copyOf(tags));
+            }).toList();
+        } catch (IOException | InterruptedException failure) {
+            if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
+            return options;
+        }
+    }
+
+    static Map<String, Map<String, String>> breakfastTags(JsonNode details) {
+            Map<String, Map<String, String>> byUrl = new java.util.HashMap<>();
+            for (JsonNode detail : details) {
+                String type = detail.path("osm_type").asText();
+                String id = detail.path("osm_id").asText();
+                if (!List.of("node", "way", "relation").contains(type) || !id.matches("[0-9]+")) continue;
+                Map<String, String> tags = new java.util.HashMap<>();
+                detail.path("extratags").properties().forEach(entry -> {
+                    if (entry.getValue().isTextual()) tags.put(entry.getKey(), entry.getValue().asText());
+                });
+                byUrl.put("https://www.openstreetmap.org/" + type + "/" + id, tags);
+            }
+            return Map.copyOf(byUrl);
     }
 
     public Integer route(double lon, double lat, double pLon, double pLat) {

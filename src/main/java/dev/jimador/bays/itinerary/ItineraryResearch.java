@@ -31,12 +31,13 @@ public class ItineraryResearch {
         String city = request.city();
         var museum = lookup(request, "museum", sights, sources, gaps);
         if (museum != null) city = museum.city();
-        GuidePlaces.Search park = null, cafe = null, restaurant = null;
+        GuidePlaces.Search park = null, breakfast = null, cafe = null, restaurant = null;
         if (request.safeInterests().toLowerCase(java.util.Locale.ROOT).matches(".*(park|walk|nature|outdoor).*"))
             park = lookup(request, "park", sights, sources, gaps);
+        if (request.breakfast()) breakfast = lookup(request, "breakfast", cafes, sources, gaps);
         if (request.breakfast() || request.coffee()) cafe = lookup(request, "cafe", cafes, sources, gaps);
         if (request.lunch() || request.dinner()) restaurant = lookup(request, "restaurant", restaurants, sources, gaps);
-        String timezone = java.util.stream.Stream.of(museum, park, cafe, restaurant)
+        String timezone = java.util.stream.Stream.of(museum, park, breakfast, cafe, restaurant)
                 .filter(java.util.Objects::nonNull).map(GuidePlaces.Search::timezone)
                 .filter(s -> s != null && !s.isBlank()).findFirst().orElse(null);
         validateDestinationTime(request, timezone, gaps);
