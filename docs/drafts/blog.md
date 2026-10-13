@@ -1,70 +1,82 @@
-# Bayes of Our Lives: Jev and Embabel
+# Bayes of Our Lives: Teaching an Embabel Agent When to Stop Researching Lunch
 
-Suppose I have one day in Miami. The museum is the easy part. The less glamorous questions arrive at seven in the morning: where am I starting, are we getting breakfast, who is coming, and will lunch happen before someone decides the gift shop counts as food?
+Ask a language model to plan a morning in Miami and it will happily read venue pages and write you an itinerary. Picking between two of those itineraries is a different job. You need to know which one fits what you already know about the day, and when to stop and go find more evidence. TypeSafe built [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) for that kind of question: structured decisions with declared answer types. Decision models are getting enough attention that [Hugging Face added a decision-model tag and filter](https://huggingface.co/changelog/decision-models-on-the-hub) to the Hub.
 
-I wanted an agent to do the work a reasonable travel companion would do: find candidates, research them, put together a day, and explain what it still does not know. I also wanted to change *how the final choice is made* without rewriting any of that work.
+[Embabel Agent](https://github.com/embabel/embabel-agent) is a JVM framework for building agents from actions and goals. It works with general language models and uses [Goal-Oriented Action Planning](https://docs.embabel.com/) (GOAP) to choose a path through those actions. Embabel Agent recently added support for typed decision and classification models through a `DecisionService` interface. An action can ask a bounded question and get back a typed result. The model behind that interface is configurable, so the same `DecisionService` can be served by a traditional LLM, a decision model like Jev, or deterministic rules. GOAP chooses the agent's actions, and the decision service answers questions inside them. Since switching the backend is a configuration change, it is also a simple way to test the performance claims for models like Jev against a traditional LLM.
 
-That second part is the real point of this post. [Embabel Agent](https://github.com/embabel/embabel-agent) now has typed decision and classification models, `DecisionSpec` and `ClassificationSpec`, and it still supports the generic agents that do the rest of the job. Bayes is a small demo built on both. Embabel runs the sequence, and the typed decision API makes the final call. I can swap who makes that call between local Java rules, Jev (TypeSafe's model, reached with its own runtime key), and OpenAI `gpt-4.1`, and research and planning never notice.
+I built [Bayes of Our Lives](https://github.com/jimador/bayes-of-our-lives) to try it out. It's based on [Tripper](https://github.com/embabel/tripper), which takes a brief, finds places, researches them and proposes a trip. I cut that down to one city and part of one day. Bayes finds sights and places to eat, drafts up to two itineraries, checks the routes and mapped hours and then asks whichever decision service is configured what to do next. Nobody needs a seven-day travel agent to figure out that lunch is missing.
 
-## How the day gets built
+## A Tuesday in Miami
 
-I started from [Tripper](https://github.com/embabel/tripper), which provided the action contracts: a brief, then ideas, then researched places, then a proposed plan. Bayes ports those stages to Java for a city outing and adds a decision on the **whole itinerary**.
+Most of us have planned a day like this one. You have a free morning in a city, a friend who likes art and a vague idea that breakfast should happen early and lunch should happen somewhere near the museum. Then you open a map, three tabs of reviews and a museum website, and twenty minutes later you have learned that the café you liked closes at 11 and the museum might be closed today. Finding places takes a few minutes. Deciding whether you know enough to commit takes the rest of the morning.
 
-I was tempted to replace Tripper's research and planner with map tags and a fixed schedule. I didn't. An OpenAI researcher first chooses relevant sights from mapped candidates. Separate LLM calls research up to four places using retrieved venue website and Wikipedia leads. An OpenAI planner then proposes venue choices and stop order for up to two alternatives. Java maps those names back to known candidates, computes routes and times, and rejects hard conflicts.
+Give Bayes a random Tuesday in Miami with two adults, an interest in art, a 7 a.m. to 2 p.m. window, breakfast, a sight and lunch. The agent discovers mapped candidates and uses a language model to select relevant sights. It researches up to four places from venue pages and Wikipedia leads, and then the model proposes alternatives. Bayes resolves each proposed stop back to a mapped place, estimates base drive times with OSRM and checks the schedule and mapped opening hours.
 
-The LLM writes the proposal; code checks whether the day can actually fit.
+In a live check, one candidate contained a museum whose mapped hours said it was closed on Tuesday. That alternative became invalid. The other remained unresolved because public sources had not established everything needed for a confident day out. Remembering art does not make a museum open on Tuesday.
 
-## The decision seam
+The language model does the open-ended research and drafting here, whatever decides at the end. The decision engine sees the same alternatives with their statuses, timing and open-question counts. A model cannot turn an invalid alternative into a valid one by sounding pleased with it. The closure is a fact in the input, and the status arrives with it.
 
-This is the part I cared about most. The decision action gives each engine an Embabel `DecisionSpec`: is any alternative provisional with no open questions; choose A, B, or `research`; rate the fit. A separate `ClassificationSpec` reports the chosen itinerary shape. When I change engines, the agent still supplies the same Dice context, researched candidates, plan, timing, and open questions. Only the judge changes; the evidence stays put.
+## What the decision action asks
 
-Models are allowed to have opinions, but not the last word on validity. Code prevents an invalid option from becoming the presented plan even if a model chooses it.
+The itinerary action uses Embabel Agent 1.5.4-SNAPSHOT's `DecisionSpec` for three questions. Is any plan sufficiently sourced? Which non-invalid alternative should we choose, or should we research? How strong is the fit? It uses `ClassificationSpec` to report the selected itinerary type. This excerpt uses the same API calls as `BayesAgent.decideItinerary`:
 
-If the decision says `research`, Bayes does one more lap, then shows its work. It takes **one** targeted pass at a relevant official-site subpage, if one exists. It sends new evidence to the LLM researcher, asks the planner to revise, then makes one more typed decision. If no new page is found, or the second decision still asks for research, the app stops and reports the gaps. Endless travel homework would be a poor feature.
+```java
+var spec = DecisionSpec.builder()
+    .proposition("fully-sourced", q -> q.asking(
+        "Is any alternative marked provisional with no open questions? This is still not a confirmed booking."))
+    .choice("next", q -> {
+        q.asking("Choose a non-invalid alternative that best fits the confirmed profile and sourced timing."
+            + " Choose research if material gaps prevent a useful tentative itinerary."
+            + " Never claim an unresolved alternative is confirmed.");
+        for (var alternative : alternatives)
+            q.option(alternative.id(), alternative.title() + " (" + alternative.status() + ")");
+        q.option("research", "Ask or research before choosing an itinerary");
+    })
+    .rating("fit", q -> q.asking("Rate the best non-invalid alternative's fit and evidence")
+        .level("strong", "Provisionally fits with mapped evidence")
+        .level("possible", "Tentative with open questions")
+        .level("weak", "No usable alternative"))
+    .build();
+var service = services.forItineraryEngine(profile.requirements().engine());
+var answer = service.ask(DecisionRequest.of(input, spec));
+```
 
-## Memory is not a hall pass
+Each question has a declared answer type. A proposition comes back as true or false. A choice comes back as one of the listed option IDs, and the option list is built from the alternatives the agent actually has, plus `research`. A rating comes back as one of three named levels. The app never has to parse free text to find out what the model meant.
 
-Bayes records confirmed interests and pace in [Dice 0.4.0](https://github.com/embabel/dice). Choose **Remember preferences** and Dice's JSON repository saves those two fields under a browser-generated profile ID; a later outing can opt to use them. Without that choice, capture lasts for the request. Today's meal, party, access and dietary needs still come from today's form. Exact allergy text stays out of map searches and model prompts; Bayes asks for direct confirmation at a food stop instead.
+The production method also calls `service.classify(ClassificationRequest.of(...))` with a `ClassificationSpec` for `sight-and-meal`, `sight-only`, and `unknown`. `BayesDecisionServices` maps the request's `engine` to deterministic rules, TypeSafe Jev, or an OpenAI-backed decision service using `gpt-4.1`. That is the configuration change. The same `@Agent` actions discover, research, propose, decide, and return the plan.
 
-Dice gives the agent a prior, not a prophecy. Remembering "art" does not make a museum open on Tuesday.
+On the Embabel side, this split is the design. GOAP plans which actions run and in what order. The `DecisionService` answers small, bounded questions inside an action. Keeping those two jobs apart means you can swap the thing answering the questions without touching the plan, the actions or the domain types. If you want to know whether a decision model earns its place in your agent, you change one setting and run the same inputs again.
 
-## A proposal with the awkward bits attached
+If the answer is `research`, Bayes looks for a relevant official-site subpage. When it finds new evidence, it researches the place again, replans and redecides once. Then it stops and shows any questions still open. Endless travel homework would be a poor feature, and one extra lap is enough to show whether new evidence changed the answer.
 
-The web is not always cooperative. A retrieved homepage may be blocked, and a Wikipedia hit may not even be the right venue. Bayes keeps the source and labels clues as unverified. The page fetch pins a checked public IP, verifies the HTTPS hostname, and refuses redirects. The planner cannot select an invented restaurant; names must match mapped candidates. A mapped closure invalidates an alternative.
+## Dice supplies a prior
 
-Here is what Bayes won't pretend to know:
+[Dice](https://github.com/embabel/dice) holds confirmed interests and pace. With **Remember preferences** selected, those two preferences can be saved under a profile ID and used on a later outing. Bayes puts the confirmed Dice interests and pace into the decision input alongside the current day, party, access requirement and candidate summaries. Meals and dietary needs come from the current request.
 
-- **Hours:** tagged "open" hours remain provisional.
-- **The details:** missing admission, menu, child suitability, step-free route detail, and food safety stay as questions.
-- **Traffic:** OSRM gives base driving time, not live traffic. If the time window is tight, Bayes asks for a traffic check.
-- **Clocks:** the date and times use the destination's geocoded timezone; a daylight-saving crossing stays an open question.
+Think of the friend who knows you like slow mornings and museums. That is useful when picking between two plans. A saved interest in art helps assess fit. It says nothing about today's opening hours, admission, step-free access, menu or traffic. Dice gives the agent a starting belief about the person, and the day still has to supply its own evidence.
 
-## What the measured runs say
+Tagged opening hours are provisional unless they show a closure. Public sources can leave the other facts unknown, and Bayes keeps those gaps in the returned plan. Food venues need direct confirmation. The exact allergy text stays out of model requests.
 
-For a clean decision comparison, I replayed a separate captured itinerary through the same `BayesAgent.decideItinerary` boundary with an identical SHA-256 input for every engine. A was invalid; B was unresolved. All typed outputs were valid, even where the engines agreed to disagree in valid JSON. After one warmup, the two measured **decision-call** times were:
+## Three engines on one captured question
 
-| Engine | Choice | Measured decision-call times |
+For a small fixed replay, I captured one synthetic Miami decision input and sent its identical SHA-256 content through `BayesAgent.decideItinerary`. Alternative A was invalid because of mapped hours. B was unresolved. Each engine got one warmup call and two measured decision calls. Every typed answer was valid.
+
+| Decision engine | Answer | Measured decision calls |
 | --- | --- | --- |
-| Local rules | tentative B | 0.264 ms, 0.193 ms |
-| Jev | research | 194 ms, 171 ms |
-| OpenAI `gpt-4.1` | research | 1132 ms, 982 ms |
+| Deterministic rules | Tentative B | 0.264 ms, 0.193 ms |
+| TypeSafe `jev-1.13.0` | Research | 194 ms, 171 ms |
+| OpenAI `gpt-4.1` | Research | 1132 ms, 982 ms |
 
-Remote calls include adapter, network, provider processing and parsing. This small sample does not establish a speed or quality ranking, and replay deliberately skips discovery, research, and planning. [The replay note](../../results/itinerary-replay-2026-10-12.md) gives classification times and limits.
+The remote call times include adapter work, network, provider processing and parsing. I cannot separate model inference from that total. Two measurements do not establish a speed ranking or a quality ranking. This replay also skips discovery, place research, routing and planning. Those steps use separate providers, so the table covers the decision action only. The [README](https://github.com/jimador/bayes-of-our-lives#tests-and-measured-observations) has the method and run instructions.
 
-There are other decision models on the market as their popularity grows, and I also wired up an experimental local CLEF adapter. On the same replay, CLEF picked tentative B in one measured run of 2268 ms, with no warmup, on a separately prepared local CPU model. The CLEF Python bridge in this repo is an experimental legacy adapter pending a separate provider redesign.
+The deterministic rules chose a tentative B. Both remote engines asked for research. Three engines gave two different answers, and every answer arrived in the expected type. Nobody said itinerary planning was a solved problem.
 
-I also ran the full app on a synthetic Miami outing with breakfast, an art sight and lunch. In the initial port, one local-decision call completed in 17.4 seconds and chose unresolved B; one Jev call completed in 20.0 seconds, used the single research retry, and still asked for more research. During the security audit, one request failed after 56.9 seconds; a subsequent hardened local run completed in 21.2 seconds with two alternatives, four LLM research summaries and a tentatively selected unresolved A. The [run notes](../../results/tripper-port-smoke-2026-10-12.md) retain the failure and build differences. These smoke runs are a stroll, not a race: they include changing map pages, Wikipedia, multiple OpenAI calls, network, and agent work. I cannot isolate model inference from those whole-request times.
+The disagreement is the interesting part. The rules see an unresolved plan with no invalid stops and take it tentatively. Both models looked at the same open questions and decided the day was not ready yet. You could argue for either. What matters for an agent builder is that both outcomes are typed and handled, so the agent has a defined next step either way.
 
-## What's real and what's not
+Full live requests took far longer than these isolated decisions, and changing pages and builds made those runs unsuitable for an engine comparison. The behavior I wanted was visible. The Tuesday closure stayed invalid, the remaining uncertainty stayed in the plan, and a research answer led to one more lap when new evidence was available.
 
-The fine print, stated plainly:
+## Trying it yourself
 
-- **OpenAI is always involved.** The live app needs an existing runtime `OPENAI_API_KEY` for the research and planning calls, regardless of the selected *decision* engine. This is a small switch at the decision boundary, not a claim that an entire trip can be made without a model. The fixed-input decision replay can still run local rules without a model key.
-- **Jev has its own key.** Choosing Jev for the decision additionally uses the runtime `TYPESAFE_API_KEY`.
-- **Consent comes first.** The app asks for explicit consent to share the city, date, group, interests, pace and access requirement. The exact starting location and allergy text stay out of model prompts.
-- **The tools are not all there.** Embabel 1.5.4-SNAPSHOT defines web, maps and browser tool-group roles, as Tripper uses, but this app's runtime had no MCP providers registered for them. I checked the actual platform registry; it contained math and AppleScript. The Java port uses bounded lower-level public providers instead: Open-Meteo, Nominatim, Photon, OSRM, HTTPS venue pages, and Wikipedia search leads. Those provide real discovery and independent page evidence without pretending the missing MCP groups are there.
-- **Some things are out of scope.** Brave images, weather, lodging and Google login are not part of this one-day guide. [The source map](../tripper-reuse-map.md) records what was ported and what was not.
+The code is in the [Bayes of Our Lives](https://github.com/jimador/bayes-of-our-lives) repository and the README walks through setup and the replay. If you already have an Embabel agent with a judgment call buried inside an action, the `DecisionService` interface is a small change to try. Write the question as a `DecisionSpec`, start with deterministic rules or a traditional LLM and switch the configuration to a decision model like Jev when you want to compare. Run the same captured inputs through each and look at both the answers and the timing.
 
-## The seam is the story
-
-What I got out of this is the seam. Embabel Agent can carry a real, sourced outing through research and proposal; Dice can recall a narrow preference; and a typed decision can pick a tentative plan or ask for more work, no matter who is making the call. The source links and unanswered questions travel with the plan. Like sand through the hourglass, so are the days of our lives, and I'd rather not spend one of them guessing. Seven o'clock breakfast deserves at least that much honesty.
+Like sands through the hourglass, so are the API calls of our lives. At least this soap opera knows when to stop researching lunch.

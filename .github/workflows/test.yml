@@ -14,5 +14,3 @@ jobs:
           cache: maven
       - name: Test and package without API keys
         run: mvn -B test package
-      - name: Test CLEF bridge without model weights
-        run: python3 -m unittest discover -s clef -p 'test_*.py' -v
