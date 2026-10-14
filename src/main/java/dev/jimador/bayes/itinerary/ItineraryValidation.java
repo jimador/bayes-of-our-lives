@@ -63,7 +63,58 @@ public final class ItineraryValidation {
                 throw new IllegalStateException("Planning returned invalid alternative IDs");
             checked.add(plan(alternative, research, context));
         }
-        return new Itinerary(List.copyOf(checked));
+        List<String> gaps = new ArrayList<>();
+        var valid = checked.stream().filter(a -> !a.status().equals("invalid")).toList();
+        long distinct = valid.stream().map(a -> a.stops().stream()
+                .map(stop -> stop.kind() + ":" + stop.placeId()).toList()).distinct().count();
+        if (distinct < valid.size()) gaps.add("Provide distinct alternatives with different venues or stop order; shifting times alone is not another choice.");
+        var available = context.brief().cuisineLikes().stream().filter(cuisine -> research.places().stream()
+                .anyMatch(candidate -> candidate.cuisines().contains(cuisine) && valid.stream()
+                        .anyMatch(a -> fitsMealSlot(candidate, a, context)))).limit(2).toList();
+        var represented = valid.stream().flatMap(a -> a.stops().stream())
+                .filter(stop -> !stop.kind().equals("sight")).flatMap(stop -> stop.cuisines().stream()).toList();
+        var missing = available.stream().filter(cuisine -> !represented.contains(cuisine)).toList();
+        if (!missing.isEmpty()) gaps.add("Include a distinct alternative for the supported, reachable liked cuisines: " + String.join(", ", missing) + ".");
+        if (gaps.isEmpty()) return new Itinerary(List.copyOf(checked));
+        return new Itinerary(checked.stream().map(a -> a.status().equals("invalid") ? a
+                : new Itinerary.Alternative(a.id(), a.title(), "unresolved", a.stops(), a.reason(),
+                        java.util.stream.Stream.concat(a.openQuestions().stream(), gaps.stream()).distinct().toList(),
+                        a.notes())).toList());
+    }
+    /** Check existing meal slots against attributed candidates without creating a replacement plan. */
+    private static boolean fitsMealSlot(ResearchFindings.PlaceFinding candidate, Itinerary.Alternative alternative,
+                                       ItineraryContext context) {
+        Place place = context.tools().place(candidate.placeId());
+        if (!candidate.hoursStatus().equals("open") || !candidate.suitability().equals("supported")
+                || candidate.sourceIds().stream().anyMatch(id -> !context.tools().hasSource(place.id(), id))
+                || candidate.sourceIds().stream().noneMatch(id -> context.tools().hasHoursSource(place.id(), id))
+                || candidate.cuisines().stream().anyMatch(context.brief().cuisineDislikes()::contains)
+                || List.of("closed", "off").contains(place.tags().getOrDefault("opening_hours", "").toLowerCase(java.util.Locale.ROOT))
+                || (context.brief().stepFreeAccess() && (candidate.access().equals("incompatible")
+                        || "no".equalsIgnoreCase(place.tags().get("wheelchair"))
+                        || (!candidate.access().equals("supported")
+                            && !"yes".equalsIgnoreCase(place.tags().get("wheelchair")))))) return false;
+        for (int i = 0; i < alternative.stops().size(); i++) {
+            var slot = alternative.stops().get(i);
+            boolean service = candidate.supportedMeals().contains(slot.kind())
+                    || (slot.kind().equals("breakfast") && "yes".equalsIgnoreCase(place.tags().get("breakfast")));
+            if (slot.kind().equals("sight") || !service || "no".equalsIgnoreCase(place.tags().get(slot.kind()))
+                    || candidate.operatingWindows().stream().noneMatch(w -> context.brief().date().equals(w.date())
+                            && !slot.startsAt().isBefore(w.opensAt()) && !slot.endsAt().isAfter(w.closesAt()))) continue;
+            var previous = i == 0 ? null : alternative.stops().get(i - 1);
+            var incoming = context.tools().route(previous == null ? "origin" : previous.placeId(), place.id());
+            LocalTime departure = previous == null ? context.brief().startTime() : previous.endsAt();
+            if (incoming.driveMinutes() == null || Duration.between(departure, slot.startsAt()).toMinutes()
+                    < incoming.driveMinutes() + 10) continue;
+            if (i + 1 < alternative.stops().size()) {
+                var next = alternative.stops().get(i + 1);
+                var outgoing = context.tools().route(place.id(), next.placeId());
+                if (outgoing.driveMinutes() == null || Duration.between(slot.endsAt(), next.startsAt()).toMinutes()
+                        < outgoing.driveMinutes() + 10) continue;
+            }
+            return true;
+        }
+        return false;
     }
     private static Itinerary.Alternative plan(Itinerary.AlternativeDraft draft, ResearchFindings research,
                                                ItineraryContext context) {

@@ -1,5 +1,7 @@
 package dev.jimador.bayes.itinerary;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.jimador.bayes.decision.LocalItineraryDecisions;
 import dev.jimador.bayes.provider.DayGuideTools;
 import dev.jimador.bayes.provider.Place;
 import dev.jimador.bayes.provider.Places;
@@ -37,7 +39,7 @@ class ItineraryValidationTest {
     }
     private void register(String id, String name, String category, Map<String, String> tags, String cuisine) {
         var place = new Place(id, name, category, "https://www.openstreetmap.org/node/" + id.substring(1), tags);
-        when(places.search(location, category, cuisine)).thenReturn(List.of(new Places.MappedPlace(place, 26.2, -80.2)));
+        when(places.search(location, category, cuisine)).thenReturn(List.of(new Places.MappedPlace(place, id.equals("N4") ? 26.4 : 26.2, id.equals("N4") ? -80.4 : -80.2)));
         tools.search(category, cuisine);
     }
     private ResearchFindings findings() {
@@ -61,7 +63,7 @@ class ItineraryValidationTest {
                 "Fits the outing", List.of("Check exact menu and prices.")))), research, outing).alternatives().getFirst();
     }
     @Test void mappedBreakfastAndFittingWindowsAreUsableDespiteAdvisoryNotes() {
-        var alternative = check(stops("N3"), findings());
+        var alternative = check(stops("N3"), new ResearchFindings(findings().places().subList(0, 3)));
         assertEquals("usable", alternative.status());
         assertTrue(alternative.openQuestions().isEmpty());
         assertEquals("mapped_breakfast_tag_unverified", alternative.stops().getFirst().mealServiceBasis());
@@ -104,9 +106,35 @@ class ItineraryValidationTest {
         var result = ItineraryValidation.plans(new Itinerary.Draft(List.of(
                 new Itinerary.AlternativeDraft("a", stops("N3"), "Seafood lunch", List.of()),
                 new Itinerary.AlternativeDraft("b", stops("N4"), "Cuban lunch", List.of()))), findings(), outing);
+        assertTrue(result.alternatives().stream().allMatch(a -> a.status().equals("usable")));
         assertEquals(List.of("seafood", "cuban"), result.alternatives().stream().flatMap(a -> a.stops().stream())
                 .flatMap(s -> s.cuisines().stream()).distinct().toList());
         assertTrue(result.alternatives().get(1).title().endsWith("Cuban Place"));
+    }
+    @Test void duplicateOrSingleSeafoodDraftCannotClaimCoverageWhenCubanAlsoFits() {
+        var seafood = new Itinerary.AlternativeDraft("a", stops("N3"), "Seafood lunch", List.of());
+        var repeated = new Itinerary.AlternativeDraft("b", stops("N3"), "Another seafood lunch", List.of());
+        var mapper = new ObjectMapper().findAndRegisterModules();
+        for (var choices : List.of(List.of(seafood, repeated), List.of(seafood))) {
+            var checked = ItineraryValidation.plans(new Itinerary.Draft(choices), findings(), outing);
+            assertTrue(checked.alternatives().stream().allMatch(a -> a.status().equals("unresolved")));
+            assertTrue(checked.alternatives().getFirst().openQuestions().stream()
+                    .anyMatch(q -> q.contains("reachable liked cuisines: cuban")));
+            if (choices.size() == 2) assertTrue(checked.alternatives().getFirst().openQuestions().stream()
+                    .anyMatch(q -> q.contains("Provide distinct alternatives")));
+            var answer = ItineraryDecisions.evaluate(DecisionBrief.from(brief, checked.alternatives()),
+                    checked.alternatives(), new LocalItineraryDecisions(mapper), mapper);
+            assertEquals("false", answer.coverage());
+            assertEquals("material-gaps", answer.classification());
+        }
+    }
+    @Test void omittedCuisineIsRequiredOnlyWithFittingEvidenceAndTrustedReachability() {
+        var lateCuban = fact("N4", List.of("cuban"), List.of("lunch"), "13:00", "14:00");
+        var late = new ResearchFindings(List.of(findings().places().get(0), findings().places().get(1),
+                findings().places().get(2), lateCuban));
+        assertEquals("usable", check(stops("N3"), late).status());
+        when(places.driveMinutes(26.2, -80.2, 26.4, -80.4)).thenReturn(null);
+        assertEquals("usable", check(stops("N3"), findings()).status());
     }
     @Test void inventedSourcesAndUndatedHoursAreRejected() {
         var invented = new ResearchFindings.PlaceFinding("N1", "Hours", List.of(), List.of(), "open",
