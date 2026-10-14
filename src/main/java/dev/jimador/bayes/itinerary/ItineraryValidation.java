@@ -10,9 +10,17 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import dev.jimador.bayes.itinerary.ResearchFindings.Issue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Source and schedule invariants. Venue meaning and itinerary order remain model reasoning. */
 public final class ItineraryValidation {
+    private static final Logger LOG = LoggerFactory.getLogger(ItineraryValidation.class);
     private ItineraryValidation() {}
     public static void date(ItineraryBrief brief, String timezone) {
         final ZoneId zone;
@@ -28,30 +36,77 @@ public final class ItineraryValidation {
             throw new IllegalArgumentException("Choose an outing window without an ambiguous daylight-saving transition");
     }
     public static ResearchFindings research(ResearchFindings findings, List<String> selected,
-                                             ItineraryContext context) {
-        if (findings == null || findings.places() == null || findings.places().size() > 8)
-            throw new IllegalStateException("Research output was incomplete");
-        Set<String> seen = new HashSet<>();
-        for (var fact : findings.places()) {
-            if (fact == null || !selected.contains(fact.placeId()) || !seen.add(fact.placeId())
-                    || fact.summary() == null || fact.cuisines() == null || fact.supportedMeals() == null
-                    || fact.operatingWindows() == null || fact.sourceIds() == null || fact.notes() == null
-                    || !List.of("open", "closed", "unknown").contains(fact.hoursStatus())
-                    || !List.of("supported", "incompatible", "unknown").contains(fact.access())
-                    || !List.of("supported", "incompatible", "unknown").contains(fact.suitability())
-                    || fact.sourceIds().isEmpty()
-                    || fact.sourceIds().stream().anyMatch(id -> !context.tools().hasSource(fact.placeId(), id))
-                    || fact.supportedMeals().stream().anyMatch(m -> !List.of("breakfast", "coffee", "lunch", "dinner").contains(m)))
-                throw new IllegalStateException("Research used incomplete or unattributed facts");
-            for (var window : fact.operatingWindows()) if (window == null || !context.brief().date().equals(window.date())
-                    || window.opensAt() == null || window.closesAt() == null || !window.closesAt().isAfter(window.opensAt()))
-                throw new IllegalStateException("Research returned an invalid operating window");
-            Place place = context.tools().place(fact.placeId());
-            if (!fact.operatingWindows().isEmpty() && fact.sourceIds().stream().noneMatch(id -> context.tools().hasHoursSource(place.id(), id)))
-                throw new IllegalStateException("Operating windows lack a retrieved hours source");
+                                           ItineraryContext context) {
+        Map<Issue, Integer> issues = new EnumMap<>(Issue.class);
+        Map<String, ResearchFindings.PlaceFinding> byId = new LinkedHashMap<>();
+        Set<String> duplicates = new HashSet<>();
+        if (findings == null || findings.places() == null) issues.merge(Issue.OUTPUT_SCHEMA, 1, Integer::sum);
+        else for (var fact : findings.places()) {
+            if (fact == null || fact.placeId() == null || !selected.contains(fact.placeId())) {
+                issues.merge(Issue.FOREIGN_PLACE, 1, Integer::sum);
+            } else if (byId.putIfAbsent(fact.placeId(), fact) != null) duplicates.add(fact.placeId());
         }
-        if (!seen.containsAll(selected)) throw new IllegalStateException("Research omitted a selected place");
-        return findings;
+        List<ResearchFindings.PlaceFinding> normalized = new ArrayList<>();
+        for (String id : selected) {
+            context.tools().place(id); // The selected ID must really belong to this outing.
+            var fact = byId.get(id);
+            Issue rejected = duplicates.contains(id) ? Issue.DUPLICATE_PLACE : fact == null ? Issue.MISSING_PLACE
+                    : fact.sourceIds() == null || fact.sourceIds().isEmpty()
+                        || fact.sourceIds().stream().anyMatch(source -> !context.tools().hasSource(id, source))
+                            ? Issue.INVALID_SOURCES : null;
+            if (rejected != null) {
+                issues.merge(rejected, 1, Integer::sum);
+                normalized.add(ResearchFindings.unknown(id, rejected));
+                continue;
+            }
+            normalized.add(normalizeFields(fact, context, issues));
+        }
+        issues.forEach((issue, count) -> LOG.info("stage=research issue={} count={}", issue.name(), count));
+        return new ResearchFindings(List.copyOf(normalized));
+    }
+    private static ResearchFindings.PlaceFinding normalizeFields(ResearchFindings.PlaceFinding fact,
+            ItineraryContext context, Map<Issue, Integer> issues) {
+        List<String> notes = new ArrayList<>();
+        if (fact.notes() != null) fact.notes().stream().filter(Objects::nonNull).limit(8).forEach(notes::add);
+        List<String> cuisines = fact.cuisines() == null ? List.of() : fact.cuisines().stream()
+                .filter(Objects::nonNull).map(String::trim).filter(s -> !s.isBlank() && s.length() <= 40)
+                .map(s -> s.toLowerCase(java.util.Locale.ROOT)).distinct().limit(8).toList();
+        List<String> meals = fact.supportedMeals() == null ? List.of() : fact.supportedMeals().stream()
+                .filter(s -> s != null && List.of("breakfast", "coffee", "lunch", "dinner").contains(s)).distinct().toList();
+        String hours = fact.hoursStatus() != null && List.of("open", "closed", "unknown").contains(fact.hoursStatus())
+                ? fact.hoursStatus() : "unknown";
+        String access = suitability(fact.access());
+        String suitability = suitability(fact.suitability());
+        boolean fieldsChanged = fact.summary() == null || fact.cuisines() == null || fact.supportedMeals() == null
+                || fact.notes() == null || !cuisines.equals(fact.cuisines()) || !meals.equals(fact.supportedMeals())
+                || !Objects.equals(hours, fact.hoursStatus()) || !Objects.equals(access, fact.access())
+                || !Objects.equals(suitability, fact.suitability());
+        if (fieldsChanged) {
+            issues.merge(Issue.INVALID_FIELDS, 1, Integer::sum);
+            notes.add("Research issue: INVALID_FIELDS; unsupported fields are unknown or omitted.");
+        }
+        boolean hoursSource = fact.sourceIds().stream().anyMatch(source -> context.tools().hasHoursSource(fact.placeId(), source));
+        List<ResearchFindings.Window> proposed = fact.operatingWindows() == null ? List.of() : fact.operatingWindows();
+        List<ResearchFindings.Window> windows = hoursSource && hours.equals("open") ? proposed.stream()
+                .filter(w -> w != null && context.brief().date().equals(w.date()) && w.opensAt() != null
+                        && w.closesAt() != null && w.closesAt().isAfter(w.opensAt())).distinct().toList() : List.of();
+        if (fact.operatingWindows() == null || windows.size() != proposed.size()) {
+            issues.merge(Issue.INVALID_WINDOWS, 1, Integer::sum);
+            notes.add("Research issue: INVALID_WINDOWS; unsupported or incoherent operating windows were omitted.");
+        }
+        if (!hoursSource || (hours.equals("open") && windows.isEmpty())) {
+            if (!hours.equals("unknown")) {
+                issues.merge(Issue.UNSUPPORTED_HOURS, 1, Integer::sum);
+                notes.add("Research issue: UNSUPPORTED_HOURS; opening or closure claims could not be supported.");
+            }
+            hours = "unknown";
+        }
+        return new ResearchFindings.PlaceFinding(fact.placeId(), fact.summary() == null
+                ? "Research interpretation is incomplete." : fact.summary(), cuisines, meals, hours, windows,
+                access, suitability, fact.sourceIds().stream().distinct().toList(), List.copyOf(notes));
+    }
+    private static String suitability(String value) {
+        return value != null && List.of("supported", "incompatible", "unknown").contains(value) ? value : "unknown";
     }
     public static Itinerary plans(Itinerary.Draft draft, ResearchFindings research, ItineraryContext context) {
         if (draft == null || draft.alternatives() == null || draft.alternatives().isEmpty()

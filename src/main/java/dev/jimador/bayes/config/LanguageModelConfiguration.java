@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class LanguageModelConfiguration {
-    @Bean("researcherLlm") LlmOptions researcher(@Value("${bayes.models.researcher:gpt-4.1-mini}") String model) {
+    @Bean("researcherLlm") LlmOptions researcher(@Value("${bayes.models.researcher:gpt-4.1}") String model) {
         return LlmOptions.withModel(model).withMaxTokens(3000).withTimeout(Duration.ofSeconds(45));
     }
     @Bean("plannerLlm") LlmOptions planner(@Value("${bayes.models.planner:gpt-4.1}") String model) {

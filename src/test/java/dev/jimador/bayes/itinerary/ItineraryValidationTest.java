@@ -156,11 +156,14 @@ class ItineraryValidationTest {
         when(places.driveMinutes(26.2, -80.2, 26.4, -80.4)).thenReturn(null);
         assertEquals("usable", check(stops("N3"), findings()).status());
     }
-    @Test void inventedSourcesAndUndatedHoursAreRejected() {
+    @Test void inventedResearchSourcesBecomeExplicitlyUnknown() {
         var invented = new ResearchFindings.PlaceFinding("N1", "Hours", List.of(), List.of(), "open",
                 List.of(new ResearchFindings.Window(DATE, time("07:00"), time("14:00"))), "unknown", "supported",
                 List.of("invented-site"), List.of());
-        assertThrows(IllegalStateException.class, () -> ItineraryValidation.research(new ResearchFindings(List.of(invented)), List.of("N1"), outing));
+        var normalized = ItineraryValidation.research(new ResearchFindings(List.of(invented)), List.of("N1"), outing).place("N1");
+        assertTrue(normalized.sourceIds().isEmpty());
+        assertTrue(normalized.operatingWindows().isEmpty());
+        assertEquals("unknown", normalized.hoursStatus());
         assertDoesNotThrow(() -> ItineraryValidation.research(findings(), List.of("N1", "N2", "N3", "N4"), outing));
     }
     private static LocalTime time(String value) { return LocalTime.parse(value); }
