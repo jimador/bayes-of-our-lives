@@ -1,6 +1,6 @@
 # Fort Lauderdale integration observation — 2026-10-14
 
-Full three-engine acceptance remains **blocked after twelve recorded outing submissions**. The latest approved three-request batch at `03f1bea` returned a usable OpenAI Cuban outline, invalid local travel timing and a Jev-selected discovery error before any Jev decision call. Earlier failures remain preserved. These results do not establish acceptance of subsequent offline fixes.
+Full three-engine acceptance remains **blocked after fourteen recorded outing submissions**. The latest two approved UI outings at `633590a` returned an unresolved local duplicate-choice result and two usable Jev Cuban alternatives, with Jev coverage still `false`. The latest OpenAI outing remains the earlier usable Cuban outline measured at `03f1bea`; OpenAI was not rerun after the candidate/feedback changes. All earlier failures remain preserved.
 
 ## Setup and count
 
@@ -176,4 +176,37 @@ Travel review now supplies each leg’s departure, trusted drive time, ten-minut
 
 Independent review at `82a5a66` passed 20 focused tests: zero failures, errors or skips; `BUILD SUCCESS` in 3.533 seconds. The independent offline package with tests skipped also passed in 1.565 seconds. These are recorded fixture and compile checks, not new provider results. Current production Java comprises 23 files and 1703 physical lines, including comments and blank lines; this documentation change does not alter Java.
 
-**LIVE UNVERIFIED:** no outing was submitted after these changes. All twelve recorded submissions and their failures remain unchanged. In the latest three-request batch, only the OpenAI Cuban outline was usable; local timing and Jev-selected discovery prevented full acceptance. Its exact measured source remains `03f1bea0c4f828184f6cc8733cef611a61059a1f`. No raw provider-call, usage or cost count is inferred. No further paid calls are authorized, and these offline results do not establish complete-refactor acceptance.
+**Checkpoint before the final two outings:** no outing had yet been submitted after these changes. All twelve recorded submissions and their failures remain unchanged. In the latest three-request batch, only the OpenAI Cuban outline was usable; local timing and Jev-selected discovery prevented full acceptance. Its exact measured source remains `03f1bea0c4f828184f6cc8733cef611a61059a1f`. No raw provider-call, usage or cost count is inferred. At that checkpoint no further paid calls were authorized, and those offline results did not establish complete-refactor acceptance. The subsequent explicit two-outing approval and actual outcomes are recorded below.
+
+
+## Final two approved UI outings on current source
+
+Exact measured source: signed `633590ab1096321c7b284813516d51e60ee0c024`, including reviewed candidate/feedback commits `636cbf5` and `82a5a66`. The existing exact-source offline package passed in 1.866 seconds with tests skipped; it was reused after package/resource alignment checks. No build or full suite was repeated. The owned backend used unused port 18089 and started in 2.449 seconds. Both discovery/research and planning were explicitly GPT-4.1. Existing runtime credentials were inherited without printing or persistence.
+
+Exactly two additional actual form submissions, local then Jev, brought the recorded total to fourteen. The new ledger records authorized=2, attempted=2, countBefore=0/1, ordinal=1/2, zero warmups and zero outing resubmissions. Local began at 2026-10-14T11:36:05.899Z; Jev at 2026-10-14T11:37:23.345Z. No OpenAI outing or decision call was made in this batch; both outings still used OpenAI research and planning. The same synthetic date, 07:00–14:00 window, two adults, art, steady pace, breakfast/lunch, seafood/Cuban likes, Italian dislike and both consents were used. Private dietary and profile fields were empty.
+
+| Selected engine / actual decision model | HTTP | Browser wall ms | Backend ms | Coverage / choice / confidence / classification | Actual result |
+| --- | --- | ---: | ---: | --- | --- |
+| local / `local/bayes-itinerary-rules-v2` | 200 | 45671 | 45571 | false / a / possible / material-gaps | unresolved; both alternatives duplicate venue/order |
+| Jev / `TypeSafe/jev-1.13.0` | 200 | 43446 | 43403 | false / b / possible / usable-outline | selected b usable; a also usable; coverage false retained |
+
+| Engine | Geocode | Candidates | Discovery | Evidence | Research | Draft | Review | Final | Decision stage ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| local | 1482 | 18564 | 2544 | 6517 | 6282 | 4386 | 958 | 4655 | 22 |
+| Jev | 788 | 17644 | 1675 | 6289 | 7418 | 3870 | 907 | 4072 | 543 |
+
+Each request completed exactly one candidate, discovery, evidence, research, draft, mandatory review, final and decision action. Each initial review recorded invalid=2/unresolved=0 and requested exactly one refinement. Final validation retained the actual outcomes. Local ask/classification took 9.061708/0.330166 ms; Jev 378.430292/163.893042 ms. These are functional observations, without a performance ranking or isolated model-latency claim.
+
+Local selected a: OB House breakfast 07:30–08:30 → NSU Art Museum 11:00–12:45 → Padrino’s Cuban lunch 13:03–14:00. Incoming gaps 30/150/18 minutes meet trusted drive-plus-ten requirements 15/12/18. The final lunch starts at the exact required arrival time. Alternative b uses 08:00–09:00 → 11:05–12:50 → 13:23–14:00, with gaps 60/125/33 against 15/12/18. Both fit attributed Tuesday windows, but their venues and order are identical. Both remain unresolved with the material question “Provide distinct alternatives with different venues or stop order; shifting times alone is not another choice.” The selected card visibly retains that blocker. This is not full local acceptance.
+
+Jev selected b: OB House breakfast 07:15–08:15 → NSU Art Museum 11:10–12:40 → Padrino’s Cuban lunch 13:10–14:00. Gaps 15/175/30 meet requirements 15/12/18. Distinct alternative a uses the same breakfast, NSU 11:10–13:00 and Mario’s Catalina Cuban lunch 13:30–14:00; gaps 15/175/30 meet 15/12/26. Both alternatives are usable with empty blocking questions. Jev’s actual coverage answer is `false`, rating `possible`, choice `b`, classification `usable-outline`; the response and UI preserve these fields. The selected usable outline does not establish an affirmative coverage decision, and no cause for that false answer is invented.
+
+All selected stop IDs match mapped names/categories: OB House breakfast `W551457772`, NSU museum `W532105760`, Padrino restaurant `N9796646021`, and Jev alternative a’s Mario restaurant `N14202541907`. Source IDs belong to their exact mapped venue or its retrieved page. Tuesday windows are OB 07:00–13:00, NSU 11:00–17:00, Padrino 11:30–21:00 and Mario 11:00–22:00; every timed slot fits. Meal service uses `attributed_research_claim`; OB still has no mapped breakfast=yes tag. Cuban cuisine matches restaurant map tags. No Italian-labelled stop is selected. Seafood candidates Southport and Kelly’s retain unknown hours and lunch service and are omitted, so this batch does not establish usable seafood/Cuban diversity. Routine menu, admission and check-before-visiting notes remain advisory. Operating windows and retrieved pages remain unverified current evidence.
+
+New actual sanitized snapshots: [local](live-fort-lauderdale-2026-10-14-final-two-local.json) and [Jev](live-fort-lauderdale-2026-10-14-final-two-jev.json). Their eleven page excerpts are omitted; exact IDs, URLs and statuses remain with original character counts and UTF-8 SHA-256 digests. Local retrieved three venue pages among five page records; Jev four among six. Full raw responses, DOM text, stage observations and ledger remain private. All twelve earlier response files and the thirteen protected user files were checked unchanged.
+
+Both actual result DOMs and viewport/complete screenshots were captured at desktop 1440×1000 and mobile 390×844 before closing each browser. Document widths equal viewport widths; each result has one selected card, no stale fields, no JavaScript exceptions and no console errors. Source links number 44/47. The screenshots show local’s blocking duplicate-choice question and Jev’s selected usable card with the false coverage answer. No result was reloaded or recreated. Both browsers closed through finally; only the owned backend was stopped after the two outings.
+
+The three configured retry templates were explicitly one attempt. A temporary standard Logback appender emitted only a constant `COMPATIBILITY_FALLBACK` marker for the installed InstrumentedChatModel WARN logger, with no raw message or exception. No marker occurred. That unsupported-parameter compatibility fallback is not configurable off by these settings; tool turns and raw HTTP call counts were not measured. No aggregate token, usage or monetary cost cap is claimed.
+
+**Acceptance remains blocked:** local still lacks distinct usable choices, Jev retains coverage false, seafood readiness remains unknown, and the latest OpenAI result is from `03f1bea`, not current source. The exact two-outing approval is exhausted. No retries, third outing, publication or article edits were performed.

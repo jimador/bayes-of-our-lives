@@ -1,0 +1,568 @@
+{
+  "status": "usable",
+  "city": "Fort Lauderdale, Florida",
+  "date": "2026-10-20",
+  "selectedAlternative": "b",
+  "alternatives": [
+    {
+      "id": "a",
+      "title": "OB House - Breakfast All day → NSU Art Museum Fort Lauderdale → Mario's Catalina Cuban Restaurant",
+      "status": "usable",
+      "stops": [
+        {
+          "kind": "breakfast",
+          "placeId": "W551457772",
+          "name": "OB House - Breakfast All day",
+          "startsAt": "07:15:00",
+          "endsAt": "08:15:00",
+          "baseTravelMinutes": 5,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/551457772",
+          "cuisines": [
+            "breakfast",
+            "coffee",
+            "lunch"
+          ],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "attributed_research_claim",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W551457772"
+          ],
+          "notes": [
+            "opening_hours mapped: Mo-Fr 07:00-13:00; Sa-Su 08:00-13:00.",
+            "Price, detailed menu and routine check-before-visiting caveats."
+          ]
+        },
+        {
+          "kind": "sight",
+          "placeId": "W532105760",
+          "name": "NSU Art Museum Fort Lauderdale",
+          "startsAt": "11:10:00",
+          "endsAt": "13:00:00",
+          "baseTravelMinutes": 2,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/532105760",
+          "cuisines": [],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "not_applicable",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W532105760",
+            "W532105760-site",
+            "W532105760-detail"
+          ],
+          "notes": [
+            "Admission fee required for most adults.",
+            "Free admission for children aged 17 and under.",
+            "No backpacks, oversized bags, food or drink allowed in galleries.",
+            "Holiday hours and special closures apply.",
+            "Price, detailed menu and routine check-before-visiting caveats."
+          ]
+        },
+        {
+          "kind": "lunch",
+          "placeId": "N14202541907",
+          "name": "Mario's Catalina Cuban Restaurant",
+          "startsAt": "13:30:00",
+          "endsAt": "14:00:00",
+          "baseTravelMinutes": 16,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/node/14202541907",
+          "cuisines": [
+            "cuban"
+          ],
+          "preferenceFit": "liked",
+          "mealServiceBasis": "attributed_research_claim",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "N14202541907",
+            "N14202541907-site"
+          ],
+          "notes": [
+            "Mapped hours Mo-Su 11:00-22:00.",
+            "Lunch and dinner service supported by hours and menu evidence.",
+            "Price, detailed menu and routine check-before-visiting caveats."
+          ]
+        }
+      ],
+      "reason": "This revision fixes the start time of the first stop to 07:15, matching the earliest feasible arrival (07:00 departure + 5 minute drive + 10 minute buffer). The sight and lunch stops are unchanged, both confirmed open and support the required services. All times meet the research-based operating windows and are sequenced with the required driving plus 10 minute margin. Only Cuban venues with trusted lunch support are used, as no seafood restaurant has lunch or hour evidence.",
+      "openQuestions": [],
+      "notes": [
+        "Each stop fulfills the requested type at a venue with mapped meal/service evidence for the required date and time.",
+        "Start of breakfast is adjusted to the earliest feasible time with required margin.",
+        "All venues are open within the researched operating windows and have no access issues present.",
+        "There is no mapped or researched evidence for step-free access at any venue.",
+        "Seafood venues are omitted due to lack of evidence for hours or lunch service.",
+        "Unverified map and page evidence; recheck before visiting.",
+        "Map and page interpretations are unverified; check changes before visiting. Driving estimates exclude traffic delays."
+      ]
+    },
+    {
+      "id": "b",
+      "title": "OB House - Breakfast All day → NSU Art Museum Fort Lauderdale → Padrino's Cuban Restaurant",
+      "status": "usable",
+      "stops": [
+        {
+          "kind": "breakfast",
+          "placeId": "W551457772",
+          "name": "OB House - Breakfast All day",
+          "startsAt": "07:15:00",
+          "endsAt": "08:15:00",
+          "baseTravelMinutes": 5,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/551457772",
+          "cuisines": [
+            "breakfast",
+            "coffee",
+            "lunch"
+          ],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "attributed_research_claim",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W551457772"
+          ],
+          "notes": [
+            "opening_hours mapped: Mo-Fr 07:00-13:00; Sa-Su 08:00-13:00.",
+            "Price, detailed menu and routine check-before-visiting caveats."
+          ]
+        },
+        {
+          "kind": "sight",
+          "placeId": "W532105760",
+          "name": "NSU Art Museum Fort Lauderdale",
+          "startsAt": "11:10:00",
+          "endsAt": "12:40:00",
+          "baseTravelMinutes": 2,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/532105760",
+          "cuisines": [],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "not_applicable",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W532105760",
+            "W532105760-site",
+            "W532105760-detail"
+          ],
+          "notes": [
+            "Admission fee required for most adults.",
+            "Free admission for children aged 17 and under.",
+            "No backpacks, oversized bags, food or drink allowed in galleries.",
+            "Holiday hours and special closures apply.",
+            "Price, detailed menu and routine check-before-visiting caveats."
+          ]
+        },
+        {
+          "kind": "lunch",
+          "placeId": "N9796646021",
+          "name": "Padrino's Cuban Restaurant",
+          "startsAt": "13:10:00",
+          "endsAt": "14:00:00",
+          "baseTravelMinutes": 8,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/node/9796646021",
+          "cuisines": [
+            "cuban"
+          ],
+          "preferenceFit": "liked",
+          "mealServiceBasis": "attributed_research_claim",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "N9796646021",
+            "N9796646021-site"
+          ],
+          "notes": [
+            "Hours from both mapped and official website: Tu-Th 11:30-21:00.",
+            "Lunch and dinner service inferred from opening hours.",
+            "Holiday closures apply.",
+            "Price, detailed menu and routine check-before-visiting caveats."
+          ]
+        }
+      ],
+      "reason": "This alternative adjusts the breakfast start to 07:15 to reflect the earliest possible arrival time after the required travel and buffer, as confirmed by route evidence. Sight and lunch stops sequence with trusted lunch-labeled venues and observed hour/service evidence only. No other venues met the meal service and hour requirements.",
+      "openQuestions": [],
+      "notes": [
+        "All stops match requested meal/services, and sequenced using required drive duration plus 10 minutes.",
+        "Start of breakfast is corrected to reflect true feasible arrival.",
+        "Only Cuban cuisine venues with mapped hours and meal support are used since no seafood venues have required evidence.",
+        "No stop provides step-free access assurance, and this remains unresolved.",
+        "All data is based strictly on attributed mapped and official sources; menu/price/holiday caveats still apply.",
+        "Please reconfirm hours/service before visiting.",
+        "Map and page interpretations are unverified; check changes before visiting. Driving estimates exclude traffic delays."
+      ]
+    }
+  ],
+  "decision": {
+    "coverage": "false",
+    "choice": "b",
+    "rating": "possible",
+    "classification": "usable-outline",
+    "model": "TypeSafe/jev-1.13.0",
+    "decisionMs": 378.430292,
+    "classificationMs": 163.893042
+  },
+  "memoryContext": "bayes-outing-cae5455b-0f88-4dce-a83b-38b8aedab133",
+  "memoryFactIds": [
+    "bayes-outing-cae5455b-0f88-4dce-a83b-38b8aedab133-interests",
+    "bayes-outing-cae5455b-0f88-4dce-a83b-38b8aedab133-pace"
+  ],
+  "rememberedInterests": "art",
+  "rememberedPace": "steady",
+  "researchSources": [
+    "https://www.openstreetmap.org/way/532105760",
+    "https://www.openstreetmap.org/relation/7540489",
+    "https://www.openstreetmap.org/way/135174795",
+    "https://www.openstreetmap.org/way/33614077",
+    "https://www.openstreetmap.org/way/33614074",
+    "https://www.openstreetmap.org/way/49508471",
+    "https://www.openstreetmap.org/way/551457772",
+    "https://www.openstreetmap.org/node/8758093276",
+    "https://www.openstreetmap.org/way/738978873",
+    "https://www.openstreetmap.org/node/5458179935",
+    "https://www.openstreetmap.org/node/1930762471",
+    "https://www.openstreetmap.org/node/13668979015",
+    "https://www.openstreetmap.org/node/13668717858",
+    "https://www.openstreetmap.org/node/5496178078",
+    "https://www.openstreetmap.org/way/279408348",
+    "https://www.openstreetmap.org/node/12922400401",
+    "https://www.openstreetmap.org/way/316764241",
+    "https://www.openstreetmap.org/node/6369437761",
+    "https://www.openstreetmap.org/node/9796646021",
+    "https://www.openstreetmap.org/node/1595552932",
+    "https://www.openstreetmap.org/node/14202541907",
+    "https://www.openstreetmap.org/node/6110296369",
+    "https://nsuartmuseum.org/",
+    "https://nsuartmuseum.org/visit/hours-admission/",
+    "https://en.wikipedia.org/?curid=48410011",
+    "https://padrinos.com/locations/fort-lauderdale/",
+    "https://marioscatalinarestaurante.com/",
+    "https://en.wikipedia.org/?curid=264796"
+  ],
+  "retrievedUtc": "2026-10-14T11:38:06.744574Z",
+  "questions": [],
+  "processMs": 43403,
+  "researchedPlaces": [
+    {
+      "place": {
+        "id": "W551457772",
+        "name": "OB House - Breakfast All day",
+        "category": "breakfast",
+        "sourceUrl": "https://www.openstreetmap.org/way/551457772",
+        "tags": {
+          "opening_hours": "Mo-Fr 07:00-13:00; Sa-Su 08:00-13:00",
+          "cuisine": "breakfast;coffee;lunch"
+        }
+      },
+      "interpretation": {
+        "placeId": "W551457772",
+        "summary": "OB House - Breakfast All day is a breakfast venue offering breakfast, coffee, and lunch cuisine styles. Based on mapped tags, it serves breakfast and lunch during weekday mornings and early afternoons.",
+        "cuisines": [
+          "breakfast",
+          "coffee",
+          "lunch"
+        ],
+        "supportedMeals": [
+          "breakfast",
+          "lunch",
+          "coffee"
+        ],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "07:00:00",
+            "closesAt": "13:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "W551457772"
+        ],
+        "notes": [
+          "opening_hours mapped: Mo-Fr 07:00-13:00; Sa-Su 08:00-13:00.",
+          "Price, detailed menu and routine check-before-visiting caveats."
+        ]
+      },
+      "pages": []
+    },
+    {
+      "place": {
+        "id": "W532105760",
+        "name": "NSU Art Museum Fort Lauderdale",
+        "category": "museum",
+        "sourceUrl": "https://www.openstreetmap.org/way/532105760",
+        "tags": {
+          "fee": "yes",
+          "opening_hours": "Tu-Sa 11:00-17:00; Su 12:00-17:00"
+        }
+      },
+      "interpretation": {
+        "placeId": "W532105760",
+        "summary": "NSU Art Museum Fort Lauderdale is a fee-charging art museum. According to both mapped tags and retrieved pages, it is open on this Tuesday from 11:00 to 17:00. Children 17 and under, as well as other select groups, may be admitted free.",
+        "cuisines": [],
+        "supportedMeals": [],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "11:00:00",
+            "closesAt": "17:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "W532105760",
+          "W532105760-site",
+          "W532105760-detail"
+        ],
+        "notes": [
+          "Admission fee required for most adults.",
+          "Free admission for children aged 17 and under.",
+          "No backpacks, oversized bags, food or drink allowed in galleries.",
+          "Holiday hours and special closures apply.",
+          "Price, detailed menu and routine check-before-visiting caveats."
+        ]
+      },
+      "pages": [
+        {
+          "id": "W532105760-site",
+          "placeId": "W532105760",
+          "url": "https://nsuartmuseum.org/",
+          "status": "retrieved_unverified",
+          "originalCharacterCount": 6000,
+          "contentSha256": "fd29125e1bb557dd7c2e26a3973b23ad26f6bc90f394e2a7e84ec0ea1d28f1f7"
+        },
+        {
+          "id": "W532105760-detail",
+          "placeId": "W532105760",
+          "url": "https://nsuartmuseum.org/visit/hours-admission/",
+          "status": "retrieved_unverified",
+          "originalCharacterCount": 6000,
+          "contentSha256": "d7e9e325141ba7addab552866a8a90d733d3546b835c6021c4fcf1c5023aea91"
+        }
+      ]
+    },
+    {
+      "place": {
+        "id": "N6369437761",
+        "name": "Cuban Guys",
+        "category": "restaurant",
+        "sourceUrl": "https://www.openstreetmap.org/node/6369437761",
+        "tags": {
+          "cuisine": "cuban"
+        }
+      },
+      "interpretation": {
+        "placeId": "N6369437761",
+        "summary": "Cuban Guys is a restaurant tagged as serving Cuban cuisine. There is no mapped or page evidence about hours, meal service, or suitability for breakfast or lunch.",
+        "cuisines": [
+          "cuban"
+        ],
+        "supportedMeals": [],
+        "hoursStatus": "unknown",
+        "operatingWindows": [],
+        "access": "unknown",
+        "suitability": "unknown",
+        "sourceIds": [
+          "N6369437761"
+        ],
+        "notes": [
+          "No evidence of opening hours or supported meals.",
+          "Search leads alone do not establish menu or meal service.",
+          "Price, detailed menu and routine check-before-visiting caveats."
+        ]
+      },
+      "pages": [
+        {
+          "id": "N6369437761-wiki",
+          "placeId": "N6369437761",
+          "url": "https://en.wikipedia.org/?curid=48410011",
+          "status": "search_lead_unverified",
+          "originalCharacterCount": 195,
+          "contentSha256": "aa255f705620d6e3c5ba00278c8f3d62f7023624496d518944d1b2de05e9bfc2"
+        }
+      ]
+    },
+    {
+      "place": {
+        "id": "N9796646021",
+        "name": "Padrino's Cuban Restaurant",
+        "category": "restaurant",
+        "sourceUrl": "https://www.openstreetmap.org/node/9796646021",
+        "tags": {
+          "cuisine": "cuban",
+          "opening_hours": "Tu-Th 11:30-21:00; Fr 11:30-22:00; Sa 12:00-22:00; Su 12:00-21:00"
+        }
+      },
+      "interpretation": {
+        "placeId": "N9796646021",
+        "summary": "Padrino's Cuban Restaurant is a Cuban restaurant. Mapped and page sources indicate it opens at 11:30 and serves lunch and dinner on the outing date (Tuesday) and is closed on Mondays.",
+        "cuisines": [
+          "cuban"
+        ],
+        "supportedMeals": [
+          "lunch",
+          "dinner"
+        ],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "11:30:00",
+            "closesAt": "21:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "N9796646021",
+          "N9796646021-site"
+        ],
+        "notes": [
+          "Hours from both mapped and official website: Tu-Th 11:30-21:00.",
+          "Lunch and dinner service inferred from opening hours.",
+          "Holiday closures apply.",
+          "Price, detailed menu and routine check-before-visiting caveats."
+        ]
+      },
+      "pages": [
+        {
+          "id": "N9796646021-site",
+          "placeId": "N9796646021",
+          "url": "https://padrinos.com/locations/fort-lauderdale/",
+          "status": "retrieved_unverified",
+          "originalCharacterCount": 2070,
+          "contentSha256": "16175c67482def51b04a86734d3fdfbaf462c22bd7ec16103e1c2166a7583055"
+        }
+      ]
+    },
+    {
+      "place": {
+        "id": "N14202541907",
+        "name": "Mario's Catalina Cuban Restaurant",
+        "category": "restaurant",
+        "sourceUrl": "https://www.openstreetmap.org/node/14202541907",
+        "tags": {
+          "cuisine": "cuban",
+          "opening_hours": "Mo-Su 11:00-22:00"
+        }
+      },
+      "interpretation": {
+        "placeId": "N14202541907",
+        "summary": "Mario's Catalina Cuban Restaurant is a Cuban restaurant with mapped tags and retrieved page evidence confirming daily hours from 11:00 to 22:00. Lunch and dinner are supported.",
+        "cuisines": [
+          "cuban"
+        ],
+        "supportedMeals": [
+          "lunch",
+          "dinner"
+        ],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "11:00:00",
+            "closesAt": "22:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "N14202541907",
+          "N14202541907-site"
+        ],
+        "notes": [
+          "Mapped hours Mo-Su 11:00-22:00.",
+          "Lunch and dinner service supported by hours and menu evidence.",
+          "Price, detailed menu and routine check-before-visiting caveats."
+        ]
+      },
+      "pages": [
+        {
+          "id": "N14202541907-site",
+          "placeId": "N14202541907",
+          "url": "https://marioscatalinarestaurante.com/",
+          "status": "retrieved_unverified",
+          "originalCharacterCount": 4834,
+          "contentSha256": "3e768dd92f88e08d921a3db323d30acb3fbde200b276eac68a727a627ef2e5b7"
+        }
+      ]
+    },
+    {
+      "place": {
+        "id": "N1930762471",
+        "name": "Southport Raw Bar & Restaurant",
+        "category": "restaurant",
+        "sourceUrl": "https://www.openstreetmap.org/node/1930762471",
+        "tags": {
+          "cuisine": "seafood"
+        }
+      },
+      "interpretation": {
+        "placeId": "N1930762471",
+        "summary": "Southport Raw Bar & Restaurant is a restaurant tagged for seafood cuisine. There is no mapped or page evidence about hours, meal service, or opening windows.",
+        "cuisines": [
+          "seafood"
+        ],
+        "supportedMeals": [],
+        "hoursStatus": "unknown",
+        "operatingWindows": [],
+        "access": "unknown",
+        "suitability": "unknown",
+        "sourceIds": [
+          "N1930762471"
+        ],
+        "notes": [
+          "No evidence of opening hours, supported meals, or exact menu.",
+          "Price, detailed menu and routine check-before-visiting caveats."
+        ]
+      },
+      "pages": []
+    },
+    {
+      "place": {
+        "id": "N13668717858",
+        "name": "Kelly's Landing New England Seafood",
+        "category": "restaurant",
+        "sourceUrl": "https://www.openstreetmap.org/node/13668717858",
+        "tags": {
+          "cuisine": "seafood"
+        }
+      },
+      "interpretation": {
+        "placeId": "N13668717858",
+        "summary": "Kelly's Landing New England Seafood is a restaurant tagged for seafood cuisine. There is no mapped or page evidence about hours, meal service, or opening windows.",
+        "cuisines": [
+          "seafood"
+        ],
+        "supportedMeals": [],
+        "hoursStatus": "unknown",
+        "operatingWindows": [],
+        "access": "unknown",
+        "suitability": "unknown",
+        "sourceIds": [
+          "N13668717858"
+        ],
+        "notes": [
+          "No evidence of opening hours, supported meals, or detailed menu.",
+          "Price, detailed menu and routine check-before-visiting caveats."
+        ]
+      },
+      "pages": [
+        {
+          "id": "N13668717858-wiki",
+          "placeId": "N13668717858",
+          "url": "https://en.wikipedia.org/?curid=264796",
+          "status": "search_lead_unverified",
+          "originalCharacterCount": 171,
+          "contentSha256": "c4f8e5cd36cd78fa56af7b604d9cb3a9b2d1b35fb967239c412aed75784d3302"
+        }
+      ]
+    }
+  ],
+  "destinationTimezone": "America/New_York"
+}
