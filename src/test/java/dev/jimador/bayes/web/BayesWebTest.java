@@ -6,11 +6,21 @@ import dev.jimador.bayes.itinerary.ItineraryRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 class BayesWebTest {
     @Test void itineraryApiBindsCuisineFieldsAndKeepsOlderPayloadCompatible() throws Exception {
@@ -38,6 +48,23 @@ class BayesWebTest {
         assertEquals("", request.getAllValues().getLast().cuisineLikes());
     }
 
+    @Test void unreadableRequestsReturnSafeBadRequestBeforeAnyServiceCall() throws Exception {
+        var local = mock(BayesItineraryService.class);
+        var jev = mock(BayesItineraryService.class);
+        var openai = mock(BayesItineraryService.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new BayesItineraryController(local, jev, openai)).build();
+        for (String body : java.util.List.of("{\"engine\":\"invalid\"}", "{}", "null", "{\"city\":",
+                "{\"partySize\":\"PRIVATE_MEDICAL_SENTINEL\",\"startingLocation\":\"PRIVATE_ORIGIN_SENTINEL\"}")) {
+            var result = mvc.perform(post("/api/itinerary").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                    .andExpect(jsonPath("$.message").value("Send a complete itinerary request with valid JSON field values."))
+                    .andReturn();
+            String response = result.getResponse().getContentAsString();
+            assertFalse(response.contains("PRIVATE_MEDICAL_SENTINEL"));
+            assertFalse(response.contains("PRIVATE_ORIGIN_SENTINEL"));
+        }
+        verifyNoInteractions(local, jev, openai);
+    }
     @Test void dispatchesExactlyOneServiceForEachEngineAndRejectsUnsupportedEngine() {
         var local = mock(BayesItineraryService.class);
         var jev = mock(BayesItineraryService.class);

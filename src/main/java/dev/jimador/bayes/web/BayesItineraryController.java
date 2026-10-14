@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +39,10 @@ public class BayesItineraryController {
             default -> throw new IllegalArgumentException("engine must be local, jev, or openai");
         };
         return service.plan(request);
+    }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<Map<String, String>> unreadableInput() {
+        return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "Send a complete itinerary request with valid JSON field values.");
     }
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<Map<String, String>> invalid(IllegalArgumentException failure) {
