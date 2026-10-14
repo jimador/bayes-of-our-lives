@@ -13,6 +13,8 @@ java -jar target/bayes-0.1.0.jar
 
 Open **http://127.0.0.1:8080/**. Run the app in a foreground terminal or a managed terminal session; stop that session with Ctrl-C. To use a different port, append `--server.port=18084`. Stop only the process you started.
 
+For a reproducible synthetic backend check, run `bash scripts/run-live-check.sh 2026-10-20` with both keys already in the environment. Change the destination-local date once that date has passed. The script checks the date and an unused port, builds the package, starts its own app, submits exactly one independent outing per engine, saves timestamped actual JSON and safe stage logs in a fresh temporary directory, then stops only its own process. It requires Python 3 in addition to the app prerequisites. `BAYES_LIVE_PORT` selects the local port (default 18085). A nonzero exit reports HTTP, connection or unusable-result failures; it makes no provider retries. This API check complements the separate real browser validation. Running it makes real provider calls.
+
 The named configuration in `src/main/resources/application.properties` references runtime keys:
 
 ```properties
@@ -86,7 +88,7 @@ Root logging defaults to `ERROR`; application stage logging defaults to `INFO`. 
 
 `mvn test package` runs model-free tests for typed actions, provider bounds, source validation, timed meals, cuisine coverage, safe preference recall, privacy, decision dispatch and destination-local dates. CI makes no provider calls. The current [Fort Lauderdale integration observation](results/refactor-fort-lauderdale-2026-10-14.md) records independent real browser/backend submissions and their limits. These observations are not controlled timing comparisons: public evidence and model outputs can differ between requests, and remote durations include network and provider work.
 
-The preserved [earlier experimental article draft](docs/drafts/blog.md) and historical result files describe earlier implementations. They may refer to removed replay, targeted research loops or experimental adapters. The current app has no replay runner, bespoke retry research loop or native local CLEF model path. The article has not been published through this task.
+The preserved [earlier experimental article draft](docs/drafts/blog.md) and historical result files describe earlier implementations. They may refer to removed replay, targeted research loops or experimental adapters. The current app has no replay runner, bespoke retry research loop or native local CLEF model path. The article remains a draft and has not been published on Medium.
 
 ## License and provenance
 
