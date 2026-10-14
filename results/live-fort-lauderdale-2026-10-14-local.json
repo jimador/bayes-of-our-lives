@@ -1,0 +1,503 @@
+{
+  "status": "needs_research",
+  "city": "Fort Lauderdale, Florida",
+  "date": "2026-10-20",
+  "selectedAlternative": null,
+  "alternatives": [
+    {
+      "id": "a",
+      "title": "OB House - Breakfast All day → NSU Art Museum Fort Lauderdale",
+      "status": "invalid",
+      "stops": [
+        {
+          "kind": "breakfast",
+          "placeId": "W551457772",
+          "name": "OB House - Breakfast All day",
+          "startsAt": "08:00:00",
+          "endsAt": "09:15:00",
+          "baseTravelMinutes": 5,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/551457772",
+          "cuisines": [
+            "breakfast",
+            "coffee",
+            "lunch"
+          ],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "attributed_research_claim",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W551457772"
+          ],
+          "notes": [
+            "Open weekdays 07:00-13:00, weekends 08:00-13:00",
+            "Breakfast and coffee specialties"
+          ]
+        },
+        {
+          "kind": "sight",
+          "placeId": "W532105760",
+          "name": "NSU Art Museum Fort Lauderdale",
+          "startsAt": "11:10:00",
+          "endsAt": "13:00:00",
+          "baseTravelMinutes": 2,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/532105760",
+          "cuisines": [],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "not_applicable",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W532105760",
+            "W532105760-site"
+          ],
+          "notes": [
+            "Admission required",
+            "Closed Mondays",
+            "Open Tuesdays to Saturdays 11:00-17:00, Sundays 12:00-17:00",
+            "No backpacks or large bags allowed in galleries",
+            "Free admission for children 17 and under",
+            "Check for exhibition schedules before visiting"
+          ]
+        },
+        {
+          "kind": "lunch",
+          "placeId": "W532105760",
+          "name": "NSU Art Museum Fort Lauderdale",
+          "startsAt": "13:05:00",
+          "endsAt": "14:00:00",
+          "baseTravelMinutes": 0,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/532105760",
+          "cuisines": [],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "unknown",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W532105760",
+            "W532105760-site"
+          ],
+          "notes": [
+            "Admission required",
+            "Closed Mondays",
+            "Open Tuesdays to Saturdays 11:00-17:00, Sundays 12:00-17:00",
+            "No backpacks or large bags allowed in galleries",
+            "Free admission for children 17 and under",
+            "Check for exhibition schedules before visiting"
+          ]
+        }
+      ],
+      "reason": "This route uses only verified meal service and open hours, fitting inside the outing's 07:00–14:00 window. Both breakfast and an art stop are certain; lunch is inferred as at or near the sight due to lack of explicit evidence for suitable liked-cuisine venues.",
+      "openQuestions": [
+        "Travel, parking and walking do not fit before a stop.",
+        "Meal service for lunch at NSU Art Museum Fort Lauderdale is unknown."
+      ],
+      "notes": [
+        "OB House has trusted breakfast and early lunch service until 13:00, fitting the breakfast window with reliable morning hours.",
+        "Lunch will be at NSU Art Museum's vicinity after their 11:00 opening; however, no lunch venue with liked cuisine and verified hours fits the outing and unlocks both lunch and seafood or Cuban likes. Museum café existence is uncertain, so lunch is outlined as a local possibility without confirmed specifics.",
+        "Sight is covered at the NSU Art Museum, which opens at 11:00. This requires a later breakfast and unhurried routing.",
+        "No venues for seafood or Cuban lunch have verified hours or evidence of lunch within 11:00–15:30; Kelly's Landing and Cuban Guys do not publish operating windows or supported meals, so they are not included as trusted lunch stops for food.",
+        "Material gap: No researched seafood or Cuban venues show lunch service or open hours valid on 2026-10-20.",
+        "Map and page interpretations are unverified; check changes before visiting. Driving estimates exclude traffic delays."
+      ]
+    },
+    {
+      "id": "b",
+      "title": "OB House - Breakfast All day → Hugh Taylor Birch State Park",
+      "status": "invalid",
+      "stops": [
+        {
+          "kind": "breakfast",
+          "placeId": "W551457772",
+          "name": "OB House - Breakfast All day",
+          "startsAt": "08:00:00",
+          "endsAt": "09:10:00",
+          "baseTravelMinutes": 5,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/551457772",
+          "cuisines": [
+            "breakfast",
+            "coffee",
+            "lunch"
+          ],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "attributed_research_claim",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W551457772"
+          ],
+          "notes": [
+            "Open weekdays 07:00-13:00, weekends 08:00-13:00",
+            "Breakfast and coffee specialties"
+          ]
+        },
+        {
+          "kind": "sight",
+          "placeId": "W49508471",
+          "name": "Hugh Taylor Birch State Park",
+          "startsAt": "09:30:00",
+          "endsAt": "12:00:00",
+          "baseTravelMinutes": 13,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/49508471",
+          "cuisines": [],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "not_applicable",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W49508471"
+          ],
+          "notes": [
+            "Open daily from 08:00 to 20:30",
+            "Park access for outdoor activities"
+          ]
+        },
+        {
+          "kind": "lunch",
+          "placeId": "W49508471",
+          "name": "Hugh Taylor Birch State Park",
+          "startsAt": "12:10:00",
+          "endsAt": "13:00:00",
+          "baseTravelMinutes": 0,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/49508471",
+          "cuisines": [],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "unknown",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W49508471"
+          ],
+          "notes": [
+            "Open daily from 08:00 to 20:30",
+            "Park access for outdoor activities"
+          ]
+        }
+      ],
+      "reason": "This alternative provides variety by offering a park sight and genuine breakfast, while transparently stating the lunch uncertainty due to research gaps. Meal and outing times fit the brief's requirements.",
+      "openQuestions": [
+        "Travel, parking and walking do not fit before a stop.",
+        "Meal service for lunch at Hugh Taylor Birch State Park is unknown."
+      ],
+      "notes": [
+        "OB House again provides a confirmed breakfast option with early service, as no other venue has both breakfast and verified hours.",
+        "A more outdoors-focused variant visits Hugh Taylor Birch State Park as the main sight, which opens at 08:00 and allows a flexible walking/relaxing pace.",
+        "Lunch again cannot be confidently planned at a venue with either seafood or Cuban cuisine and verified open/lunch service. Lunch here is planned as a picnic or light meal in the park based on local availability or brought accommodation; no researched seafood or Cuban venues have demonstrated fit with lunch hours and routes.",
+        "Hugh Taylor Birch State Park has long operating hours overlapping with the outing window, supporting this plan.",
+        "Material gap: No verified lunch restaurant supporting liked Cuban or seafood cuisines is available for the required lunch stop; Kelly's Landing and Cuban Guys both lack evidence of lunch hours.",
+        "Map and page interpretations are unverified; check changes before visiting. Driving estimates exclude traffic delays."
+      ]
+    }
+  ],
+  "decision": {
+    "coverage": "false",
+    "choice": "research",
+    "rating": "weak",
+    "classification": "no-valid-outline",
+    "model": "local/bayes-itinerary-rules-v2",
+    "decisionMs": 11.805833,
+    "classificationMs": 0.419833
+  },
+  "memoryContext": "bayes-outing-6356c5c7-eaca-4c31-850b-420886b2268a",
+  "memoryFactIds": [
+    "bayes-outing-6356c5c7-eaca-4c31-850b-420886b2268a-interests",
+    "bayes-outing-6356c5c7-eaca-4c31-850b-420886b2268a-pace"
+  ],
+  "rememberedInterests": "art",
+  "rememberedPace": "steady",
+  "researchSources": [
+    "https://www.openstreetmap.org/way/532105760",
+    "https://www.openstreetmap.org/relation/7540489",
+    "https://www.openstreetmap.org/way/135174795",
+    "https://www.openstreetmap.org/way/33614077",
+    "https://www.openstreetmap.org/way/33614074",
+    "https://www.openstreetmap.org/way/49508471",
+    "https://www.openstreetmap.org/way/551457772",
+    "https://www.openstreetmap.org/node/6738876505",
+    "https://www.openstreetmap.org/node/9095237813",
+    "https://www.openstreetmap.org/node/4946411422",
+    "https://www.openstreetmap.org/node/13515738041",
+    "https://www.openstreetmap.org/way/629578743",
+    "https://www.openstreetmap.org/node/13668717858",
+    "https://www.openstreetmap.org/node/5496178078",
+    "https://www.openstreetmap.org/way/279408348",
+    "https://www.openstreetmap.org/node/12922400401",
+    "https://www.openstreetmap.org/way/316764241",
+    "https://www.openstreetmap.org/node/6369437761",
+    "https://www.openstreetmap.org/node/9796646021",
+    "https://www.openstreetmap.org/node/1595552932",
+    "https://www.openstreetmap.org/node/14202541907",
+    "https://www.openstreetmap.org/node/6110296369",
+    "https://nsuartmuseum.org/",
+    "https://nsuartmuseum.org/visit/hours-admission/",
+    "https://en.wikipedia.org/?curid=3781416",
+    "https://en.wikipedia.org/?curid=996951",
+    "https://en.wikipedia.org/?curid=264796",
+    "https://en.wikipedia.org/?curid=48410011"
+  ],
+  "retrievedUtc": "2026-10-14T02:06:30.596941Z",
+  "questions": [
+    "Travel, parking and walking do not fit before a stop.",
+    "Meal service for lunch at NSU Art Museum Fort Lauderdale is unknown.",
+    "Meal service for lunch at Hugh Taylor Birch State Park is unknown."
+  ],
+  "processMs": 32587,
+  "researchedPlaces": [
+    {
+      "place": {
+        "id": "W532105760",
+        "name": "NSU Art Museum Fort Lauderdale",
+        "category": "museum",
+        "sourceUrl": "https://www.openstreetmap.org/way/532105760",
+        "tags": {
+          "fee": "yes",
+          "opening_hours": "Tu-Sa 11:00-17:00; Su 12:00-17:00"
+        }
+      },
+      "interpretation": {
+        "placeId": "W532105760",
+        "summary": "NSU Art Museum Fort Lauderdale is a paid admission art museum featuring various exhibitions including contemporary and historical art. It has visits policies, accessibility options, and scheduled tours.",
+        "cuisines": [],
+        "supportedMeals": [],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "11:00:00",
+            "closesAt": "17:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "W532105760",
+          "W532105760-site"
+        ],
+        "notes": [
+          "Admission required",
+          "Closed Mondays",
+          "Open Tuesdays to Saturdays 11:00-17:00, Sundays 12:00-17:00",
+          "No backpacks or large bags allowed in galleries",
+          "Free admission for children 17 and under",
+          "Check for exhibition schedules before visiting"
+        ]
+      },
+      "pages": [
+        {
+          "id": "W532105760-site",
+          "placeId": "W532105760",
+          "url": "https://nsuartmuseum.org/",
+          "status": "retrieved_unverified",
+          "excerpt": "NSU Art Museum Fort Lauderdale &#8211; Art Museum in Fort Lauderdale Visit Admissions Hours &#038; Admission Policies &#038; Accessibility Groups &#038; Tours Visiting Directions &#038; Parking Visiting Fort Lauderdale Area Airports Floorplan Shop &#038; Dine About the Café &#038; Store Store Café Menu Art Exhibitions Currently on View Exhibitions Past Exhibitions Outdoor Murals Collection Search the Collection About the Collection Glackens Study Center Goodman Study Center Cobra Collection &#038; Research Center David Horvitz &#038; Francie Bishop Good Promised Gift Reproductions Rights &#038; Reproductions Events Ongoing Upcoming Events Free First Thursday – Sunny Days and Starry Nights Museums on Us Special A Sense of Pride Community Voices Learn Education Teen Art Council Teacher &#038; Educator Resources Creativity Exploration At Home Kids Art Activity Museum on the Move Video Channel A Sense of Pride Sensory Saturdays Tours Groups &#038; Tours Docent Speakers Bureau Join &#038; Give Join Become a Member Curator Circle Friends of the Museum Beaux Arts You Belong (NSU) Give Ways to Give Planned Giving Leave a Lasting Impression Corporate Sponsorships Become a Docent Recognition Donor Recognition Museum About About the Museum Director &#038; Chief Curator In the News Press Release Archive Venue Rental Team Board of Governors Staff Directory Docent Speakers Bureau Contact Map Our Location 954-525-5500 Email Us Mailing List Virtual Shop Donate Tickets Click to open the search input field Click to open the search input field Search Menu Menu Link to X Link to Facebook Link to Instagram Link to Youtube Scroll to next section Scroll to next section NSU ART MUSEUM IS HOME TO CHRISTO AND JEANNE-CLAUDE&#8217;S SURROUNDED ISLANDS LEARN MORE TRAVELING? By joining at our Museum Enthusiast (and above) membership level, you can enjoy FREE admission and select member benefits at over 1,000 museums and cultural institutions through the North American Reciprocal Museum Association (NARM) BECOME A MEMBER YOU BELONG FOR NSU SHARKS NSU Students, Faculty, and Staff receive a free individual museum membership LEARN MORE PUBLIC TOURS Every Sunday at 2 pm Previous Previous Previous Next Next Next CURRENTLY ON VIEW Christo and Jeanne-Claude Surrounded Islands Documentation Exhibition February 23, 2025 Through spring 2027 https://nsuartmuseum.org/wp-content/uploads/2024/09/Item-578-scaled.jpg 1669 2560 David Guidi https://nsuartmuseum.org/wp-content/uploads/2021/03/NSU-Logo-2021.png David Guidi 2025-02-23 15:54:01 2026-07-29 10:37:33 Christo and Jeanne-Claude Surrounded Islands Documentation Exhibition Joel Meyerowitz: Aftermath July 13, 2026 Through February 14, 2027 https://nsuartmuseum.org/wp-content/uploads/2026/07/JoelMeyerowitz911-scaled.jpg 2560 1682 David Guidi https://nsuartmuseum.org/wp-content/uploads/2021/03/NSU-Logo-2021.png David Guidi 2026-07-13 12:24:04 2026-09-09 11:48:14 Joel Meyerowitz: Aftermath Wifredo Lam’s Legacy August 12, 2026 Through March 14, 2027 https://nsuartmuseum.org/wp-content/uploads/2026/08/1010750-1030x643-1.jpg 643 1030 David Guidi https://nsuartmuseum.org/wp-content/uploads/2021/03/NSU-Logo-2021.png David Guidi 2026-08-12 16:44:45 2026-09-09 11:53:22 Wifredo Lam’s Legacy Michael Richards: Escape Plan September 16, 2026 Through February 14, 2027 https://nsuartmuseum.org/wp-content/uploads/2026/09/OTP1903-thumbnail-scaled.jpg 946 2560 David Guidi https://nsuartmuseum.org/wp-content/uploads/2021/03/NSU-Logo-2021.png David Guidi 2026-09-16 11:29:45 2026-09-21 15:32:30 Michael Richards: Escape Plan VIEW ALL EXHIBITIONS UPCOMING Ragnar Kjartansson: Sunday Without Love https://nsuartmuseum.org/wp-content/uploads/2026/09/Ragnar-Kjartansson-Sunday-Without-Love-scaled.jpg 1710 2560 David Guidi https://nsuartmuseum.org/wp-content/uploads/2021/03/NSU-Logo-2021.png David Guidi 2026-09-09 10:00:52 2026-10-13 15:23:07 Ragnar Kjartansson: Sunday Without Love Frozen Gestures https://nsuartmuseum.org/wp-content/uploads/2026/09/UrsFischerJulian-banner-scaled.jpg 1115 2560 David Guidi https://nsuartmuseum.org/wp-content/uploads/2021/03/NSU-Logo-2021.png David Guidi 2026-09-09 09:57:06 2026-10-13 12:28:06 Frozen Gestures JOIN OUR MAILING LIST STAY UPDATED ON ALL EXHIBITIONS, EVENTS, AND PROGRAMS SIGN UP NOW EVENTS UPCOMING Art Talk: Art as Medicine: Lessons from the Gilded Age October 24 at 10:00 am - 11:00 am NSU Art Museum FREE Fort Lauderdale Neighbor Day October 25 at 12:00 pm - 5:00 pm NSU Art Museum Museums on Us November 7 at 11:00 am - November 8 at 5:00 pm NSU Art Museum Creativity Exploration: Sculptural Selves November 14 at 12:00 pm - 1:30 pm NSU Art Museum VIEW ALL EVENTS BECOME A MEMBER GAIN ACCESS TO SPECIAL MUSEUM EVENTS, EXHIBITIONS, AND PROGRAMS Sign Up NSU ART MUSEUM ON YOUTUBE YOU CAN WATCH NSU ART MUSEUM&#8217;S PAST TALKS ON YOUTUBE VIEW THE CHANNEL ADMISSION FREE FOR CHILDREN 17 AND UNDER EVERY DAY LEARN MORE SEARCH THE COLLECTION SEE OUR VAST COLLECTION ONLINE SEARCH NOW NSU ART MUSEUM IN THE PALM OF YOUR HAND EXPLORE WITH BLOOMBERG CONNECTS, THE FREE ARTS AND CULTURE APP MORE INFO AT HOME ART ACTIVITIES Topography Sculpture inspired by Christo and Jeanne-Claude Surrounded Islands June 19, 2026 https://nsuartmuseum.org/wp-content/uploads/2026/06/IMG_7465-scaled.jpg 1920 2560 David Guidi https://nsuartmuseum.org/wp-content/uploads/2021/03/NSU-Logo-2021.png David Guidi 2026-06-19 16:37:25 2026-06-19 16:37:25 Topography Sculpture inspired by Christo and Jeanne-Claude Surrounded Islands Surrealist Masks Inspired by Remedios Varo June 19, 2026 https://nsuartmuseum.org/wp-content/uploads/2026/06/APC_0013.jpg 1743 2324 David Guidi https://nsuartmuseum.org/wp-content/uploads/2021/03/NSU-Logo-2021.png David Guidi 2026-06-19 15:59:27 2026-06-19 15:59:27 Surrealist Masks Inspired by Remedios Varo Potato Montage inspired by Jacqueline De Jong June 19, 2026 https://nsuartmuseum.org/wp-content/uploads/2026/06/IMG_7499-scaled.jpg 2560 1920 David Guidi https://nsuartmuseum.org/wp-cont"
+        },
+        {
+          "id": "W532105760-detail",
+          "placeId": "W532105760",
+          "url": "https://nsuartmuseum.org/visit/hours-admission/",
+          "status": "retrieved_unverified",
+          "excerpt": "Hours &#038; Admission &#8211; NSU Art Museum Fort Lauderdale Visit Admissions Hours &#038; Admission Policies &#038; Accessibility Groups &#038; Tours Visiting Directions &#038; Parking Visiting Fort Lauderdale Area Airports Floorplan Shop &#038; Dine About the Café &#038; Store Store Café Menu Art Exhibitions Currently on View Exhibitions Past Exhibitions Outdoor Murals Collection Search the Collection About the Collection Glackens Study Center Goodman Study Center Cobra Collection &#038; Research Center David Horvitz &#038; Francie Bishop Good Promised Gift Reproductions Rights &#038; Reproductions Events Ongoing Upcoming Events Free First Thursday – Sunny Days and Starry Nights Museums on Us Special A Sense of Pride Community Voices Learn Education Teen Art Council Teacher &#038; Educator Resources Creativity Exploration At Home Kids Art Activity Museum on the Move Video Channel A Sense of Pride Sensory Saturdays Tours Groups &#038; Tours Docent Speakers Bureau Join &#038; Give Join Become a Member Curator Circle Friends of the Museum Beaux Arts You Belong (NSU) Give Ways to Give Planned Giving Leave a Lasting Impression Corporate Sponsorships Become a Docent Recognition Donor Recognition Museum About About the Museum Director &#038; Chief Curator In the News Press Release Archive Venue Rental Team Board of Governors Staff Directory Docent Speakers Bureau Contact Map Our Location 954-525-5500 Email Us Mailing List Virtual Shop Donate Tickets Click to open the search input field Click to open the search input field Search Menu Menu Link to X Link to Facebook Link to Instagram Link to Youtube Hours &#038; Admission NO BACKPACKS, OVERSIZED BAGS OR TOTE BAGS ALLOWED IN GALLERIES Any bag larger than 11” x 17” x 6” (28cm x 43cm x 20cm) will not be allowed into the galleries. Hours TUESDAY – SATURDAY SUNDAY FREE FIRST THURSDAY OF EVERY MONTH MONDAY 11 am &#8211; 5 pm Noon – 5 pm 11 am – 7 pm Closed Sunday Public Tours at 2 pm Holiday Hours: Closed Thanksgiving, Christmas Day, and New Year&#8217;s Day. Open 11 am &#8211; 3 pm Christmas Eve and New Year&#8217;s Eve. Closed on July 4. General Admission ADULTS $16 SENIORS $10 MILITARY $8 COLLEGE STUDENTS (WITH A VALID ID) $5 STUDENTS (13-17) FREE UNITED STATES VETERANS AND THEIR DEPENDENTS IN THE SAME HOUSEHOLD FREE Made possible by Spirit Airlines Charitable Foundation NSU ART MUSEUM MEMBERS, NSU STUDENTS, FACULTY & STAFF, BROWARD COLLEGE STUDENTS, AND CHILDREN 12 & UNDER FREE Save Time and Order Online PURCHASE TICKETS Are you a passionate art lover looking to deepen your appreciation for the arts? Look no further than becoming an NSU Art Museum member! Our memberships offer access to our world-renowned exhibitions, engaging events, and educational programs. Plus, you&#8217;ll receive special discounts at our Museum Store and Café. Seize this opportunity to become a part of our vibrant community of art enthusiasts. Join us today and start experiencing all that NSU Art Museum has to offer! BECOME A MEMBER NSU Students and Faculty receive FREE transportation offered through the NSU Shuttle Bus. Check here for schedule . Bring headphones and download our mobile guide on Bloomberg Connects, the free arts and culture app to get the most from your visit. LEARN MORE Blue Star Museums NSU Art Museum is proud to participate in the Blue Star Museums program, offering FREE admission to the nation’s active-duty military personnel and their families, including National Guard and Reserve. The 2026 program begins on Armed Forces Day, Saturday, May 16, 2026, and runs through Labor Day, September 7, 2026. The program is a collaboration among the National Endowment for the Arts, Blue Star Families, the Department of Defense, and thousands of museums across the country. Museums for All NSU Art Museum provides FREE admission to individuals and families presenting a Supplemental Nutrition Assistance Program (SNAP) Electronic Benefits Transfer (EBT) card, and a valid form of photo ID. FREE admission is offered to four individuals per EBT card. Bank of America Museums on Us Bank of America cardholders receive free admission on the first full weekend of each month. Group Tours Tours are available for groups by contacting the group sales office at 954-262-0204 or email us at the link below. Tour Inquiry Email Become a Member Become a member today and gain free access to most of our events as well as invitations to special members only occasions. Member Inquiry Advisory Ticket pricing may change for special ticketed exhibitions. The Museum requires visitors to leave backpacks of any size, shopping bags, umbrellas, etc behind the Admissions desk. Food or beverages are not permitted in the galleries. PHOTOGRAPHY &#038; VIDEOGRAPHY RELEASE INFORMATION: PLEASE BE AWARE THAT BY ATTENDING EVENTS OR PROGRAMS AT NSU ART MUSEUM FORT LAUDERDALE, YOU CONSENT TO YOUR VOICE, NAME, AND/OR LIKENESS BEING USED, WITHOUT COMPENSATION, IN PRINT OR ONLINE FOR USE IN ANY AND ALL MEDIA AND ADVERTISING, WHETHER NOW KNOWN OR HEREAFTER DEVISED, AND YOU RELEASE NSU ART MUSEUM FORT LAUDERDALE, ITS SUCCESSORS, ASSIGNS AND LICENSEES FROM ANY LIABILITY WHATSOEVER OF ANY NATURE. Current Exhibitions VIEW ALL EXHIBITIONS Christo and Jeanne-Claude Surrounded Islands Documentation Exhibition February 23, 2025 Through spring 2027 https://nsuartmuseum.org/wp-content/uploads/2024/09/Item-578-scaled.jpg 1669 2560 David Guidi https://nsuartmuseum.org/wp-content/uploads/2021/03/NSU-Logo-2021.png David Guidi 2025-02-23 15:54:01 2026-07-29 10:37:33 Christo and Jeanne-Claude Surrounded Islands Documentation Exhibition Joel Meyerowitz: Aftermath July 13, 2026 Through February 14, 2027 https://nsuartmuseum.org/wp-content/uploads/2026/07/JoelMeyerowitz911-scaled.jpg 2560 1682 David Guidi https://nsuartmuseum.org/wp-content/uploads/2021/03/NSU-Logo-2021.png David Guidi 2026-07-13 12:24:04 2026-09-09 11:48:14 Joel Meyerowitz: Aftermath Wifredo Lam’s Legacy August 12, 2026 Through March 14, 2027 https://nsuartmuseum."
+        }
+      ]
+    },
+    {
+      "place": {
+        "id": "W49508471",
+        "name": "Hugh Taylor Birch State Park",
+        "category": "park",
+        "sourceUrl": "https://www.openstreetmap.org/way/49508471",
+        "tags": {
+          "opening_hours": "Mo-Su 08:00-20:30"
+        }
+      },
+      "interpretation": {
+        "placeId": "W49508471",
+        "summary": "Hugh Taylor Birch State Park is a public outdoor park in Fort Lauderdale open daily for visitors to enjoy natural and recreational amenities.",
+        "cuisines": [],
+        "supportedMeals": [],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "08:00:00",
+            "closesAt": "20:30:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "W49508471"
+        ],
+        "notes": [
+          "Open daily from 08:00 to 20:30",
+          "Park access for outdoor activities"
+        ]
+      },
+      "pages": [
+        {
+          "id": "W49508471-wiki",
+          "placeId": "W49508471",
+          "url": "https://en.wikipedia.org/?curid=3781416",
+          "status": "search_lead_unverified",
+          "excerpt": "Hugh Taylor Birch State Park: Hugh Taylor Birch State Park is a Florida State Park located in Fort Lauderdale , on East Sunrise Boulevard (SR 838), between the Intracoastal Waterway"
+        }
+      ]
+    },
+    {
+      "place": {
+        "id": "W551457772",
+        "name": "OB House - Breakfast All day",
+        "category": "breakfast",
+        "sourceUrl": "https://www.openstreetmap.org/way/551457772",
+        "tags": {
+          "opening_hours": "Mo-Fr 07:00-13:00; Sa-Su 08:00-13:00",
+          "cuisine": "breakfast;coffee;lunch"
+        }
+      },
+      "interpretation": {
+        "placeId": "W551457772",
+        "summary": "OB House offers all day breakfast and coffee with lunch options, open daily with earlier hours on weekdays.",
+        "cuisines": [
+          "breakfast",
+          "coffee",
+          "lunch"
+        ],
+        "supportedMeals": [
+          "breakfast",
+          "coffee",
+          "lunch"
+        ],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "08:00:00",
+            "closesAt": "13:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "W551457772"
+        ],
+        "notes": [
+          "Open weekdays 07:00-13:00, weekends 08:00-13:00",
+          "Breakfast and coffee specialties"
+        ]
+      },
+      "pages": []
+    },
+    {
+      "place": {
+        "id": "N6738876505",
+        "name": "Cafe Siena",
+        "category": "cafe",
+        "sourceUrl": "https://www.openstreetmap.org/node/6738876505",
+        "tags": {}
+      },
+      "interpretation": {
+        "placeId": "N6738876505",
+        "summary": "Cafe Siena is a café listed without verified details on meal service or cuisine specifics.",
+        "cuisines": [],
+        "supportedMeals": [],
+        "hoursStatus": "unknown",
+        "operatingWindows": [],
+        "access": "unknown",
+        "suitability": "unknown",
+        "sourceIds": [
+          "N6738876505"
+        ],
+        "notes": [
+          "No verified public hours or meal service information available"
+        ]
+      },
+      "pages": [
+        {
+          "id": "N6738876505-wiki",
+          "placeId": "N6738876505",
+          "url": "https://en.wikipedia.org/?curid=996951",
+          "status": "search_lead_unverified",
+          "excerpt": "List of James Bond vehicles: Our House III. On 29 January 1992. she was scuttled off the coast of Fort Lauderdale and named the Wendy Rossheim Memorial Reef. The second ship was a PT-20"
+        }
+      ]
+    },
+    {
+      "place": {
+        "id": "N13668717858",
+        "name": "Kelly's Landing New England Seafood",
+        "category": "restaurant",
+        "sourceUrl": "https://www.openstreetmap.org/node/13668717858",
+        "tags": {
+          "cuisine": "seafood"
+        }
+      },
+      "interpretation": {
+        "placeId": "N13668717858",
+        "summary": "Kelly's Landing New England Seafood offers seafood cuisine though no specific meal service hours are verified.",
+        "cuisines": [
+          "seafood"
+        ],
+        "supportedMeals": [],
+        "hoursStatus": "unknown",
+        "operatingWindows": [],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "N13668717858"
+        ],
+        "notes": [
+          "Seafood cuisine",
+          "No verified operating hours"
+        ]
+      },
+      "pages": [
+        {
+          "id": "N13668717858-wiki",
+          "placeId": "N13668717858",
+          "url": "https://en.wikipedia.org/?curid=264796",
+          "status": "search_lead_unverified",
+          "excerpt": "Alaska Airlines: Alaska Airlines is a major airline in the United States headquartered in SeaTac, Washington, within the Seattle metropolitan area. It is the fifth-largest"
+        }
+      ]
+    },
+    {
+      "place": {
+        "id": "N6369437761",
+        "name": "Cuban Guys",
+        "category": "restaurant",
+        "sourceUrl": "https://www.openstreetmap.org/node/6369437761",
+        "tags": {
+          "cuisine": "cuban"
+        }
+      },
+      "interpretation": {
+        "placeId": "N6369437761",
+        "summary": "Cuban Guys is a restaurant specializing in Cuban cuisine without verified meal service hours available.",
+        "cuisines": [
+          "cuban"
+        ],
+        "supportedMeals": [],
+        "hoursStatus": "unknown",
+        "operatingWindows": [],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "N6369437761"
+        ],
+        "notes": [
+          "Cuban cuisine",
+          "No verified opening hours"
+        ]
+      },
+      "pages": [
+        {
+          "id": "N6369437761-wiki",
+          "placeId": "N6369437761",
+          "url": "https://en.wikipedia.org/?curid=48410011",
+          "status": "search_lead_unverified",
+          "excerpt": "2020 United States presidential election: Presidential elections were held in the United States on November 3, 2020. The Democratic ticket of former vice president Joe Biden and California junior"
+        }
+      ]
+    }
+  ],
+  "destinationTimezone": "America/New_York"
+}
