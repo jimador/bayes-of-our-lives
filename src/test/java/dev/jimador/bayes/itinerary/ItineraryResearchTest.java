@@ -123,14 +123,14 @@ class ItineraryResearchTest {
                 new IllegalArgumentException("PRIVATE_EXCEPTION_SENTINEL"));
         when(runner.createObject(anyString(), eq(ResearchFindings.class))).thenThrow(binding);
         var discovery = new BayesAgent.Discovery(List.of("N1", "N2"), "Fixture");
-        var unknown = agent.researchPlaces(outing, discovery, context);
+        var unknown = agent.researchPlaces(outing, agent.retrieveEvidence(outing, discovery), context);
         assertEquals(List.of("N1", "N2"), unknown.places().stream().map(ResearchFindings.PlaceFinding::placeId).toList());
         assertTrue(unknown.places().stream().allMatch(p -> p.sourceIds().isEmpty() && p.supportedMeals().isEmpty()
                 && p.operatingWindows().isEmpty() && p.notes().getFirst().contains("MODEL_OUTPUT_FORMAT")));
         assertFalse(mapper.writeValueAsString(unknown).contains("PRIVATE_"));
         var providerFailure = new IllegalStateException("PRIVATE_PROVIDER_SENTINEL");
         when(runner.createObject(anyString(), eq(ResearchFindings.class))).thenThrow(providerFailure);
-        assertSame(providerFailure, assertThrows(IllegalStateException.class, () -> agent.researchPlaces(outing, discovery, context)));
+        assertSame(providerFailure, assertThrows(IllegalStateException.class, () -> agent.researchPlaces(outing, agent.retrieveEvidence(outing, discovery), context)));
     }
     private static Itinerary.Draft draft() {
         return new Itinerary.Draft(List.of(new Itinerary.AlternativeDraft("a", List.of(new Itinerary.StopDraft("sight", "N1",
