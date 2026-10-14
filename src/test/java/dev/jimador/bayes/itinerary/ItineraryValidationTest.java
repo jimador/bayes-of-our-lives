@@ -102,6 +102,49 @@ class ItineraryValidationTest {
         var earlyMuseum = List.of(stops("N3").get(0), new Itinerary.StopDraft("sight", "N2", time("09:00"), time("09:45")), stops("N3").get(2));
         assertTrue(check(earlyMuseum, findings()).openQuestions().stream().anyMatch(q -> q.contains("operating window")));
     }
+    @Test void capturedLateMuseumLegsReportEarliestArrivalsAndNeverRewriteTheDraft() {
+        var mapped = List.of(
+                new Places.MappedPlace(new Place("W532105760", "NSU Art Museum Fort Lauderdale", "museum",
+                        "https://www.openstreetmap.org/way/532105760", Map.of("opening_hours", "Tu-Sa 11:00-17:00")), 26.7, -80.7),
+                new Places.MappedPlace(new Place("N9796646021", "Padrino's Cuban Restaurant", "restaurant",
+                        "https://www.openstreetmap.org/node/9796646021", Map.of("opening_hours", "Tu-Th 11:30-21:00", "cuisine", "cuban")), 26.4, -80.4),
+                new Places.MappedPlace(new Place("N12922400401", "Mr. & Mrs. Crab Juicy Seafood and Bar", "restaurant",
+                        "https://www.openstreetmap.org/node/12922400401", Map.of("opening_hours", "Su-Th 12:00-23:00", "cuisine", "seafood")), 26.6, -80.6));
+        var capturedTools = new DayGuideTools(places, pages, location, List.of("seafood", "cuban"));
+        for (var candidate : mapped) {
+            String cuisine = candidate.evidence().tags().getOrDefault("cuisine", "");
+            when(places.search(location, candidate.evidence().category(), cuisine)).thenReturn(List.of(candidate));
+            capturedTools.search(candidate.evidence().category(), cuisine);
+        }
+        when(places.driveMinutes(26.4, -80.4, 26.7, -80.7)).thenReturn(8);
+        when(places.driveMinutes(26.6, -80.6, 26.7, -80.7)).thenReturn(22);
+        var profile = new ItineraryBrief("City", DATE, time("07:00"), time("14:00"), 2, 0, "art", "steady", false,
+                List.of("lunch", "sight"), List.of("seafood", "cuban"), List.of());
+        var context = new ItineraryContext(profile, outing.memory(), capturedTools, outing.timezone(), false);
+        var research = new ResearchFindings(List.of(fact("W532105760", List.of(), List.of(), "11:00", "17:00"),
+                fact("N9796646021", List.of("cuban"), List.of("lunch"), "11:30", "21:00"),
+                fact("N12922400401", List.of("seafood"), List.of("lunch"), "12:00", "23:00")));
+        var a = new Itinerary.AlternativeDraft("a", List.of(
+                new Itinerary.StopDraft("lunch", "N9796646021", time("11:50"), time("12:50")),
+                new Itinerary.StopDraft("sight", "W532105760", time("13:05"), time("14:00"))), "Captured Cuban leg", List.of());
+        var b = new Itinerary.AlternativeDraft("b", List.of(
+                new Itinerary.StopDraft("lunch", "N12922400401", time("12:10"), time("13:10")),
+                new Itinerary.StopDraft("sight", "W532105760", time("13:25"), time("14:00"))), "Captured seafood leg", List.of());
+        var checked = ItineraryValidation.plans(new Itinerary.Draft(List.of(a, b)), research, context);
+        assertTrue(checked.alternatives().stream().allMatch(v -> v.status().equals("invalid")));
+        assertEquals("Travel, parking and walking do not fit on leg N9796646021 -> W532105760 (NSU Art Museum Fort Lauderdale): departure 12:50 + trusted drive 8 minutes + 10-minute buffer = earliest "
+                + DATE + "T13:08; requested start 13:05; shortfall 3 minutes.", checked.alternatives().getFirst().openQuestions().getFirst());
+        assertEquals("Travel, parking and walking do not fit on leg N12922400401 -> W532105760 (NSU Art Museum Fort Lauderdale): departure 13:10 + trusted drive 22 minutes + 10-minute buffer = earliest "
+                + DATE + "T13:42; requested start 13:25; shortfall 17 minutes.", checked.alternatives().getLast().openQuestions().getFirst());
+        assertEquals(time("13:05"), a.stops().getLast().startsAt());
+        assertEquals(time("13:25"), b.stops().getLast().startsAt());
+        var fitting = List.of(new Itinerary.AlternativeDraft("a", List.of(a.stops().getFirst(),
+                        new Itinerary.StopDraft("sight", "W532105760", time("13:08"), time("14:00"))), a.reason(), List.of()),
+                new Itinerary.AlternativeDraft("b", List.of(b.stops().getFirst(),
+                        new Itinerary.StopDraft("sight", "W532105760", time("13:42"), time("14:00"))), b.reason(), List.of()));
+        assertTrue(ItineraryValidation.plans(new Itinerary.Draft(fitting), research, context).alternatives().stream()
+                .allMatch(v -> v.status().equals("usable")));
+    }
     @Test void differentLikedCuisinesAppearInHonestAlternativeTitlesAndTypedStops() {
         var result = ItineraryValidation.plans(new Itinerary.Draft(List.of(
                 new Itinerary.AlternativeDraft("a", stops("N3"), "Seafood lunch", List.of()),

@@ -201,7 +201,14 @@ public final class ItineraryValidation {
                         || stop.endsAt().isAfter(brief.endTime()) || stop.startsAt().isBefore(previousEnd))
                     invalid.add("Stop times must be chronological and inside the outing window.");
                 if (route.driveMinutes() != null && Duration.between(previousEnd, stop.startsAt()).toMinutes()
-                        < route.driveMinutes() + 10) invalid.add("Travel, parking and walking do not fit before a stop.");
+                        < route.driveMinutes() + 10) {
+                    long shortfall = route.driveMinutes() + 10L - Duration.between(previousEnd, stop.startsAt()).toMinutes();
+                    var earliest = brief.date().atTime(previousEnd).plusMinutes(route.driveMinutes() + 10L);
+                    invalid.add("Travel, parking and walking do not fit on leg " + previous + " -> " + place.id()
+                            + " (" + place.name() + "): departure " + previousEnd + " + trusted drive "
+                            + route.driveMinutes() + " minutes + 10-minute buffer = earliest " + earliest
+                            + "; requested start " + stop.startsAt() + "; shortfall " + shortfall + " minutes.");
+                }
                 if (!mealWindow(stop.kind(), stop.startsAt(), stop.endsAt()))
                     invalid.add("A requested meal falls outside its service time window.");
             }
