@@ -163,13 +163,53 @@ class ItineraryValidationTest {
             assertTrue(checked.alternatives().stream().allMatch(a -> a.status().equals("unresolved")));
             assertTrue(checked.alternatives().getFirst().openQuestions().stream()
                     .anyMatch(q -> q.contains("reachable liked cuisines: cuban")));
-            if (choices.size() == 2) assertTrue(checked.alternatives().getFirst().openQuestions().stream()
+            assertEquals(1, checked.alternatives().size());
+            assertFalse(checked.alternatives().getFirst().openQuestions().stream()
                     .anyMatch(q -> q.contains("Provide distinct alternatives")));
             var answer = ItineraryDecisions.evaluate(DecisionBrief.from(brief, checked.alternatives()),
                     checked.alternatives(), new LocalItineraryDecisions(mapper), mapper);
             assertEquals("false", answer.coverage());
             assertEquals("material-gaps", answer.classification());
         }
+    }
+    @Test void equivalentUsableAlternativesKeepTheFirstOriginalChoiceWithAnAdvisory() {
+        var facts = new ResearchFindings(findings().places().subList(0, 3));
+        var a = new Itinerary.AlternativeDraft("a", stops("N3"), "Original rationale", List.of());
+        var b = new Itinerary.AlternativeDraft("b", stops("N3"), "Other rationale", List.of());
+        var result = ItineraryValidation.plans(new Itinerary.Draft(List.of(a, b)), facts, outing);
+        assertEquals(1, result.alternatives().size());
+        var kept = result.alternatives().getFirst();
+        assertEquals("a", kept.id());
+        assertEquals("Original rationale", kept.reason());
+        assertEquals("usable", kept.status());
+        assertTrue(kept.openQuestions().isEmpty());
+        assertTrue(kept.notes().contains("Equivalent venue/order alternative omitted."));
+        assertEquals(check(a.stops(), facts).stops(), kept.stops());
+    }
+    @Test void anInvalidFirstScheduleCannotDisplaceAnEquivalentUsableLaterChoice() {
+        var facts = new ResearchFindings(findings().places().subList(0, 3));
+        var bad = new Itinerary.AlternativeDraft("a", List.of(
+                new Itinerary.StopDraft("breakfast", "N1", time("07:05"), time("08:00")),
+                stops("N3").get(1), stops("N3").get(2)), "Too little travel time", List.of());
+        var good = new Itinerary.AlternativeDraft("b", stops("N3"), "Original useful choice", List.of());
+        assertEquals("invalid", check(bad.stops(), facts).status());
+        var kept = ItineraryValidation.plans(new Itinerary.Draft(List.of(bad, good)), facts, outing).alternatives();
+        assertEquals(1, kept.size());
+        assertEquals("b", kept.getFirst().id());
+        assertEquals("usable", kept.getFirst().status());
+        assertEquals("Original useful choice", kept.getFirst().reason());
+        assertEquals(check(good.stops(), facts).stops(), kept.getFirst().stops());
+    }
+    @Test void deduplicationRetainsUnknownOperatingHoursAsAMaterialQuestion() {
+        var unknown = new ResearchFindings.PlaceFinding("N3", "Hours not established", List.of("seafood"),
+                List.of("lunch"), "unknown", List.of(), "unknown", "supported", List.of("N3"), List.of());
+        var facts = new ResearchFindings(List.of(findings().place("N1"), findings().place("N2"), unknown));
+        var result = ItineraryValidation.plans(new Itinerary.Draft(List.of(
+                new Itinerary.AlternativeDraft("a", stops("N3"), "Original", List.of()),
+                new Itinerary.AlternativeDraft("b", stops("N3"), "Repeated", List.of()))), facts, outing);
+        assertEquals(1, result.alternatives().size());
+        assertEquals("unresolved", result.alternatives().getFirst().status());
+        assertEquals(List.of("Operating hours for Seafood Place are unknown."), result.alternatives().getFirst().openQuestions());
     }
     @Test void unknownSuitabilityCannotHideACuisineAcceptedByTheUsablePlanPolicy() {
         var cuban = findings().place("N4");

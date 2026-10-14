@@ -118,11 +118,26 @@ public final class ItineraryValidation {
                 throw new IllegalStateException("Planning returned invalid alternative IDs");
             checked.add(plan(alternative, research, context));
         }
+        Map<List<String>, Itinerary.Alternative> unique = new LinkedHashMap<>();
+        Set<List<String>> repeated = new HashSet<>();
+        for (var alternative : checked) {
+            var signature = alternative.stops().stream().map(stop -> stop.kind() + ":" + stop.placeId()).toList();
+            var previous = unique.putIfAbsent(signature, alternative);
+            if (previous != null) {
+                repeated.add(signature);
+                if (statusRank(alternative.status()) < statusRank(previous.status())) unique.put(signature, alternative);
+            }
+        }
+        var retained = unique.entrySet().stream().map(entry -> {
+            var a = entry.getValue();
+            return repeated.contains(entry.getKey())
+                    ? new Itinerary.Alternative(a.id(), a.title(), a.status(), a.stops(), a.reason(), a.openQuestions(),
+                        java.util.stream.Stream.concat(a.notes().stream(),
+                                java.util.stream.Stream.of("Equivalent venue/order alternative omitted.")).distinct().toList())
+                    : a;
+        }).toList();
         List<String> gaps = new ArrayList<>();
         var valid = checked.stream().filter(a -> !a.status().equals("invalid")).toList();
-        long distinct = valid.stream().map(a -> a.stops().stream()
-                .map(stop -> stop.kind() + ":" + stop.placeId()).toList()).distinct().count();
-        if (distinct < valid.size()) gaps.add("Provide distinct alternatives with different venues or stop order; shifting times alone is not another choice.");
         var available = context.brief().cuisineLikes().stream().filter(cuisine -> research.places().stream()
                 .anyMatch(candidate -> candidate.cuisines().contains(cuisine) && valid.stream()
                         .anyMatch(a -> fitsMealSlot(candidate, a, context)))).limit(2).toList();
@@ -130,11 +145,14 @@ public final class ItineraryValidation {
                 .filter(stop -> !stop.kind().equals("sight")).flatMap(stop -> stop.cuisines().stream()).toList();
         var missing = available.stream().filter(cuisine -> !represented.contains(cuisine)).toList();
         if (!missing.isEmpty()) gaps.add("Include a distinct alternative for the supported, reachable liked cuisines: " + String.join(", ", missing) + ".");
-        if (gaps.isEmpty()) return new Itinerary(List.copyOf(checked));
-        return new Itinerary(checked.stream().map(a -> a.status().equals("invalid") ? a
+        if (gaps.isEmpty()) return new Itinerary(retained);
+        return new Itinerary(retained.stream().map(a -> a.status().equals("invalid") ? a
                 : new Itinerary.Alternative(a.id(), a.title(), "unresolved", a.stops(), a.reason(),
                         java.util.stream.Stream.concat(a.openQuestions().stream(), gaps.stream()).distinct().toList(),
                         a.notes())).toList());
+    }
+    private static int statusRank(String status) {
+        return switch (status) { case "usable" -> 0; case "unresolved" -> 1; default -> 2; };
     }
     /** Check existing meal slots against attributed candidates without creating a replacement plan. */
     private static boolean fitsMealSlot(ResearchFindings.PlaceFinding candidate, Itinerary.Alternative alternative,
