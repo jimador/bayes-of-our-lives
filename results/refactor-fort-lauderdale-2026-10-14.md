@@ -1,6 +1,6 @@
 # Fort Lauderdale integration observation — 2026-10-14
 
-Functional acceptance remains **blocked after the reviewed correction**. The initial local/Jev requests returned no usable outline, and initial OpenAI selected a usable Cuban plan with an invalid seafood alternative. Corrected local/OpenAI failed during research; corrected Jev returned unresolved seafood plan b and invalid plan a missing lunch. No corrected request established a complete usable flow or invocation of the new planning-review tool. Passing model-free tests does not establish live completion.
+Functional acceptance remains **blocked after the final capped round**. Across nine real outings, the latest local/Jev requests returned only invalid outlines with venue facts assigned to the wrong mapped places; final OpenAI returned a typed-decision HTTP 502. The final round proves mandatory review and a single refinement occurred for each request, but it does not establish a useful complete guide. Earlier failures and the initial OpenAI success remain preserved. Passing model-free tests is not live functional acceptance.
 
 ## Setup and count
 
@@ -54,7 +54,7 @@ Local reviewer evidence remains in `/tmp/bayes-guide-integration-server.log`, `/
 
 ## Corrected build and bounded live observation
 
-The independently reviewed native planning-feedback and safe malformed-binding correction was rebuilt: `mvn test package`, 30 tests, zero failures/errors/skips, BUILD SUCCESS in 7.295 seconds. JS/shell syntax and diff checks passed. The corrected app started in 2.241 seconds on owned port 18086 (18085 occupied). Same fixed outing and same discovery/research/planner defaults; exactly three corrected real browser submissions, local → Jev → OpenAI. **Six total live outings, zero warmups, no optional reruns.** Initial JSON files were verified byte-for-byte unchanged against `23a2eeb`.
+The independently reviewed native planning-feedback and safe malformed-binding correction was rebuilt: `mvn test package`, 30 tests, zero failures/errors/skips, BUILD SUCCESS in 7.295 seconds. JS/shell syntax and diff checks passed. The corrected app started in 2.241 seconds on owned port 18086 (18085 occupied). Same fixed outing and same discovery/research/planner defaults; exactly three corrected real browser submissions, local → Jev → OpenAI. **Six live outings through this correction, zero warmups, no optional reruns.** Initial JSON files were verified byte-for-byte unchanged against `23a2eeb`.
 
 | Corrected selected engine | HTTP | Browser wall ms | Backend ms | Coverage / choice / confidence / classification | Actual result |
 | --- | --- | ---: | ---: | --- | --- |
@@ -92,3 +92,35 @@ Actual corrected early-choice request: needs_input200/processMs0 with three foll
 Corrected safety scans: runtime keys absent log/raw JSON; exact origin/city absent stage log; private dietary field absent responses. All 11 corrected stage lines are present: nine completed and two failed research lines; zero plan-review lines. The private dietary field remains empty, so live medical-text exclusion is not independently exercised. Model-free privacy tests passed. Owned PID 98518/session was stopped with Ctrl-C/trap after checks (exit143). No provider reruns, publication, push, merge or article edits.
 
 Corrected supporting files: `/tmp/bayes-guide-integration-corrected-build.log`, `/tmp/bayes-guide-integration-corrected-server.log`, `/tmp/bayes-guide-browser-corrected.cjs`, `/tmp/bayes-guide-browser-corrected-output.log`, `/tmp/bayes-guide-corrected-{engine}-{desktop,mobile}.png`, `-dom.txt`, `-observation.json`. Independent source review also identified obsolete README cuisine-alias guidance; fixed to actual accepted `seafood`/`cuban` names. These temporary files complement durable checked-in raw outputs; they do not substitute for a useful live flow.
+
+## Final capped round: GPT-4.1 research and mandatory actions
+
+Reviewed backend `92a2759`; integration rebased at `b45d636`. Current defaults and this round explicitly pin both discovery/research and planning to `gpt-4.1`. The named decision services are unchanged. This model configuration differs from the earlier six outings using `gpt-4.1-mini` for discovery/research, so elapsed times do not establish a comparison. Own `mvn test package`: 35 tests, zero failures/errors/skips, BUILD SUCCESS in 7.520 seconds; JS/shell syntax and diff checks passed. Owned port 18087/PID 13780, startup 2.015 seconds.
+
+Exactly three final independent real browser submissions, local → Jev → OpenAI. **Nine total provider-backed outings; cap exhausted, zero timing warmups, no optional reruns.** All earlier six raw JSON files were verified byte-for-byte unchanged against `b45d636`. Final actual bodies: [local](live-fort-lauderdale-2026-10-14-final-local.json), [Jev](live-fort-lauderdale-2026-10-14-final-jev.json), [OpenAI](live-fort-lauderdale-2026-10-14-final-openai.json).
+
+| Final selected engine / reported decision model | HTTP | Browser wall ms | Backend ms | Coverage / choice / confidence / classification | Result |
+| --- | --- | ---: | ---: | --- | --- |
+| local / local/bayes-itinerary-rules-v2 | 200 | 27388 | 25938 | false / research / weak / no-valid-outline | needs_research; both alternatives invalid |
+| Jev / TypeSafe/jev-1.13.0 | 200 | 26641 | 26267 | false / research / weak / no-valid-outline | needs_research; both alternatives invalid |
+| OpenAI | 502 | 39754 | not returned | typed fields not returned | DECISION_FAILED; complete typed answer unavailable |
+
+| Final engine | Geocode | Discovery | Research | Draft | Mandatory review | Final action | Decision stage | Stage sum ms | Ask / classification ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| local | 1517 | 9652 | 5780 | 3804 | 969 | 4074 | 22 | 25818 | 7.190292 / 0.238291 |
+| Jev | 179 | 7827 | 8310 | 3514 | 927 | 5022 | 401 | 26180 | 234.115875 / 166.484625 |
+| OpenAI | 184 | 9360 | 17576 | 4565 | 1080 | 4588 | 1402 | 38755 | not returned |
+
+The actual completed duration lines prove one `plan-draft`, one mandatory `plan-review` and one `plan-final` action for **each** request. Each review also emits a findings line (`invalid=2 unresolved=0`); two review log lines mean one action, not two invocations. Each `plan-refinement requested=true` line proves a single requested refinement in the final action. The reviewed source returns the final Java validation from `plan-final`; its completion establishes that final guard ran. This is a mandatory typed action dependency, not an optional LLM review tool. Final OpenAI's completed decision stage does not imply typed-response success: the service returns safe `DECISION_FAILED` afterward, and does not expose which answer field was incomplete.
+
+**Actual semantic evidence remains wrong, not merely incomplete:** final local maps NSU Art Museum to “Popular cafe” with 07:00–18:00 hours although its mapped Tuesday hours are 11:00–17:00; Museum of Discovery and Science is interpreted as a seafood restaurant; Hugh Taylor Birch State Park as a breakfast cafe; OB House as an art museum; Kelly's mapped seafood as Cuban cuisine; Padrino's as a coffee shop opening 07:00 despite mapped Tuesday 11:30. All eight final-local research views have zero retrieved pages and cite their own mapped IDs. Correct source-ID membership does not establish that the attached claim matches that venue. Claims remain labelled unverified, but these contradictions fail useful-flow acceptance.
+
+Final local alternatives start park breakfast 07:00–08:10 immediately at the 07:00 origin departure, ignoring 11 driving minutes plus ten-minute buffer; follow with OB House as a sight and Museum of Discovery/Science or Kelly's as lunch. Both invalid. Final Jev puts Padrino's breakfast at 07:00–07:50, Cafe Siena as a sight and Mario's as seafood lunch; its other option puts Mr. & Mrs. Crab as a French/bakery breakfast venue, Cafe Siena as a sight and NSU Museum as lunch. Both invalid travel gaps. Venue-derived titles correctly display the actual proposed mapped names, so the contradictions stay observable. No complete supported breakfast/lunch or cuisine diversity is established by this round. The mapped `breakfast=yes` branch remains fixture-covered, not exercised by these outputs.
+
+Safe research normalization logs actually report local INVALID_WINDOWS=2/UNSUPPORTED_HOURS=2 and Jev INVALID_FIELDS=8/INVALID_WINDOWS=3/UNSUPPORTED_HOURS=3; those unknown/omitted fields remain visible. Despite that partial validation, unrelated venue-role/hour/cuisine claims survive, and the one refinement does not produce valid plans. No further backend correction or provider retry was made by this integration cook.
+
+Actual final desktop/mobile DOM widths 1440/390 equal viewport widths; no horizontal overflow, stale fields or JavaScript exceptions. Local/Jev page consoles have no errors; OpenAI shows its actual HTTP 502. The later fixture-only error adds the expected HTTP 400 console entry. Real early-choice needs_input200/processMs0 and sparse-binding400 remain safe; fixture-only cancel/stale-response/error rendering passed with no extra provider work. Final local desktop and Jev mobile screenshots visibly retain the established design and blocker/advisory distinctions. Independent review found the final local-mobile and OpenAI-mobile PNGs repeat the hero section vertically; those two captures are incomplete visual evidence and do not establish complete mobile appearance. DOM width checks remain valid, but no further captures or calls were made.
+
+Offline final scans found no runtime keys in logs/raw JSON, no exact origin/city in stage logs and no private dietary field in responses. Empty dietary text limits live medical-exclusion evidence. Owned final server stopped with Ctrl-C/trap (session exit143); no other app was stopped. No further API calls after cap, no push/merge/publication/article edits. The README and managed script now reflect current GPT-4.1 defaults, mandatory review and partial-unknown semantics; the script was not live-executed.
+
+Final temporary evidence: `/tmp/bayes-guide-integration-final-build.log`, `/tmp/bayes-guide-integration-final-server.log`, `/tmp/bayes-guide-browser-final.cjs`, `/tmp/bayes-guide-browser-final-output.log`, `/tmp/bayes-guide-final-{engine}-{desktop,mobile}.png`, `-dom.txt`, `-observation.json`. Safe durable raw responses and this note retain every failure; they are not a usable guide or a performance ranking.
