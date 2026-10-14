@@ -11,10 +11,10 @@
     </parent>
 
     <groupId>dev.jimador</groupId>
-    <artifactId>bays</artifactId>
+    <artifactId>bayes</artifactId>
     <version>0.1.0</version>
     <name>Bayes of Our Lives</name>
-    <description>Bays: a spontaneous city guide and Embabel decision example</description>
+    <description>Bayes: a spontaneous city guide and Embabel decision example</description>
 
     <properties>
         <java.version>21</java.version>
