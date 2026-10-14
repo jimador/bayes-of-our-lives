@@ -62,7 +62,8 @@ class BayesAgentTest {
         var outing = agent.prepare(request());
         outing.tools().search("museum", "");
         OperationContext context = mock(OperationContext.class, RETURNS_DEEP_STUBS);
-        var researchRunner = context.ai().withLlm(researcher).withToolObject(outing.tools());
+        var selector = context.ai().withLlm(researcher);
+        var researchRunner = selector.withToolObject(outing.tools());
         var planningRunner = context.ai().withLlm(planner).withToolObject(outing.tools());
         var discovery = new BayesAgent.Discovery(List.of("N7"), "Art interest");
         var findings = new ResearchFindings(List.of(new ResearchFindings.PlaceFinding("N7", "Map hours interpretation",
@@ -70,10 +71,10 @@ class BayesAgentTest {
                 LocalTime.of(10, 0), LocalTime.of(14, 0))), "unknown", "supported", List.of("N7"), List.of())));
         var draft = new Itinerary.Draft(List.of(new Itinerary.AlternativeDraft("a", List.of(new Itinerary.StopDraft("sight", "N7",
                 LocalTime.of(10, 20), LocalTime.of(11, 0))), "Art outing", List.of())));
-        when(researchRunner.createObject(anyString(), eq(BayesAgent.Discovery.class))).thenReturn(discovery);
+        when(selector.createObject(anyString(), eq(BayesAgent.Discovery.class))).thenReturn(discovery);
         when(researchRunner.createObject(anyString(), eq(ResearchFindings.class))).thenReturn(findings);
         when(planningRunner.createObject(anyString(), eq(Itinerary.Draft.class))).thenReturn(draft);
-        var discovered = agent.discoverPlaces(outing, context);
+        var discovered = agent.discoverPlaces(outing, agent.gatherCandidates(outing), context);
         var evidence = agent.retrieveEvidence(outing, discovered);
         var researched = agent.researchPlaces(outing, evidence, context);
         var drafted = agent.draftDay(outing, researched, evidence, context);
@@ -82,7 +83,7 @@ class BayesAgentTest {
         assertEquals("unresolved", planned.alternatives().getFirst().status());
         assertEquals("Art Museum", planned.alternatives().getFirst().title());
         var prompts = ArgumentCaptor.forClass(String.class);
-        verify(researchRunner).createObject(prompts.capture(), eq(BayesAgent.Discovery.class));
+        verify(selector).createObject(prompts.capture(), eq(BayesAgent.Discovery.class));
         verify(researchRunner).createObject(prompts.capture(), eq(ResearchFindings.class));
         verify(planningRunner, times(2)).createObject(prompts.capture(), eq(Itinerary.Draft.class));
         for (String prompt : prompts.getAllValues()) {
@@ -106,6 +107,12 @@ class BayesAgentTest {
         assertEquals(1, producers.size());
         assertTrue(producers.getFirst().getName().contains("finalizeDay"));
         assertTrue(producers.getFirst().getInputs().stream().anyMatch(b -> b.getValue().endsWith(":" + Itinerary.ReviewedDraft.class.getName())));
+        var candidateProducers = metadata.getActions().stream().filter(a -> a.getOutputs().stream()
+                .anyMatch(b -> b.getValue().endsWith(":" + BayesAgent.MappedCandidates.class.getName()))).toList();
+        assertEquals(1, candidateProducers.size());
+        assertTrue(candidateProducers.getFirst().getName().contains("gatherCandidates"));
+        var selection = metadata.getActions().stream().filter(a -> a.getName().contains("discoverPlaces")).findFirst().orElseThrow();
+        assertTrue(selection.getInputs().stream().anyMatch(b -> b.getValue().endsWith(":" + BayesAgent.MappedCandidates.class.getName())));
         var evidenceProducers = metadata.getActions().stream().filter(a -> a.getOutputs().stream()
                 .anyMatch(b -> b.getValue().endsWith(":" + BayesAgent.RetrievedEvidence.class.getName()))).toList();
         assertEquals(1, evidenceProducers.size());
@@ -120,6 +127,50 @@ class BayesAgentTest {
         var reviewer = metadata.getActions().stream().filter(a -> a.getName().contains("reviewDraft")).findFirst().orElseThrow();
         assertTrue(reviewer.getInputs().stream().anyMatch(b -> b.getValue().endsWith(":" + Itinerary.Draft.class.getName())));
         assertTrue(reviewer.getOutputs().stream().anyMatch(b -> b.getValue().endsWith(":" + Itinerary.ReviewedDraft.class.getName())));
+    }
+    @Test void mandatoryCandidateLookupUsesSevenCachedQueriesAndSelectionHasNoTools() throws Exception {
+        var places = mock(Places.class);
+        var pages = mock(PublicPages.class);
+        var location = new Places.Location("City", "America/New_York", 26, -80, 26.123456, -80.654321);
+        var place = new Place("N7", "Art Museum", "museum", "https://www.openstreetmap.org/node/7",
+                Map.of("opening_hours", "10:00-14:00", "website", "https://example.test/?origin=PRIVATE_ORIGIN_SENTINEL"));
+        when(places.search(eq(location), anyString(), anyString())).thenReturn(List.of(new Places.MappedPlace(place, 26.2, -80.2)));
+        var tools = new dev.jimador.bayes.provider.DayGuideTools(places, pages, location, List.of("seafood", "cuban", "italian"));
+        var brief = new ItineraryBrief("City", request().date(), LocalTime.of(7, 0), LocalTime.of(22, 0), 2, 0,
+                "art", "steady", false, List.of("sight", "breakfast", "coffee", "lunch", "dinner"), List.of("seafood", "cuban", "italian"), List.of());
+        var outing = new ItineraryContext(brief, new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, location.timezone(), true);
+        var options = LlmOptions.withModel("research-fixture");
+        var agent = new BayesAgent(mock(ItineraryMemories.class), places, pages, mapper, options, options);
+        var candidates = agent.gatherCandidates(outing);
+        assertEquals(candidates, agent.gatherCandidates(outing));
+        verify(places, times(7)).search(eq(location), anyString(), anyString());
+        for (String category : List.of("museum", "park", "breakfast", "cafe", "restaurant")) verify(places).search(location, category, "");
+        verify(places).search(location, "restaurant", "seafood");
+        verify(places).search(location, "restaurant", "cuban");
+        verify(places, never()).search(location, "restaurant", "italian");
+        assertFalse(candidates.places().getFirst().tags().containsKey("website"));
+        var context = mock(OperationContext.class, RETURNS_DEEP_STUBS);
+        var selector = context.ai().withLlm(options);
+        var selection = new BayesAgent.Discovery(List.of("N7"), "Mapped selection");
+        when(selector.createObject(anyString(), eq(BayesAgent.Discovery.class))).thenReturn(selection);
+        assertSame(selection, agent.discoverPlaces(outing, candidates, context));
+        var prompt = ArgumentCaptor.forClass(String.class);
+        verify(selector).createObject(prompt.capture(), eq(BayesAgent.Discovery.class));
+        String marker = "Mapped candidates JSON: ";
+        var supplied = mapper.readValue(prompt.getValue().substring(prompt.getValue().indexOf(marker) + marker.length()), BayesAgent.MappedCandidates.class);
+        assertEquals(candidates, supplied);
+        for (String secret : List.of("PRIVATE_ORIGIN_SENTINEL", "PRIVATE_MEDICAL_SENTINEL", "26.123456", "-80.654321"))
+            assertFalse(prompt.getValue().contains(secret));
+        verify(selector, never()).withToolObject(any());
+        when(selector.createObject(anyString(), eq(BayesAgent.Discovery.class)))
+                .thenReturn(new BayesAgent.Discovery(List.of("N999_PRIVATE_PROVIDER_SENTINEL"), "Invented"));
+        var unknown = assertThrows(IllegalStateException.class, () -> agent.discoverPlaces(outing, candidates, context));
+        assertEquals("Discovery selected a place outside the mapped candidates", unknown.getMessage());
+        when(selector.createObject(anyString(), eq(BayesAgent.Discovery.class)))
+                .thenThrow(new IllegalArgumentException("PRIVATE_PROVIDER_SENTINEL"));
+        var malformed = assertThrows(IllegalStateException.class, () -> agent.discoverPlaces(outing, candidates, context));
+        assertEquals("Mapped discovery could not complete", malformed.getMessage());
+        assertFalse(malformed.toString().contains("PRIVATE_PROVIDER_SENTINEL"));
     }
     @Test void refinementConsumesActualReviewOnceAndFinalValidationRunsForBothBranches() {
         Places places = mock(Places.class);
