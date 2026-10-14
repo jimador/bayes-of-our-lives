@@ -1,6 +1,6 @@
 package dev.jimador.bayes.itinerary;
 
-import dev.jimador.bayes.decision.BayesDecisionServices;
+import com.embabel.common.ai.decision.DecisionService;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -18,7 +18,7 @@ class TripperConsentTest {
     @TempDir Path temporary;
     @Test void noRemoteConsentReturnsQuestionBeforeAgentOrProviderRuns() {
         var platform = mock(AgentPlatform.class);
-        var decisions = mock(BayesDecisionServices.class);
+        var decisions = mock(DecisionService.class);
         var service = new BayesItineraryService(platform, decisions,
                 new ItineraryMemories(temporary.resolve("preferences.json")));
         var request = new ItineraryRequest("Fort Lauderdale", "Synthetic airport area", LocalDate.now().plusDays(7),
@@ -50,4 +50,26 @@ class TripperConsentTest {
         verify(places).searchCategory("Fort Lauderdale", "Synthetic airport area", "breakfast");
         verifyNoMoreInteractions(places);
     }
+    @Test void selectedDecisionTravelsAsTypedInputToTheSameAgent() {
+        var platform = mock(AgentPlatform.class);
+        var agent = mock(com.embabel.agent.core.Agent.class);
+        var process = mock(com.embabel.agent.core.AgentProcess.class);
+        var decision = mock(DecisionService.class);
+        when(agent.getName()).thenReturn("BayesAgent");
+        when(platform.agents()).thenReturn(List.of(agent));
+        when(platform.createAgentProcessFrom(eq(agent), any(com.embabel.agent.core.ProcessOptions.class),
+                any(ItineraryRequest.class), any(BayesAgent.SelectedDecision.class))).thenReturn(process);
+        when(process.run()).thenReturn(process);
+        var service = new BayesItineraryService(platform, decision,
+                new ItineraryMemories(temporary.resolve("preferences.json")));
+        var request = new ItineraryRequest("Miami", "Downtown", LocalDate.of(2030, 10, 15),
+                LocalTime.of(10, 0), LocalTime.of(14, 0), false, false, false,
+                false, false, 2, 0, "art", "steady", false, "", "local", true, true);
+        assertThrows(BayesItineraryService.ItineraryUnavailableException.class, () -> service.plan(request));
+        verify(platform).createAgentProcessFrom(eq(agent), any(com.embabel.agent.core.ProcessOptions.class),
+                eq(request), argThat(value -> value instanceof BayesAgent.SelectedDecision selected
+                        && selected.service() == decision));
+        verifyNoInteractions(decision);
+    }
+
 }

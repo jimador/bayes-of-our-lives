@@ -1,19 +1,15 @@
 package dev.jimador.bayes.itinerary;
 
-import dev.jimador.bayes.decision.BayesDecisionServices;
-import dev.jimador.bayes.decision.DecisionInputHash;
-
 import com.embabel.agent.core.AgentPlatform;
 import com.embabel.agent.core.AgentProcessStatusCode;
 import com.embabel.agent.core.ProcessOptions;
+import com.embabel.common.ai.decision.DecisionService;
 import java.util.List;
-import org.springframework.stereotype.Service;
 
 /** Runs Tripper-shaped itinerary actions only after upfront requirements are complete. */
-@Service
 public class BayesItineraryService {
     public record Answer(String completeness, String choice, String rating, String classification,
-                         String model, String inputSha256, double decisionMs, double classificationMs,
+                         String model, double decisionMs, double classificationMs,
                          int followupCount) {}
     public record Result(String status, String city, String date, String selectedAlternative,
                          List<ItineraryPlanner.Alternative> alternatives, Answer decision,
@@ -23,13 +19,17 @@ public class BayesItineraryService {
                          List<BayesAgent.ResearchedPointOfInterest> researchedPlaces,
                          String destinationTimezone) {}
 
+    public static class ModelUnavailableException extends RuntimeException {
+        public ModelUnavailableException(String message) { super(message); }
+    }
+
     public static class ItineraryUnavailableException extends RuntimeException {}
     public static class DecisionResponseException extends RuntimeException {}
 
     private final AgentPlatform platform;
-    private final BayesDecisionServices decisions;
+    private final DecisionService decisions;
     private final ItineraryMemories memory;
-    public BayesItineraryService(AgentPlatform platform, BayesDecisionServices decisions, ItineraryMemories memory) {
+    public BayesItineraryService(AgentPlatform platform, DecisionService decisions, ItineraryMemories memory) {
         this.platform = platform; this.decisions = decisions; this.memory = memory;
     }
 
@@ -48,14 +48,11 @@ public class BayesItineraryService {
                 request.date().toString(), null, List.of(), null, null, List.of(), null, null,
                 List.of(), null, List.of("Confirm sharing city, date, group, interests, pace, cuisine likes/dislikes, and access requirements with OpenAI for research and planning. Exact origin and allergy text stay out of model prompts."),
                 0, List.of(), null);
-        if (System.getenv("OPENAI_API_KEY") == null || System.getenv("OPENAI_API_KEY").isBlank())
-            throw new BayesDecisionServices.ModelUnavailableException(
-                    "OPENAI_API_KEY is required for Tripper-style research and planning");
-        decisions.forItineraryEngine(request.engine());
         var agent = platform.agents().stream().filter(a -> a.getName().contains("BayesAgent"))
                 .findFirst().orElseThrow(ItineraryUnavailableException::new);
         long started = System.nanoTime();
-        var process = platform.createAgentProcessFrom(agent, new ProcessOptions(), effective).run();
+        var process = platform.createAgentProcessFrom(agent, new ProcessOptions(), effective,
+                new BayesAgent.SelectedDecision(decisions)).run();
         long elapsed = (System.nanoTime() - started) / 1_000_000;
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED)
             throw new ItineraryUnavailableException();
@@ -66,7 +63,7 @@ public class BayesItineraryService {
             throw new DecisionResponseException();
         var review = plan.review();
         Answer answer = new Answer(review.completeness(), review.choice(), review.rating(),
-                review.classification(), review.model(), DecisionInputHash.sha256(review.decisionInput()),
+                review.classification(), review.model(),
                 review.decisionNanos() / 1_000_000.0, review.classificationNanos() / 1_000_000.0,
                 review.followupCount());
         List<String> open = plan.alternatives().stream().filter(a -> a.id().equals(plan.selectedAlternative()))

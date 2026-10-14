@@ -142,7 +142,7 @@ class ItineraryTest {
                 findings(List.of(sight), List.of(cafe), List.of()), (a, b) -> 5);
         assertEquals("invalid", plans.getFirst().status());
         assertTrue(plans.getFirst().openQuestions().stream().anyMatch(q -> q.contains("dietary and allergy")));
-        var input = BayesAgent.itineraryDecisionInput(
+        var input = ItineraryDecisions.input(
                 new BayesAgent.OutingProfile(new ItineraryMemories.Accepted("ctx", "art", "steady", List.of()),
                         request(true, false, true, "peanut allergy")), plans);
         assertFalse(input.contains("peanut"));

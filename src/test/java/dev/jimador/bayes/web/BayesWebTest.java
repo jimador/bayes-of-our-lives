@@ -1,6 +1,5 @@
 package dev.jimador.bayes.web;
 
-import dev.jimador.bayes.decision.BayesDecisionServices;
 import dev.jimador.bayes.itinerary.BayesItineraryService;
 import dev.jimador.bayes.itinerary.ItineraryRequest;
 
@@ -16,8 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class BayesWebTest {
     @Test void itineraryApiBindsCuisineFieldsAndKeepsOlderPayloadCompatible() throws Exception {
         var service = mock(BayesItineraryService.class);
-        var mvc = MockMvcBuilders.standaloneSetup(new BayesItineraryController(service)).build();
-        doThrow(new BayesDecisionServices.ModelUnavailableException("synthetic unavailable"))
+        var mvc = MockMvcBuilders.standaloneSetup(new BayesItineraryController(service, mock(BayesItineraryService.class), mock(BayesItineraryService.class))).build();
+        doThrow(new BayesItineraryService.ModelUnavailableException("synthetic unavailable"))
                 .when(service).plan(any());
         String base = """
                 {"city":"Fort Lauderdale","startingLocation":"Synthetic airport area",
@@ -37,6 +36,26 @@ class BayesWebTest {
         assertEquals("italian", request.getAllValues().getFirst().cuisineDislikes());
         assertDoesNotThrow(request.getAllValues().getFirst()::validateShape);
         assertEquals("", request.getAllValues().getLast().cuisineLikes());
+    }
+
+    @Test void dispatchesExactlyOneServiceForEachEngineAndRejectsUnsupportedEngine() {
+        var local = mock(BayesItineraryService.class);
+        var jev = mock(BayesItineraryService.class);
+        var openai = mock(BayesItineraryService.class);
+        var controller = new BayesItineraryController(local, jev, openai);
+        var request = new ItineraryRequest("Miami", "Downtown", java.time.LocalDate.of(2030, 10, 15),
+                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(14, 0), false, false, false,
+                false, false, 2, 0, "art", "steady", false, "", "local", true, true);
+        for (var engine : java.util.List.of("local", "jev", "openai")) {
+            var selected = request.withEngine(engine);
+            controller.itinerary(selected);
+            var expected = switch (engine) { case "jev" -> jev; case "openai" -> openai; default -> local; };
+            verify(expected).plan(selected);
+            verifyNoMoreInteractions(local, jev, openai);
+            clearInvocations(local, jev, openai);
+        }
+        assertThrows(IllegalArgumentException.class, () -> controller.itinerary(request.withEngine("unknown")));
+        verifyNoInteractions(local, jev, openai);
     }
 
 }

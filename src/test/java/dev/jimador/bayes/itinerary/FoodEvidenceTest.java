@@ -94,10 +94,10 @@ class FoodEvidenceTest {
         var r = request("", "italian", "synthetic allergy marker");
         var plans = ItineraryPlanner.proposeFromDraft(r, findings, draft, (a,b) -> 5);
         var memory = new ItineraryMemories.Accepted("ctx", "art", "steady", List.of());
-        String input = BayesAgent.itineraryDecisionInput(new BayesAgent.OutingProfile(memory, r), plans);
-        assertEquals(input, BayesAgent.itineraryDecisionInput(
+        String input = ItineraryDecisions.input(new BayesAgent.OutingProfile(memory, r), plans);
+        assertEquals(input, ItineraryDecisions.input(
                 new BayesAgent.OutingProfile(memory, r.withEngine("jev")), plans));
-        assertEquals(input, BayesAgent.itineraryDecisionInput(
+        assertEquals(input, ItineraryDecisions.input(
                 new BayesAgent.OutingProfile(memory, r.withEngine("openai")), plans));
         assertTrue(input.contains("Alternative a disliked food stops: 1"));
         assertTrue(input.contains("Alternative b supported breakfast stops: 1"));
@@ -105,7 +105,7 @@ class FoodEvidenceTest {
         assertFalse(input.contains("synthetic allergy marker"));
         var shape = ClassificationSpec.builder().asking("Choose")
                 .category("a", "A").category("b", "B").category("research", "More evidence").build();
-        assertEquals("b", BayesAgent.value(new LocalItineraryDecisions()
+        assertEquals("b", ItineraryDecisions.value(new LocalItineraryDecisions()
                 .classify(ClassificationRequest.of(input, shape))));
     }
 }
