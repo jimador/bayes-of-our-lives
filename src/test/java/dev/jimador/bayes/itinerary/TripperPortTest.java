@@ -120,7 +120,7 @@ class TripperPortTest {
                 "quiet", 10, 60, 25.7, -80.2, Map.of());
         var findings = new ItineraryResearch.Findings("Miami", Instant.now(), List.of(sight), List.of(),
                 List.of(), List.of(), List.of(), "America/New_York");
-        var profile = new BayesAgent.OutingProfile(new ItineraryMemory.Accepted("ctx", "art", "steady", List.of()), request);
+        var profile = new BayesAgent.OutingProfile(new ItineraryMemories.Accepted("ctx", "art", "steady", List.of()), request);
         var researched = new BayesAgent.PointOfInterestFindings(findings, List.of());
         StringBuilder prompt = new StringBuilder();
         TripperCityPort.Generator fake = new TripperCityPort.Generator() {

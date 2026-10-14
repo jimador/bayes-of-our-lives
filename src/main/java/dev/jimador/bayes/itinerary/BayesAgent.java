@@ -22,7 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Agent(description = "Research a city outing and propose a sourced itinerary")
 public class BayesAgent {
     /** Tripper's brief, researched POIs, proposal and final plan as bounded typed Java values. */
-    public record OutingProfile(ItineraryMemory.Accepted memory, ItineraryRequest requirements) {}
+    public record OutingProfile(ItineraryMemories.Accepted memory, ItineraryRequest requirements) {}
     public record ItineraryIdeas(ItineraryResearch.Findings findings, TripperCityPort.DiscoveryDraft discovery) {}
     public record ResearchedPointOfInterest(String name, String sourceUrl, String openingHours,
             String wheelchairTag, String cuisineTag, String admissionTag,
@@ -52,19 +52,19 @@ public class BayesAgent {
     record FollowupTarget(ResearchedPointOfInterest place, String question) {}
     public record TravelPlan(String city, String date, String status, String selectedAlternative,
             List<ItineraryPlanner.Alternative> alternatives, ItineraryReview review,
-            ItineraryMemory.Accepted memory, List<String> researchSources, String retrievedUtc,
+            ItineraryMemories.Accepted memory, List<String> researchSources, String retrievedUtc,
             List<ResearchedPointOfInterest> researchedPlaces, String destinationTimezone) {}
 
     private final BayesDecisionServices services;
     private final ReplayCaptureStore replayCapture;
-    private final ItineraryMemory itineraryMemory;
+    private final ItineraryMemories itineraryMemory;
     private final ItineraryResearch itineraryResearch;
     private final ItineraryPlanner itineraryPlanner;
     private final OfficialPageResearch websiteResearch;
     private final PublicWebResearch publicWebResearch;
     private final TripperCityPort tripperPort;
     @Autowired public BayesAgent(BayesDecisionServices services, ReplayCaptureStore replayCapture,
-            ItineraryMemory itineraryMemory, ItineraryResearch itineraryResearch, ItineraryPlanner itineraryPlanner,
+            ItineraryMemories itineraryMemory, ItineraryResearch itineraryResearch, ItineraryPlanner itineraryPlanner,
             OfficialPageResearch websiteResearch, PublicWebResearch publicWebResearch,
             TripperCityPort tripperPort) {
         this.services = services;

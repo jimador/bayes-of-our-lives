@@ -79,7 +79,7 @@
         </dependency>
         <dependency>
             <groupId>com.embabel.dice</groupId>
-            <artifactId>dice-storage-autoconfigure</artifactId>
+            <artifactId>dice</artifactId>
             <version>${dice.version}</version>
         </dependency>
         <dependency>

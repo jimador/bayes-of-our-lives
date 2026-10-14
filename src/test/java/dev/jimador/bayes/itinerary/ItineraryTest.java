@@ -123,7 +123,7 @@ class ItineraryTest {
         var closed = place("Museum", "art", 5, Map.of("opening_hours", "Tu off"));
         var open = place("Art Hall", "art", 7, Map.of("opening_hours", "Mo-Su 07:00-18:00"));
         var plans = ItineraryPlanner.propose(request(false, true, false, ""),
-                new ItineraryMemory.Accepted("ctx", "art", "steady", List.of()),
+                new ItineraryMemories.Accepted("ctx", "art", "steady", List.of()),
                 findings(List.of(closed, open), List.of(), List.of()), (a, b) -> 10);
         assertEquals(2, plans.size());
         assertTrue(plans.stream().anyMatch(p -> p.stops().stream().anyMatch(s -> s.name().equals("Museum"))
@@ -138,12 +138,12 @@ class ItineraryTest {
         var sight = place("Art Hall", "art", 4, Map.of("opening_hours", "24/7", "wheelchair", "no"));
         var cafe = place("Cafe", "bakery", 5, Map.of("opening_hours", "24/7"));
         var plans = ItineraryPlanner.propose(request(true, false, true, "peanut allergy"),
-                new ItineraryMemory.Accepted("ctx", "art", "steady", List.of()),
+                new ItineraryMemories.Accepted("ctx", "art", "steady", List.of()),
                 findings(List.of(sight), List.of(cafe), List.of()), (a, b) -> 5);
         assertEquals("invalid", plans.getFirst().status());
         assertTrue(plans.getFirst().openQuestions().stream().anyMatch(q -> q.contains("dietary and allergy")));
         var input = BayesAgent.itineraryDecisionInput(
-                new BayesAgent.OutingProfile(new ItineraryMemory.Accepted("ctx", "art", "steady", List.of()),
+                new BayesAgent.OutingProfile(new ItineraryMemories.Accepted("ctx", "art", "steady", List.of()),
                         request(true, false, true, "peanut allergy")), plans);
         assertFalse(input.contains("peanut"));
         assertTrue(input.contains("Dietary verification required: true"));
@@ -153,7 +153,7 @@ class ItineraryTest {
         var r = new ItineraryRequest("Miami", "Downtown", LocalDate.now().plusDays(1),
                 LocalTime.of(10, 0), LocalTime.of(14, 0), false, false, false,
                 false, false, 2, 0, "art", "steady", false, "", "local", true, false);
-        var plan = ItineraryPlanner.propose(r, new ItineraryMemory.Accepted("ctx", "art", "steady", List.of()),
+        var plan = ItineraryPlanner.propose(r, new ItineraryMemories.Accepted("ctx", "art", "steady", List.of()),
                 findings(List.of(sight), List.of(), List.of()), (a, b) -> 5).getFirst();
         assertEquals("unresolved", plan.status());
         assertTrue(plan.openQuestions().stream().anyMatch(q -> q.contains("current opening hours")));
@@ -165,7 +165,7 @@ class ItineraryTest {
         var r = new ItineraryRequest("Miami", "Downtown", LocalDate.now().plusDays(1),
                 LocalTime.of(10, 0), LocalTime.of(14, 0), false, false, false,
                 false, false, 3, 1, "art", "steady", true, "", "local", true, false);
-        var plan = ItineraryPlanner.propose(r, new ItineraryMemory.Accepted("ctx", "art", "steady", List.of()),
+        var plan = ItineraryPlanner.propose(r, new ItineraryMemories.Accepted("ctx", "art", "steady", List.of()),
                 findings(List.of(sight), List.of(), List.of()), (a, b) -> 5).getFirst();
         assertEquals("unresolved", plan.status());
         assertTrue(plan.openQuestions().stream().anyMatch(q -> q.contains("whole route")));

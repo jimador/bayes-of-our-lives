@@ -28,8 +28,8 @@ public class BayesItineraryService {
 
     private final AgentPlatform platform;
     private final BayesDecisionServices decisions;
-    private final ItineraryMemory memory;
-    public BayesItineraryService(AgentPlatform platform, BayesDecisionServices decisions, ItineraryMemory memory) {
+    private final ItineraryMemories memory;
+    public BayesItineraryService(AgentPlatform platform, BayesDecisionServices decisions, ItineraryMemories memory) {
         this.platform = platform; this.decisions = decisions; this.memory = memory;
     }
 

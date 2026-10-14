@@ -38,7 +38,7 @@ public class ItineraryPlanner {
     private final GuidePlaces places;
     public ItineraryPlanner(GuidePlaces places) { this.places = places; }
 
-    public List<Alternative> propose(ItineraryRequest request, ItineraryMemory.Accepted memory,
+    public List<Alternative> propose(ItineraryRequest request, ItineraryMemories.Accepted memory,
             ItineraryResearch.Findings findings) {
         return propose(request, memory, findings, (from, to) -> from.longitude() == null || from.latitude() == null
                 || to.longitude() == null || to.latitude() == null ? null
@@ -178,7 +178,7 @@ public class ItineraryPlanner {
                 .orElseThrow(() -> new IllegalArgumentException("A proposal named an unmapped venue"));
     }
 
-    static List<Alternative> propose(ItineraryRequest request, ItineraryMemory.Accepted memory,
+    static List<Alternative> propose(ItineraryRequest request, ItineraryMemories.Accepted memory,
             ItineraryResearch.Findings findings, BetweenPlaces route) {
         List<GuidePlaces.Option> sights = findings.sights().stream()
                 .sorted(Comparator.comparingInt((GuidePlaces.Option o) -> interestScore(o, memory.interests())).reversed()

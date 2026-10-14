@@ -20,15 +20,15 @@ import org.springframework.stereotype.Component;
 
 /** Exact-context Dice retrieval; optional consented preferences use Dice's supported JSON-file store. */
 @Component
-public class ItineraryMemory {
+public class ItineraryMemories {
     public record Accepted(String context, String interests, String pace, List<String> factIds) {}
     private final PropositionRepository saved;
     private final Path file;
 
-    @Autowired public ItineraryMemory(@Value("${bays.preference-store:.bayes-data/preferences.json}") String file) {
+    @Autowired public ItineraryMemories(@Value("${bays.preference-store:.bayes-data/preferences.json}") String file) {
         this(Path.of(file));
     }
-    ItineraryMemory(Path file) {
+    ItineraryMemories(Path file) {
         try {
             this.file = file;
             if (file.getParent() != null) {

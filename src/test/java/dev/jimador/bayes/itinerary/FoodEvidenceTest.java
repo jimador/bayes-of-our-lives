@@ -93,7 +93,7 @@ class FoodEvidenceTest {
                 new TripperCityPort.PlanChoice("Art Hall", "Breakfast place", "", false, "B", "")));
         var r = request("", "italian", "synthetic allergy marker");
         var plans = ItineraryPlanner.proposeFromDraft(r, findings, draft, (a,b) -> 5);
-        var memory = new ItineraryMemory.Accepted("ctx", "art", "steady", List.of());
+        var memory = new ItineraryMemories.Accepted("ctx", "art", "steady", List.of());
         String input = BayesAgent.itineraryDecisionInput(new BayesAgent.OutingProfile(memory, r), plans);
         assertEquals(input, BayesAgent.itineraryDecisionInput(
                 new BayesAgent.OutingProfile(memory, r.withEngine("jev")), plans));

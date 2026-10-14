@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 
-class ItineraryMemoryTest {
+class ItineraryMemoriesTest {
     @TempDir Path temporary;
     private ItineraryRequest request(String id, String interests, String pace, boolean save, boolean recall) {
         return new ItineraryRequest("Miami", "Downtown", LocalDate.now().plusDays(1),
@@ -21,14 +21,14 @@ class ItineraryMemoryTest {
     @Test void preferencesPersistAcrossRepositoryInstancesAndRemainScoped() throws Exception {
         Path file = temporary.resolve("dice/preferences.json");
         String owner = UUID.randomUUID().toString(), another = UUID.randomUUID().toString();
-        var first = new ItineraryMemory(file);
+        var first = new ItineraryMemories(file);
         first.rememberForThisOuting(request(owner, "art and gardens", "relaxed", true, false));
         try {
             var permissions = Files.getPosixFilePermissions(file);
             assertEquals(java.util.Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
                     permissions);
         } catch (UnsupportedOperationException ignored) { /* The filesystem does not expose POSIX modes. */ }
-        var restarted = new ItineraryMemory(file);
+        var restarted = new ItineraryMemories(file);
         assertEquals("art and gardens", restarted.previous(owner).orElseThrow().interests());
         assertTrue(restarted.previous(another).isEmpty());
         var recalled = restarted.resolve(request(owner, "", null, false, true));
@@ -39,8 +39,8 @@ class ItineraryMemoryTest {
     @Test void noConsentLeavesNoPersistedPreference() {
         Path file = temporary.resolve("dice/preferences.json");
         String id = UUID.randomUUID().toString();
-        new ItineraryMemory(file).rememberForThisOuting(request(id, "art", "steady", false, false));
-        assertTrue(new ItineraryMemory(file).previous(id).isEmpty());
+        new ItineraryMemories(file).rememberForThisOuting(request(id, "art", "steady", false, false));
+        assertTrue(new ItineraryMemories(file).previous(id).isEmpty());
     }
     @Test void malformedProfileIdCannotSelectAnotherStorageScope() {
         assertThrows(IllegalArgumentException.class,

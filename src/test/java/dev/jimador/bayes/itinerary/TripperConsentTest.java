@@ -20,7 +20,7 @@ class TripperConsentTest {
         var platform = mock(AgentPlatform.class);
         var decisions = mock(BayesDecisionServices.class);
         var service = new BayesItineraryService(platform, decisions,
-                new ItineraryMemory(temporary.resolve("preferences.json")));
+                new ItineraryMemories(temporary.resolve("preferences.json")));
         var request = new ItineraryRequest("Fort Lauderdale", "Synthetic airport area", LocalDate.now().plusDays(7),
                 LocalTime.of(10, 0), LocalTime.of(16, 0), false, false, false,
                 true, false, 2, 0, "art", "steady", false, "synthetic allergy marker", "local", true, false,
