@@ -35,29 +35,38 @@ function questions(parent, items) {
   for (const item of [...new Set(items)]) list.append(node('li', '', item));
   parent.append(list);
 }
+function label(value) { return String(value || 'unknown').replaceAll('_', ' '); }
+function sourceLink(parent, value, title) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.username || url.password || !url.hostname.includes('.')) return;
+    const link = node('a', 'source-link', title || `${url.hostname} ↗`);
+    link.href = url.href;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    parent.append(link);
+  } catch { /* Missing or malformed source URLs are plain text only. */ }
+}
+function notes(parent, items, heading) {
+  if (!items?.length) return;
+  parent.append(node('h4', '', heading));
+  questions(parent, items);
+}
 function renderStop(stop) {
   const wrap = node('div', 'itinerary-stop');
   const time = stop.startsAt && stop.endsAt ? `${stop.startsAt.slice(0, 5)}–${stop.endsAt.slice(0, 5)}` : 'Time unresolved';
-  wrap.append(node('small', '', `${time} · ${stop.kind}`), node('strong', '', stop.name));
+  wrap.append(node('small', '', `${time} · ${label(stop.kind)}`), node('strong', '', stop.name));
   const meta = node('div', 'lead-meta');
-  meta.append(node('span', '', `Base drive: ${stop.baseTravelMinutes == null ? 'unknown' : `${stop.baseTravelMinutes} min`}`));
-  meta.append(node('span', '', `OSM hours: ${stop.hoursFit.replaceAll('_', ' ')}`));
-  meta.append(node('span', '', `Step-free tag: ${stop.wheelchairTag}`));
-  meta.append(node('span', '', `Cuisine tag: ${stop.cuisineTag}`));
-  meta.append(node('span', '', `Cuisine evidence: ${stop.cuisineEvidence || 'unknown'}`));
-  meta.append(node('span', '', `Preference fit: ${stop.cuisinePreferenceFit || 'unknown'}`));
-  meta.append(node('span', '', `Meal service: ${(stop.mealServiceEvidence || 'unknown').replaceAll('_', ' ')}`));
-  meta.append(node('span', '', `Meal time: ${(stop.mealTimeFit || 'unknown').replaceAll('_', ' ')}`));
-  meta.append(node('span', '', `Admission tag: ${stop.admissionTag}`));
+  meta.append(node('span', '', `Base drive: ${stop.baseTravelMinutes == null ? 'unknown' : `${stop.baseTravelMinutes} min`}`),
+    node('span', '', `Route basis: ${label(stop.routeBasis)}`),
+    node('span', '', `Hours basis: ${label(stop.hoursBasis)}`),
+    node('span', '', `Cuisines: ${(stop.cuisines || []).join(', ') || 'unknown'}`),
+    node('span', '', `Preference fit: ${label(stop.preferenceFit)}`),
+    node('span', '', `Meal service basis: ${label(stop.mealServiceBasis)}`));
   wrap.append(meta);
-  if (/^https:\/\/www\.openstreetmap\.org\/(node|way|relation)\/\d+$/.test(stop.sourceUrl || '')) {
-    const link = node('a', '', 'Open mapped place ↗');
-    link.href = stop.sourceUrl;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    wrap.append(link);
-  }
-  questions(wrap, stop.openQuestions);
+  sourceLink(wrap, stop.sourceUrl, 'Open mapped place ↗');
+  wrap.append(node('p', 'source-ids', `Evidence IDs: ${(stop.sourceIds || []).join(', ') || 'none'}`));
+  notes(wrap, stop.notes, 'Advisory notes');
   return wrap;
 }
 function renderItinerary(data) {
@@ -65,10 +74,10 @@ function renderItinerary(data) {
   if (data.status === 'needs_input') {
     wrap.append(node('span', 'result-kicker', 'A FEW DETAILS FIRST'), node('h2', '', 'Let’s fill the gaps.'));
     questions(wrap, data.questions);
-    if (data.questions.some(q => q.startsWith('With an early start'))) {
+    if ((data.questions || []).some(q => q.startsWith('With an early start'))) {
       const choices = node('div', 'actions follow-up');
-      for (const [label, field] of [['Add breakfast', 'breakfast'], ['Add coffee', 'coffee'], ['Neither', 'earlyFoodDeclined']]) {
-        const button = node('button', 'button secondary', label);
+      for (const [text, field] of [['Add breakfast', 'breakfast'], ['Add coffee', 'coffee'], ['Neither', 'earlyFoodDeclined']]) {
+        const button = node('button', 'button secondary', text);
         button.type = 'button';
         button.addEventListener('click', () => {
           form.elements.breakfast.checked = field === 'breakfast';
@@ -80,64 +89,78 @@ function renderItinerary(data) {
       }
       wrap.append(choices);
     }
-    const revise = node('button', 'button secondary', 'Edit the day and try again');
-    revise.type = 'button';
-    revise.addEventListener('click', () => form.scrollIntoView({behavior:'smooth', block:'start'}));
-    wrap.append(revise);
-    show(wrap);
-    return;
+  } else {
+    const alternatives = data.alternatives || [];
+    const chosen = alternatives.find(a => a.id === data.selectedAlternative);
+    wrap.append(node('span', 'result-kicker', '02 / YOUR ITINERARY'),
+      node('h2', '', chosen ? `${data.city}: ${chosen.title}` : 'More research needed'),
+      node('p', '', data.status === 'usable'
+        ? 'A complete timed outline fits the attributed evidence. Check changes before visiting; this is not a booking.'
+        : 'Material questions remain. Review the blocking issues before relying on this outline.'));
+    const meta = node('div', 'lead-meta');
+    meta.append(node('span', '', `Date: ${data.date}`), node('span', '', `Status: ${label(data.status)}`),
+      node('span', '', `Times: ${data.destinationTimezone || 'destination zone unverified'}`));
+    wrap.append(meta);
+    const decision = data.decision;
+    if (decision) {
+      const evidence = node('div', 'decision-evidence');
+      evidence.append(node('h3', '', 'How the decision reads'),
+        node('p', '', `Requested coverage: ${decision.coverage}. Choice: ${decision.choice}. Confidence: ${decision.rating}. Readiness: ${label(decision.classification)}.`),
+        node('p', '', `Decision model: ${decision.model}. These answers describe evidence fit, not verified availability.`));
+      wrap.append(evidence);
+    }
+    const list = node('div', 'itinerary-list');
+    for (const alternative of alternatives) {
+      const card = node('article', `itinerary-card${alternative.id === data.selectedAlternative ? ' selected' : ''}`);
+      card.append(node('h3', '', `${alternative.title}${alternative.id === data.selectedAlternative ? ' · selected' : ''}`),
+        node('p', '', `Outline status: ${label(alternative.status)}.`));
+      if (alternative.reason) card.append(node('p', '', `Planner rationale (unverified): ${alternative.reason}`));
+      for (const stop of alternative.stops || []) card.append(renderStop(stop));
+      notes(card, alternative.openQuestions, 'Blocking issues');
+      notes(card, alternative.notes, 'Advisory notes');
+      list.append(card);
+    }
+    wrap.append(list);
+    if (!alternatives.length) notes(wrap, data.questions, 'Blocking issues');
+    const detail = node('details', 'memory-details');
+    detail.append(node('summary', '', 'Preferences and request timings'),
+      node('p', '', `Accepted for this outing: ${data.rememberedInterests}; ${data.rememberedPace} pace. Dice facts: ${(data.memoryFactIds || []).join(', ') || 'none'}.`),
+      node('p', '', `Backend: ${Math.round(data.processMs || 0)} ms. Decision: ${Math.round(decision?.decisionMs || 0)} ms. Classification: ${Math.round(decision?.classificationMs || 0)} ms.`));
+    wrap.append(detail);
+    const research = node('details', 'memory-details');
+    research.append(node('summary', '', 'Place research and attributed sources'),
+      node('p', '', `Retrieved: ${data.retrievedUtc || 'unreported'}. Map tags and page interpretations are provisional. Search leads do not establish opening hours, meal service or allergy safety.`));
+    for (const view of data.researchedPlaces || []) {
+      const place = view.place, interpretation = view.interpretation;
+      const item = node('div', 'itinerary-stop');
+      item.append(node('strong', '', place.name));
+      sourceLink(item, place.sourceUrl, `Mapped place ${place.id} ↗`);
+      if (interpretation) {
+        item.append(node('p', '', interpretation.summary),
+          node('p', '', `Hours: ${label(interpretation.hoursStatus)}. Meals: ${(interpretation.supportedMeals || []).join(', ') || 'unknown'}. Cuisines: ${(interpretation.cuisines || []).join(', ') || 'unknown'}. Access: ${label(interpretation.access)}. Suitability: ${label(interpretation.suitability)}.`));
+        for (const window of interpretation.operatingWindows || []) item.append(node('p', '', `Attributed window: ${window.date} ${window.opensAt}–${window.closesAt}`));
+        item.append(node('p', 'source-ids', `Interpretation evidence IDs: ${(interpretation.sourceIds || []).join(', ') || 'none'}`));
+        notes(item, interpretation.notes, 'Advisory notes');
+      }
+      for (const page of view.pages || []) {
+        const evidence = node('div', 'page-evidence');
+        evidence.append(node('p', '', `${page.id}: ${label(page.status)}`));
+        sourceLink(evidence, page.url, 'Public page source ↗');
+        if (page.excerpt) evidence.append(node('p', '', page.excerpt));
+        item.append(evidence);
+      }
+      research.append(item);
+    }
+    for (const url of data.researchSources || []) sourceLink(research, url);
+    wrap.append(research);
   }
-  const chosen = data.alternatives.find(a => a.id === data.selectedAlternative);
-  wrap.append(node('span', 'result-kicker', '02 / YOUR ITINERARY'),
-    node('h2', '', chosen ? `${data.city}: ${chosen.title}` : 'More research needed'));
-  wrap.append(node('p', '', data.status === 'sourced'
-    ? 'The mapped evidence supports this outline. Confirm current details before leaving.'
-    : 'This is an itinerary outline with questions to settle before you go. Bayes will not fill unknown facts with guesses.'));
-  const meta = node('div', 'lead-meta');
-  meta.append(node('span', '', `Date: ${data.date}`), node('span', '', `Status: ${data.status.replaceAll('_', ' ')}`),
-    node('span', '', `Decision: ${data.decision?.model || 'unavailable'}`));
-  meta.append(node('span', '', `Times: ${data.destinationTimezone || 'destination zone unverified'}`));
-  wrap.append(meta);
-  const list = node('div', 'itinerary-list');
-  for (const alternative of data.alternatives) {
-    const card = node('article', `itinerary-card${alternative.id === data.selectedAlternative ? ' selected' : ''}`);
-    card.append(node('h3', '', `${alternative.title}${alternative.id === data.selectedAlternative ? ' · selected' : ''}`),
-      node('p', '', `Evidence status: ${alternative.status}. ${alternative.elapsedMinutes < 0 ? 'Timeline unresolved.' : `${alternative.elapsedMinutes} minutes from start to last stop.`}`));
-    if (alternative.planReason) card.append(node('p', '', `Planner rationale (unverified): ${alternative.planReason}`));
-    for (const stop of alternative.stops) card.append(renderStop(stop));
-    questions(card, alternative.openQuestions);
-    list.append(card);
-  }
-  wrap.append(list);
-  const revise = node('button', 'button secondary', 'Revise requirements');
+  const revise = node('button', 'button secondary', data.status === 'needs_input' ? 'Edit the day and try again' : 'Revise requirements');
   revise.type = 'button';
-  revise.addEventListener('click', () => form.scrollIntoView({behavior:'smooth', block:'start'}));
+  revise.addEventListener('click', () => {
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    form.elements.city.focus({ preventScroll: true });
+  });
   wrap.append(revise);
-  const detail = node('details', 'memory-details');
-  detail.append(node('summary', '', 'See Dice memory and typed decision evidence'));
-  detail.append(node('p', '', `Accepted for this outing: ${data.rememberedInterests}; ${data.rememberedPace} pace. Dice facts: ${(data.memoryFactIds || []).join(', ')}`));
-  detail.append(node('p', '', `Typed result: ${data.decision?.completeness}; choice ${data.decision?.choice}; rating ${data.decision?.rating}; classification ${data.decision?.classification}. Targeted research retries: ${data.decision?.followupCount || 0}. Input SHA-256: ${data.decision?.inputSha256}. Decision calls ${Math.round(data.decision?.decisionMs || 0)} ms total.`));
-  wrap.append(detail);
-  const research = node('details', 'memory-details');
-  research.append(node('summary', '', 'Tripper-style LLM place research and sources'));
-  research.append(node('p', '', 'Venue websites and Wikipedia search leads are independent research inputs. Their clues and LLM summaries do not verify current hours, admission, access, menus, or food safety.'));
-  for (const place of data.researchedPlaces || []) {
-    const evidence = place.websiteEvidence;
-    const item = node('div', 'itinerary-stop');
-    item.append(node('strong', '', `${place.name}: ${evidence.status.replaceAll('_', ' ')}`));
-    if (/^https:\/\//.test(evidence.pageUrl || '')) {
-      const link = node('a', '', evidence.pageTitle || 'View venue website ↗');
-      link.href = evidence.pageUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; item.append(link);
-    }
-    for (const clue of evidence.topicClues || []) item.append(node('p', '', clue));
-    if (place.researchSummary) item.append(node('p', '', place.researchSummary));
-    for (const url of place.researchLinks || []) if (/^https:\/\//.test(url)) {
-      const source = node('a', '', 'Research source ↗');
-      source.href = url; source.target = '_blank'; source.rel = 'noopener noreferrer'; item.append(source);
-    }
-    research.append(item);
-  }
-  wrap.append(research);
   show(wrap);
 }
 function updateEngine() { remoteConsent.hidden = false; }
@@ -151,8 +174,7 @@ form.elements.useRememberedPreferences.addEventListener('change', updateRecall);
 updateRecall();
 form.elements.engine.addEventListener('change', updateEngine);
 updateEngine();
-const todayHere = new Date();
-form.elements.date.value = `${todayHere.getFullYear()}-${String(todayHere.getMonth() + 1).padStart(2, '0')}-${String(todayHere.getDate()).padStart(2, '0')}`;
+// The destination timezone is established by the backend; the traveler chooses its local date.
 cancelButton.addEventListener('click', () => {
   generation++;
   pending?.abort();
