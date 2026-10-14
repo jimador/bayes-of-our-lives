@@ -73,4 +73,62 @@ class ItineraryDecisionsTest {
         assertEquals("material-gaps", answer.classification());
         assertEquals("possible", answer.rating());
     }
+    @Test void noValidAlternativeHasExplicitUncalledDecisionWithoutProviderProvenance() {
+        var service = org.mockito.Mockito.mock(com.embabel.common.ai.decision.DecisionService.class);
+        for (var alternatives : List.of(List.<Itinerary.Alternative>of(), List.of(alternative("a", "invalid", "seafood")))) {
+            var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, mapper);
+            assertEquals("false", answer.coverage());
+            assertEquals("research", answer.choice());
+            assertEquals("weak", answer.rating());
+            assertEquals("no-valid-outline", answer.classification());
+            assertEquals("not-called", answer.model());
+            assertEquals(0, answer.decisionMs());
+            assertEquals(0, answer.classificationMs());
+            assertFalse(answer.failed());
+        }
+        org.mockito.Mockito.verifyNoInteractions(service);
+    }
+    @Test void validChoicesUseSelectedServiceAndFrameworkLevelsAreLowestToHighest() {
+        var alternatives = List.of(alternative("a", "usable", "seafood"));
+        var service = spy(new LocalItineraryDecisions(mapper));
+        var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, mapper);
+        var request = org.mockito.ArgumentCaptor.forClass(com.embabel.common.ai.decision.DecisionRequest.class);
+        org.mockito.Mockito.verify(service).ask(request.capture());
+        var scale = (com.embabel.common.ai.decision.RatingQuestionSpec) request.getValue().getSpec().question("confidence");
+        assertEquals(List.of("weak", "possible", "strong"), scale.getLevels().stream().map(l -> l.getId()).toList());
+        assertEquals("a", answer.choice());
+        assertEquals("local/bayes-itinerary-rules-v2", answer.model());
+    }
+    @Test void typedProviderFailureReasonsRemainDistinctAndLogsUseOnlyFixedCodes() throws Exception {
+        var log = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(ItineraryDecisions.class);
+        var capture = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        capture.start();
+        log.addAppender(capture);
+        try {
+            var alternatives = List.of(new Itinerary.Alternative("a", "PRIVATE_PROVIDER_SENTINEL", "unresolved",
+                    List.of(), "PRIVATE_PROVIDER_SENTINEL", List.of("Hours unknown"), List.of()));
+            for (var reason : com.embabel.common.ai.classification.FailureReason.values()) {
+                var service = org.mockito.Mockito.mock(com.embabel.common.ai.decision.DecisionService.class);
+                when(service.ask(any())).thenAnswer(i -> com.embabel.common.ai.decision.DecisionResponse.failed(
+                        ((com.embabel.common.ai.decision.DecisionRequest) i.getArgument(0)).getSpec(), reason));
+                when(service.classify(any())).thenReturn(new com.embabel.common.ai.classification.ClassificationResult.Failure(reason));
+                var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, mapper);
+                assertEquals("failure:coverage:" + reason.name(), answer.coverage());
+                assertEquals("failure:next:" + reason.name(), answer.choice());
+                assertEquals("failure:confidence:" + reason.name(), answer.rating());
+                assertEquals("failure:readiness:" + reason.name(), answer.classification());
+                assertTrue(answer.failed());
+                assertFalse(mapper.writeValueAsString(answer).contains("PRIVATE_PROVIDER_SENTINEL"));
+                for (String question : List.of("coverage", "next", "confidence", "readiness")) {
+                    assertTrue(capture.list.stream().anyMatch(e -> e.getFormattedMessage().equals(
+                            "stage=decision question=" + question + " outcome=failure reason=" + reason.name())));
+                }
+            }
+            assertTrue(capture.list.stream().noneMatch(e -> e.getFormattedMessage().contains("PRIVATE_PROVIDER_SENTINEL")));
+        } finally {
+            log.detachAppender(capture);
+            capture.stop();
+        }
+    }
+
 }

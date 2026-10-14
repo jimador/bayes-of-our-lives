@@ -3,6 +3,7 @@ package dev.jimador.bayes.itinerary;
 import com.embabel.common.ai.classification.ClassificationRequest;
 import com.embabel.common.ai.classification.ClassificationResult;
 import com.embabel.common.ai.classification.ClassificationSpec;
+import com.embabel.common.ai.classification.FailureReason;
 import com.embabel.common.ai.decision.DecisionAnswer;
 import com.embabel.common.ai.decision.DecisionRequest;
 import com.embabel.common.ai.decision.DecisionService;
@@ -13,8 +14,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Comparator;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ItineraryDecisions {
+    private static final Logger LOG = LoggerFactory.getLogger(ItineraryDecisions.class);
     private ItineraryDecisions() {}
     public record Answer(String coverage, String choice, String rating, String classification,
                          String model, double decisionMs, double classificationMs) {
@@ -25,6 +29,10 @@ public final class ItineraryDecisions {
     }
     public static Answer evaluate(DecisionBrief brief, List<Itinerary.Alternative> alternatives,
                                    DecisionService service, ObjectMapper mapper) {
+        if (alternatives.stream().noneMatch(a -> !a.status().equals("invalid"))) {
+            LOG.info("stage=decision question=next outcome=not_called reason=NO_VALID_ALTERNATIVE");
+            return new Answer("false", "research", "weak", "no-valid-outline", "not-called", 0, 0);
+        }
         final String input;
         try { input = mapper.writeValueAsString(brief); }
         catch (JsonProcessingException failure) { throw new IllegalStateException("Decision data could not be serialized"); }
@@ -37,9 +45,9 @@ public final class ItineraryDecisions {
                     q.option("research", "Resolve material questions before choosing");
                 })
                 .rating("confidence", q -> q.asking("Rate confidence in the best valid outline's attributed fit, even if research was chosen; never equate this with a reservation or verified facts")
-                        .level("strong", "Usable outline with sourced times/routes and matching preferences")
+                        .level("weak", "No valid outline")
                         .level("possible", "A valid outline has material unknowns or weaker preference fit")
-                        .level("weak", "No valid outline"))
+                        .level("strong", "Usable outline with sourced times/routes and matching preferences"))
                 .build();
         long started = System.nanoTime();
         var response = service.ask(DecisionRequest.of(input, spec));
@@ -47,8 +55,8 @@ public final class ItineraryDecisions {
         var coverage = ((DecisionAnswer.Proposition) response.answer("coverage")).getOutcome();
         var choice = ((DecisionAnswer.Choice) response.answer("next")).getOutcome();
         var rating = ((DecisionAnswer.Rating) response.answer("confidence")).getOutcome();
-        String selected = value(choice);
-        if (!selected.equals("research") && !selected.startsWith("failure:") && brief.alternatives().stream().noneMatch(a -> a.id().equals(value(choice))))
+        String selected = value(choice, "next");
+        if (!selected.equals("research") && !selected.startsWith("failure:") && brief.alternatives().stream().noneMatch(a -> a.id().equals(value(choice, "next"))))
             selected = "failure:invalid_selection";
         var shape = ClassificationSpec.builder().asking("Classify outline readiness from all supplied valid alternatives, independently of whether research was selected. Advisory notes do not make a usable outline unresolved.")
                 .category("usable-outline", "At least one usable timed outline exists")
@@ -61,13 +69,17 @@ public final class ItineraryDecisions {
         String model = coverage instanceof PropositionResult.Answered a && a.getProvenance() != null
                 ? a.getProvenance().getProvider() + "/" + a.getProvenance().getModelName() : "unreported";
         return new Answer(coverage instanceof PropositionResult.Answered a ? Boolean.toString(a.getAnswer())
-                : coverage instanceof PropositionResult.Failure ? "failure:coverage" : "inconclusive",
-                selected, ratingValue(rating), value(classification), model, decisionMs, classificationMs);
+                : coverage instanceof PropositionResult.Failure f ? failure("coverage", f.getReason()) : "inconclusive",
+                selected, ratingValue(rating), value(classification, "readiness"), model, decisionMs, classificationMs);
     }
-    private static String value(ClassificationResult result) {
+    private static String value(ClassificationResult result, String question) {
         if (result instanceof ClassificationResult.Selected selected) return selected.getCategoryId();
-        if (result instanceof ClassificationResult.Failure) return "failure:classification";
+        if (result instanceof ClassificationResult.Failure f) return failure(question, f.getReason());
         return "inconclusive";
+    }
+    private static String failure(String question, FailureReason reason) {
+        LOG.info("stage=decision question={} outcome=failure reason={}", question, reason.name());
+        return "failure:" + question + ":" + reason.name();
     }
     private static String ratingValue(RatingResult result) {
         if (result instanceof RatingResult.Answered answered) {
@@ -75,6 +87,6 @@ public final class ItineraryDecisions {
             return answered.getDistribution().stream().max(Comparator.comparingDouble(d -> d.getProbability()))
                     .filter(d -> d.getProbability() > 0.5).map(d -> d.getLevelId()).orElse("unselected");
         }
-        return result instanceof RatingResult.Failure ? "failure:confidence" : "inconclusive";
+        return result instanceof RatingResult.Failure f ? failure("confidence", f.getReason()) : "inconclusive";
     }
 }
