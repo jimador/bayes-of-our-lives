@@ -76,13 +76,15 @@ The mandatory action order is `gatherCandidates` → tool-free model selection �
 
 The Embabel action chain drafts an itinerary, reviews it with the Java validator, and finalizes it. Travel feedback gives the departure time, trusted drive duration, ten-minute buffer, earliest arrival and exact shortfall for each invalid leg. If any draft alternative is invalid or unresolved, a single model refinement receives that review, followed by final validation. A usable draft needs no refinement. The validator does not move stops automatically. This is a typed action dependency, not an optional review tool or an application retry loop.
 
+Bayes returns up to two validated itineraries. Equivalent venue/order sequences are collapsed after each schedule is checked; a usable schedule takes precedence over an unresolved or invalid equivalent. The retained itinerary keeps its original ID, times and evidence. A duplicate-removal note is advisory.
+
 A **usable** outline covers the requested stops and meals, with chronological times inside the outing window, attributed operating windows and trusted base routes. **Unresolved** means material evidence is missing; **invalid** means a requirement or known constraint fails. **Needs research** means the decision did not select an outline. The browser shows blocking issues separately from advisory price, menu and routine check-before-visiting notes. Titles come from the actual chosen venue names. Requested breakfast needs service evidence; a mapped `breakfast=yes` tag supports it provisionally without a generic missing-service question. Cafe or coffee labels alone do not establish breakfast.
 
 Incomplete, duplicate or improperly attributed research records become explicit unknown interpretations. Invalid fields or unsupported operating windows are omitted; independently retrieved map/page evidence remains visible. These partial results can still yield an unresolved outline with material questions, rather than treating rejected model claims as facts.
 
 Confidence levels are ordered `weak` → `possible` → `strong`. If no non-invalid alternative exists, Bayes returns coverage `false`, choice `research`, confidence `weak`, classification `no-valid-outline`, model `not-called` and zero decision/classification times. It makes no `DecisionService` call in that case. Other choices use the selected service. Typed failures retain fixed question/reason codes such as `UNAVAILABLE` and `INVALID_RESPONSE` without raw provider output. The underlying reason for the earlier OpenAI error was not captured.
 
-Coverage, choice, confidence and classification describe the typed evidence fit. They do not verify bookings or availability. Cuisine diversity is checked when researched liked-cuisine candidates fit hours and routes; incomplete alternatives retain material questions. Unknown facts stay visible. Stop evidence includes source IDs, mapped links, route basis, meal-service basis, cuisine interpretation and hours basis. Expand the research section to inspect public pages and attributed interpretations.
+Coverage is the decision provider’s proposition answer; the selected itinerary’s status comes from validation. A false coverage answer is retained without turning an otherwise usable selected itinerary into an unresolved one. Choice, confidence and classification also describe the typed evidence fit. They do not verify bookings or availability. Cuisine diversity is checked when researched liked-cuisine candidates fit hours and routes; incomplete alternatives retain material questions. Unknown facts stay visible. Stop evidence includes source IDs, mapped links, route basis, meal-service basis, cuisine interpretation and hours basis. Expand the research section to inspect public pages and attributed interpretations.
 
 ## Sources, privacy and logging
 
@@ -102,7 +104,7 @@ The managed script starts the app with these one-attempt settings. The applicati
 | `embabel.agent.platform.llm-operations.data-binding.max-attempts` | 10 | 1 |
 | `embabel.agent.platform.decisions.llm.max-attempts` | 5 | 1 |
 
-These settings limit the configured retry templates. They do not limit tool conversation turns or compatibility fallback HTTP calls. The script submits each attempted outing once and stops after the first failed or non-usable result. The original nine-outing budget and subsequent three-outing approval counted submissions, not raw provider calls. All twelve submissions are recorded; further paid calls are on hold.
+These settings limit the configured retry templates. They do not limit tool conversation turns or compatibility fallback HTTP calls. The script submits each attempted outing once and stops after the first failed or non-usable result. The original nine-outing budget and subsequent three-outing approval counted submissions, not raw provider calls. All fourteen approved submissions are recorded. No further provider calls were made for the offline correction.
 
 Researcher responses request at most 3000 output tokens; planner responses request at most 2500. Public page evidence is bounded to eight venues, up to two pages per venue and 6000 characters per page excerpt. These are response and evidence limits, not an aggregate token or spend cap. Raw provider usage and total cost were not collected. No cost estimate is inferred from timings or character counts.
 
@@ -110,7 +112,15 @@ Researcher responses request at most 3000 output tokens; planner responses reque
 
 `mvn test package` runs model-free tests for typed actions, provider bounds, source validation, timed meals, cuisine coverage, safe preference recall, privacy, decision dispatch and destination-local dates. CI makes no provider calls.
 
-The [Fort Lauderdale integration observation](results/refactor-fort-lauderdale-2026-10-14.md) preserves fourteen actual outing submissions, including two final approved UI outings measured at signed `633590ab1096321c7b284813516d51e60ee0c024`. Local returned an unresolved result: times and routes fit, but both choices use identical venues and order. Jev returned two distinct usable Cuban alternatives and selected Padrino’s, while its typed coverage answer remained `false` and confidence `possible`. Full acceptance remains blocked. OpenAI was not rerun on this source; its latest usable Cuban outline remains measured at `03f1bea0c4f828184f6cc8733cef611a61059a1f`.
+The [Fort Lauderdale integration observation](results/refactor-fort-lauderdale-2026-10-14.md) preserves fourteen actual outing submissions, including two final approved UI outings measured at signed `633590ab1096321c7b284813516d51e60ee0c024`. Local returned an unresolved result: times and routes fit, but both choices use identical venues and order. Jev returned two distinct usable Cuban alternatives and selected Padrino’s, while its typed coverage answer remained `false` and confidence `possible`. Those live responses are preserved. The subsequent [offline captured-plan assessment](results/offline-captured-validation-2026-10-14.json) runs the corrected duplicate policy against the recorded evidence: local retains one usable itinerary, and Jev retains two usable choices with its false coverage answer unchanged. No new provider response or timing was measured. OpenAI was not rerun on this source; its latest usable Cuban outline remains measured at `03f1bea0c4f828184f6cc8733cef611a61059a1f`.
+
+The duplicate-policy correction in `cd237234` passed the full offline test/package gate with both provider keys absent: 46 tests, zero failures, errors or skips. Independent review passed 14 focused tests and confirmed the captured regression fails with the earlier validator. To rerun the capture assessment without provider access:
+
+```bash
+env -u OPENAI_API_KEY -u TYPESAFE_API_KEY mvn -Dtest=CapturedItineraryValidationTest -Dbayes.capture.assessment-output=target/captured-validation.json test
+```
+
+The generated file records the offline assessment; the committed result also pins the reviewed code commit and complete gate counts.
 
 The candidate/feedback changes in `636cbf5` and `82a5a66` passed 20 focused offline tests and an independent package gate. The final two outings each completed native candidate gathering, evidence retrieval, mandatory draft/review/final actions and one refinement. The exact-source package passed with tests skipped and was reused. Both actual desktop/mobile results had no overflow, JavaScript exceptions or console errors. The earlier evidence/decision corrections passed 16 focused offline checks.
 
