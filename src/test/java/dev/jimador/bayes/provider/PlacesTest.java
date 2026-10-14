@@ -3,7 +3,8 @@ package dev.jimador.bayes.provider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class PlacesTest {
     @Test void providerDtosBindActualSchemasAndIgnoreUnrelatedFields() throws Exception {

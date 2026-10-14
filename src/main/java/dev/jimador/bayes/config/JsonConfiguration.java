@@ -6,5 +6,5 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class JsonConfiguration {
-    @Bean ObjectMapper itineraryJson() { return new ObjectMapper().findAndRegisterModules(); }
+    @Bean ObjectMapper itineraryJson() { return new ObjectMapper().findAndRegisterModules().disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); }
 }

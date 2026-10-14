@@ -129,7 +129,7 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
             throw new IllegalArgumentException("Cuisine preferences must be at most 120 characters");
         var values = new java.util.LinkedHashSet<String>();
         for (String part : raw.split("[,;]")) {
-            String value = CuisineEvidence.normalize(part);
+            String value = part.trim().toLowerCase(java.util.Locale.ROOT).replace("_", " ").replaceAll("\s+", " ");
             if (value.isBlank()) continue;
             if (!CUISINES.contains(value))
                 throw new IllegalArgumentException("Choose listed cuisines only; put dietary or allergy needs in the private dietary field");

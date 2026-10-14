@@ -1,0 +1,119 @@
+package dev.jimador.bayes.itinerary;
+
+import dev.jimador.bayes.provider.DayGuideTools;
+import dev.jimador.bayes.provider.Place;
+import dev.jimador.bayes.provider.Places;
+import dev.jimador.bayes.provider.PublicPages;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class ItineraryValidationTest {
+    private static final LocalDate DATE = LocalDate.of(2030, 10, 15);
+    private final Places places = mock(Places.class);
+    private final PublicPages pages = mock(PublicPages.class);
+    private final Places.Location location = new Places.Location("City", "America/New_York", 26, -80, 26.1, -80.1);
+    private final DayGuideTools tools = new DayGuideTools(places, pages, location, List.of("seafood", "cuban"));
+    private final ItineraryBrief brief = new ItineraryBrief("City", DATE, time("07:00"), time("14:00"),
+            2, 0, "art", "steady", false, List.of("breakfast", "sight", "lunch"), List.of("seafood", "cuban"), List.of("italian"));
+    private final ItineraryContext outing = new ItineraryContext(brief,
+            new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, "America/New_York", false);
+    ItineraryValidationTest() {
+        register("N1", "Breakfast Cafe", "breakfast", Map.of("breakfast", "yes", "opening_hours", "07:00-14:00"), "");
+        register("N2", "Art Museum", "museum", Map.of("opening_hours", "10:00-17:00"), "");
+        register("N3", "Seafood Place", "restaurant", Map.of("cuisine", "seafood", "opening_hours", "11:00-15:00"), "seafood");
+        register("N4", "Cuban Place", "restaurant", Map.of("cuisine", "cuban", "opening_hours", "11:00-15:00"), "cuban");
+        when(places.driveMinutes(anyDouble(), anyDouble(), anyDouble(), anyDouble())).thenReturn(5);
+    }
+    private void register(String id, String name, String category, Map<String, String> tags, String cuisine) {
+        var place = new Place(id, name, category, "https://www.openstreetmap.org/node/" + id.substring(1), tags);
+        when(places.search(location, category, cuisine)).thenReturn(List.of(new Places.MappedPlace(place, 26.2, -80.2)));
+        tools.search(category, cuisine);
+    }
+    private ResearchFindings findings() {
+        return new ResearchFindings(List.of(fact("N1", List.of(), List.of(), "07:00", "14:00"),
+                fact("N2", List.of(), List.of(), "10:00", "17:00"),
+                fact("N3", List.of("seafood"), List.of("lunch"), "11:00", "15:00"),
+                fact("N4", List.of("cuban"), List.of("lunch"), "11:00", "15:00")));
+    }
+    private static ResearchFindings.PlaceFinding fact(String id, List<String> cuisines, List<String> meals, String open, String close) {
+        return new ResearchFindings.PlaceFinding(id, "Attributed map interpretation", cuisines, meals, "open",
+                List.of(new ResearchFindings.Window(DATE, time(open), time(close))), "unknown", "supported", List.of(id),
+                List.of("Exact prices and menu can change; check routine opening updates."));
+    }
+    private static List<Itinerary.StopDraft> stops(String lunch) {
+        return List.of(new Itinerary.StopDraft("breakfast", "N1", time("07:20"), time("08:00")),
+                new Itinerary.StopDraft("sight", "N2", time("10:00"), time("11:00")),
+                new Itinerary.StopDraft("lunch", lunch, time("11:20"), time("12:20")));
+    }
+    private Itinerary.Alternative check(List<Itinerary.StopDraft> stops, ResearchFindings research) {
+        return ItineraryValidation.plans(new Itinerary.Draft(List.of(new Itinerary.AlternativeDraft("a", stops,
+                "Fits the outing", List.of("Check exact menu and prices.")))), research, outing).alternatives().getFirst();
+    }
+    @Test void mappedBreakfastAndFittingWindowsAreUsableDespiteAdvisoryNotes() {
+        var alternative = check(stops("N3"), findings());
+        assertEquals("usable", alternative.status());
+        assertTrue(alternative.openQuestions().isEmpty());
+        assertEquals("mapped_breakfast_tag_unverified", alternative.stops().getFirst().mealServiceBasis());
+        assertFalse(alternative.notes().isEmpty());
+        assertEquals("Breakfast Cafe → Art Museum → Seafood Place", alternative.title());
+        assertFalse(alternative.title().contains("Cuban"));
+    }
+    @Test void missingRequestedMealOrAnyStopTimeInvalidatesAnAlternative() {
+        var missing = check(stops("N3").subList(1, 3), findings());
+        assertEquals("invalid", missing.status());
+        assertTrue(missing.openQuestions().contains("Missing requested breakfast stop."));
+        var untimed = check(List.of(new Itinerary.StopDraft("breakfast", "N1", null, null),
+                stops("N3").get(1), stops("N3").get(2)), findings());
+        assertEquals("invalid", untimed.status());
+        assertTrue(untimed.openQuestions().contains("Every stop needs a start and end time."));
+    }
+    @Test void genericCafeUnknownServiceIsAMaterialQuestion() {
+        var generic = new Place("N5", "Generic Cafe", "cafe", "https://www.openstreetmap.org/node/5", Map.of("opening_hours", "07:00-14:00"));
+        when(places.search(location, "cafe", "")).thenReturn(List.of(new Places.MappedPlace(generic, 26.2, -80.2)));
+        tools.search("cafe", "");
+        var facts = new ResearchFindings(java.util.stream.Stream.concat(findings().places().stream(),
+                java.util.stream.Stream.of(fact("N5", List.of(), List.of("coffee"), "07:00", "14:00"))).toList());
+        var proposed = List.of(new Itinerary.StopDraft("breakfast", "N5", time("07:20"), time("08:00")),
+                stops("N3").get(1), stops("N3").get(2));
+        var checked = check(proposed, facts);
+        assertEquals("unresolved", checked.status());
+        assertTrue(checked.openQuestions().stream().anyMatch(q -> q.contains("Meal service for breakfast")));
+    }
+    @Test void trustedTravelAndKnownClosuresAndWindowContradictionsInvalidatePlans() {
+        when(places.driveMinutes(anyDouble(), anyDouble(), anyDouble(), anyDouble())).thenReturn(45);
+        assertEquals("invalid", check(stops("N3"), findings()).status());
+        var closed = new ResearchFindings.PlaceFinding("N2", "Closed on this date", List.of(), List.of(), "closed",
+                List.of(), "unknown", "supported", List.of("N2"), List.of());
+        var facts = new ResearchFindings(List.of(findings().places().get(0), closed, findings().places().get(2)));
+        assertTrue(check(stops("N3"), facts).openQuestions().stream().anyMatch(q -> q.contains("reported closed")));
+        var earlyMuseum = List.of(stops("N3").get(0), new Itinerary.StopDraft("sight", "N2", time("09:00"), time("09:45")), stops("N3").get(2));
+        assertTrue(check(earlyMuseum, findings()).openQuestions().stream().anyMatch(q -> q.contains("operating window")));
+    }
+    @Test void differentLikedCuisinesAppearInHonestAlternativeTitlesAndTypedStops() {
+        var result = ItineraryValidation.plans(new Itinerary.Draft(List.of(
+                new Itinerary.AlternativeDraft("a", stops("N3"), "Seafood lunch", List.of()),
+                new Itinerary.AlternativeDraft("b", stops("N4"), "Cuban lunch", List.of()))), findings(), outing);
+        assertEquals(List.of("seafood", "cuban"), result.alternatives().stream().flatMap(a -> a.stops().stream())
+                .flatMap(s -> s.cuisines().stream()).distinct().toList());
+        assertTrue(result.alternatives().get(1).title().endsWith("Cuban Place"));
+    }
+    @Test void inventedSourcesAndUndatedHoursAreRejected() {
+        var invented = new ResearchFindings.PlaceFinding("N1", "Hours", List.of(), List.of(), "open",
+                List.of(new ResearchFindings.Window(DATE, time("07:00"), time("14:00"))), "unknown", "supported",
+                List.of("invented-site"), List.of());
+        assertThrows(IllegalStateException.class, () -> ItineraryValidation.research(new ResearchFindings(List.of(invented)), List.of("N1"), outing));
+        assertDoesNotThrow(() -> ItineraryValidation.research(findings(), List.of("N1", "N2", "N3", "N4"), outing));
+    }
+    private static LocalTime time(String value) { return LocalTime.parse(value); }
+}

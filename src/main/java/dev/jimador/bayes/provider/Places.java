@@ -26,11 +26,11 @@ public class Places {
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Geocoding(List<City> results) {}
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record City(String name, String country, String timezone, double latitude, double longitude) {}
+    record City(String name, String country, String timezone, Double latitude, Double longitude) {}
     @JsonIgnoreProperties(ignoreUnknown = true)
     record MapHit(String name, @JsonProperty("display_name") String displayName,
                   @JsonProperty("osm_type") String osmType, @JsonProperty("osm_id") String osmId,
-                  double lat, double lon, Map<String, String> extratags) {}
+                  Double lat, Double lon, Map<String, String> extratags) {}
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Photon(List<Feature> features) {}
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -43,7 +43,7 @@ public class Places {
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Routing(String code, List<Leg> routes) {}
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Leg(double duration) {}
+    record Leg(Double duration) {}
     private static long lastNominatim;
     private final ObjectMapper mapper;
     private final HttpClient client;
@@ -60,7 +60,9 @@ public class Places {
             City center = geo.results().getFirst();
             MapHit[] hits = get("https://nominatim.openstreetmap.org/search?q=" + enc(origin + ", " + city)
                     + "&format=jsonv2&limit=1", MapHit[].class);
-            if (hits.length == 0 || distance(center.latitude(), center.longitude(), hits[0].lat(), hits[0].lon()) > 25)
+            if (hits.length == 0 || !coordinates(center.latitude(), center.longitude())
+                    || !coordinates(hits[0].lat(), hits[0].lon())
+                    || distance(center.latitude(), center.longitude(), hits[0].lat(), hits[0].lon()) > 25)
                 throw new IllegalArgumentException("Starting location could not be located in the selected city");
             return new Location(center.name() + ", " + center.country(), center.timezone(), center.latitude(),
                     center.longitude(), hits[0].lat(), hits[0].lon());
@@ -75,7 +77,7 @@ public class Places {
             if (List.of("museum", "park").contains(category)) {
                 MapHit[] hits = get("https://nominatim.openstreetmap.org/search?q=" + enc(category + ", " + location.city())
                         + "&format=jsonv2&extratags=1&limit=3", MapHit[].class);
-                for (MapHit hit : hits) add(found, hit.name() == null ? hit.displayName().split(",")[0] : hit.name(),
+                for (MapHit hit : hits) if (coordinates(hit.lat(), hit.lon())) add(found, hit.name() == null ? hit.displayName().split(",")[0] : hit.name(),
                         hit.osmType(), hit.osmId(), hit.lat(), hit.lon(), category, hit.extratags(), location);
             } else {
                 String query = cuisine == null || cuisine.isBlank() ? category : cuisine;
@@ -86,7 +88,8 @@ public class Places {
                 Photon result = get(url, Photon.class);
                 if (result.features() != null) for (Feature feature : result.features()) {
                     if (feature.geometry() == null || feature.geometry().coordinates() == null
-                            || feature.geometry().coordinates().size() < 2 || feature.properties() == null) continue;
+                            || feature.geometry().coordinates().size() < 2 || feature.properties() == null
+                            || !coordinates(feature.geometry().coordinates().get(1), feature.geometry().coordinates().get(0))) continue;
                     Properties p = feature.properties();
                     String type = switch (p.osmType() == null ? "" : p.osmType()) {
                         case "N" -> "node"; case "W" -> "way"; case "R" -> "relation"; default -> "";
@@ -115,8 +118,8 @@ public class Places {
             Routing result = get("https://router.project-osrm.org/route/v1/driving/" + fromLon + "," + fromLat
                     + ";" + toLon + "," + toLat + "?overview=false", Routing.class);
             if (!"Ok".equals(result.code()) || result.routes() == null || result.routes().isEmpty()) return null;
-            double seconds = result.routes().getFirst().duration();
-            return Double.isFinite(seconds) && seconds >= 0 && seconds <= 7200 ? (int) Math.ceil(seconds / 60) : null;
+            Double seconds = result.routes().getFirst().duration();
+            return seconds != null && Double.isFinite(seconds) && seconds >= 0 && seconds <= 7200 ? (int) Math.ceil(seconds / 60) : null;
         } catch (IOException failure) { return null; }
     }
     private <T> T get(String url, Class<T> type) throws IOException {
@@ -157,6 +160,10 @@ public class Places {
             if (value != null && value.length() <= 500) safe.put(key, value);
         }
         return Map.copyOf(safe);
+    }
+    private static boolean coordinates(Double lat, Double lon) {
+        return lat != null && lon != null && Double.isFinite(lat) && Double.isFinite(lon)
+                && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
     }
     private static String enc(String value) { return URLEncoder.encode(value, StandardCharsets.UTF_8); }
     private static double distance(double a, double b, double c, double d) {
