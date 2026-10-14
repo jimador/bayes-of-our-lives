@@ -137,3 +137,12 @@ footer{flex-direction:column}
 .itinerary-stop a{display:inline-block;margin-top:7px;color:#24745d;font-size:12px}
 .follow-up{justify-content:flex-start;flex-wrap:wrap;margin:16px 0}
 .question-list{color:#885c3c;font-size:13px;line-height:1.5;padding-left:20px}
+
+.itinerary-card,.itinerary-stop,.decision-evidence{overflow-wrap:anywhere}
+.result h4{font-size:12px;color:#39564f;margin:14px 0 4px}
+.source-link{display:inline-block;margin:6px 12px 6px 0;color:#24745d;font-size:12px;overflow-wrap:anywhere}
+.result .source-ids{font-size:11px}
+.page-evidence{border-top:1px solid #e2e9de;margin-top:12px;padding-top:8px}
+.decision-evidence{border-left:3px solid #4e9a73;padding:2px 16px;margin-top:20px}
+.itinerary-stop .question-list{color:#657d74}
+@media(max-width:760px){.actions{flex-wrap:wrap}.itinerary-card{padding:16px}.itinerary-stop{padding-left:12px}}
