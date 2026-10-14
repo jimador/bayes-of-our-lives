@@ -128,6 +128,26 @@ class ItineraryValidationTest {
             assertEquals("material-gaps", answer.classification());
         }
     }
+    @Test void unknownSuitabilityCannotHideACuisineAcceptedByTheUsablePlanPolicy() {
+        var cuban = findings().place("N4");
+        var unknown = new ResearchFindings.PlaceFinding(cuban.placeId(), cuban.summary(), cuban.cuisines(),
+                cuban.supportedMeals(), cuban.hoursStatus(), cuban.operatingWindows(), cuban.access(),
+                "unknown", cuban.sourceIds(), cuban.notes());
+        var facts = new ResearchFindings(List.of(findings().place("N1"), findings().place("N2"),
+                findings().place("N3"), unknown));
+        var seafoodChoice = new Itinerary.AlternativeDraft("a", stops("N3"), "Seafood lunch", List.of());
+        var cubanChoice = new Itinerary.AlternativeDraft("b", stops("N4"), "Cuban lunch", List.of());
+        var control = ItineraryValidation.plans(new Itinerary.Draft(List.of(seafoodChoice, cubanChoice)), facts, outing);
+        assertTrue(control.alternatives().stream().allMatch(a -> a.status().equals("usable")));
+        var omitted = ItineraryValidation.plans(new Itinerary.Draft(List.of(seafoodChoice)), facts, outing);
+        assertEquals("unresolved", omitted.alternatives().getFirst().status());
+        assertTrue(omitted.alternatives().getFirst().openQuestions().stream().anyMatch(q -> q.contains("liked cuisines: cuban")));
+        var mapper = new ObjectMapper().findAndRegisterModules();
+        var answer = ItineraryDecisions.evaluate(DecisionBrief.from(brief, omitted.alternatives()),
+                omitted.alternatives(), new LocalItineraryDecisions(mapper), mapper);
+        assertEquals("false", answer.coverage());
+        assertEquals("material-gaps", answer.classification());
+    }
     @Test void omittedCuisineIsRequiredOnlyWithFittingEvidenceAndTrustedReachability() {
         var lateCuban = fact("N4", List.of("cuban"), List.of("lunch"), "13:00", "14:00");
         var late = new ResearchFindings(List.of(findings().places().get(0), findings().places().get(1),

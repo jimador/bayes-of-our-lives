@@ -85,7 +85,7 @@ public final class ItineraryValidation {
     private static boolean fitsMealSlot(ResearchFindings.PlaceFinding candidate, Itinerary.Alternative alternative,
                                        ItineraryContext context) {
         Place place = context.tools().place(candidate.placeId());
-        if (!candidate.hoursStatus().equals("open") || !candidate.suitability().equals("supported")
+        if (!candidate.hoursStatus().equals("open") || candidate.suitability().equals("incompatible")
                 || candidate.sourceIds().stream().anyMatch(id -> !context.tools().hasSource(place.id(), id))
                 || candidate.sourceIds().stream().noneMatch(id -> context.tools().hasHoursSource(place.id(), id))
                 || candidate.cuisines().stream().anyMatch(context.brief().cuisineDislikes()::contains)
