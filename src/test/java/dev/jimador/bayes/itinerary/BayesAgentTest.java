@@ -2,7 +2,6 @@ package dev.jimador.bayes.itinerary;
 
 import com.embabel.agent.api.annotation.support.AgentMetadataReader;
 import com.embabel.agent.api.common.OperationContext;
-import com.embabel.agent.api.common.PromptRunner;
 import com.embabel.agent.core.AgentPlatform;
 import com.embabel.agent.core.AgentProcess;
 import com.embabel.agent.core.AgentProcessStatusCode;
@@ -33,6 +32,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -61,9 +63,7 @@ class BayesAgentTest {
         outing.tools().search("museum", "");
         OperationContext context = mock(OperationContext.class, RETURNS_DEEP_STUBS);
         var researchRunner = context.ai().withLlm(researcher).withToolObject(outing.tools());
-        var placeRunner = context.ai().withLlm(planner).withToolObject(outing.tools());
-        var planningRunner = mock(PromptRunner.class);
-        when(placeRunner.withToolObject(any(ItineraryPlanningTools.class))).thenReturn(planningRunner);
+        var planningRunner = context.ai().withLlm(planner).withToolObject(outing.tools());
         var discovery = new BayesAgent.Discovery(List.of("N7"), "Art interest");
         var findings = new ResearchFindings(List.of(new ResearchFindings.PlaceFinding("N7", "Map hours interpretation",
                 List.of(), List.of(), "open", List.of(new ResearchFindings.Window(request().date(),
@@ -75,16 +75,15 @@ class BayesAgentTest {
         when(planningRunner.createObject(anyString(), eq(Itinerary.Draft.class))).thenReturn(draft);
         var discovered = agent.discoverPlaces(outing, context);
         var researched = agent.researchPlaces(outing, discovered, context);
-        var planned = agent.planDay(outing, researched, context);
+        var drafted = agent.draftDay(outing, researched, context);
+        var reviewed = agent.reviewDraft(outing, researched, drafted);
+        var planned = agent.finalizeDay(outing, researched, reviewed, context);
         assertEquals("unresolved", planned.alternatives().getFirst().status());
         assertEquals("Art Museum", planned.alternatives().getFirst().title());
-        var feedback = ArgumentCaptor.forClass(ItineraryPlanningTools.class);
-        verify(placeRunner).withToolObject(feedback.capture());
-        assertEquals(planned, feedback.getValue().review(draft));
         var prompts = ArgumentCaptor.forClass(String.class);
         verify(researchRunner).createObject(prompts.capture(), eq(BayesAgent.Discovery.class));
         verify(researchRunner).createObject(prompts.capture(), eq(ResearchFindings.class));
-        verify(planningRunner).createObject(prompts.capture(), eq(Itinerary.Draft.class));
+        verify(planningRunner, times(2)).createObject(prompts.capture(), eq(Itinerary.Draft.class));
         for (String prompt : prompts.getAllValues()) {
             assertFalse(prompt.contains("PRIVATE_ORIGIN_SENTINEL"));
             assertFalse(prompt.contains("PRIVATE_MEDICAL_SENTINEL"));
@@ -96,6 +95,60 @@ class BayesAgentTest {
         var result = agent.completeItinerary(outing, researched, planned, review);
         assertEquals("Art Museum", result.researchedPlaces().getFirst().place().name());
         assertEquals("https://www.openstreetmap.org/node/7", result.researchedPlaces().getFirst().place().sourceUrl());
+    }
+    @Test void metadataRequiresDraftReviewAndOnlyFinalizationProducesItinerary() {
+        var agent = new BayesAgent(mock(ItineraryMemories.class), mock(Places.class), mock(PublicPages.class), mapper,
+                LlmOptions.withModel("research-fixture"), LlmOptions.withModel("plan-fixture"));
+        var metadata = assertInstanceOf(com.embabel.agent.core.Agent.class, new AgentMetadataReader().createAgentMetadata(agent));
+        var producers = metadata.getActions().stream().filter(a -> a.getOutputs().stream()
+                .anyMatch(binding -> binding.getValue().endsWith(":" + Itinerary.class.getName()))).toList();
+        assertEquals(1, producers.size());
+        assertTrue(producers.getFirst().getName().contains("finalizeDay"));
+        assertTrue(producers.getFirst().getInputs().stream().anyMatch(b -> b.getValue().endsWith(":" + Itinerary.ReviewedDraft.class.getName())));
+        var reviewer = metadata.getActions().stream().filter(a -> a.getName().contains("reviewDraft")).findFirst().orElseThrow();
+        assertTrue(reviewer.getInputs().stream().anyMatch(b -> b.getValue().endsWith(":" + Itinerary.Draft.class.getName())));
+        assertTrue(reviewer.getOutputs().stream().anyMatch(b -> b.getValue().endsWith(":" + Itinerary.ReviewedDraft.class.getName())));
+    }
+    @Test void refinementConsumesActualReviewOnceAndFinalValidationRunsForBothBranches() {
+        Places places = mock(Places.class);
+        PublicPages pages = mock(PublicPages.class);
+        var location = new Places.Location("City", "America/New_York", 26, -80, 26.1, -80.1);
+        var tools = new dev.jimador.bayes.provider.DayGuideTools(places, pages, location, List.of());
+        var place = new Place("N7", "Art Museum", "museum", "https://www.openstreetmap.org/node/7", Map.of("opening_hours", "10:00-14:00"));
+        when(places.search(location, "museum", "")).thenReturn(List.of(new Places.MappedPlace(place, 26.2, -80.2)));
+        when(places.driveMinutes(anyDouble(), anyDouble(), anyDouble(), anyDouble())).thenReturn(23);
+        tools.search("museum", "");
+        var brief = new ItineraryBrief("City", request().date(), java.time.LocalTime.of(10, 0), java.time.LocalTime.of(14, 0),
+                2, 0, "art", "steady", false, List.of("sight"), List.of(), List.of());
+        var outing = new ItineraryContext(brief, new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, "America/New_York", false);
+        var research = new ResearchFindings(List.of(new ResearchFindings.PlaceFinding("N7", "Attributed map hours", List.of(), List.of(), "open",
+                List.of(new ResearchFindings.Window(request().date(), java.time.LocalTime.of(10, 0), java.time.LocalTime.of(14, 0))),
+                "unknown", "unknown", List.of("N7"), List.of())));
+        var planner = LlmOptions.withModel("plan-fixture");
+        var agent = new BayesAgent(mock(ItineraryMemories.class), places, pages, mapper, planner, planner);
+        var bad = new Itinerary.Draft(List.of(new Itinerary.AlternativeDraft("a", List.of(new Itinerary.StopDraft("sight", "N7",
+                java.time.LocalTime.of(10, 20), java.time.LocalTime.of(11, 0))), "Draft", List.of())));
+        var good = new Itinerary.Draft(List.of(new Itinerary.AlternativeDraft("a", List.of(new Itinerary.StopDraft("sight", "N7",
+                java.time.LocalTime.of(10, 33), java.time.LocalTime.of(11, 0))), "Draft", List.of())));
+        OperationContext context = mock(OperationContext.class, RETURNS_DEEP_STUBS);
+        var runner = context.ai().withLlm(planner).withToolObject(tools);
+        when(runner.createObject(anyString(), eq(Itinerary.Draft.class))).thenReturn(bad, good);
+        var reviewed = agent.reviewDraft(outing, research, agent.draftDay(outing, research, context));
+        assertEquals("invalid", reviewed.alternatives().getFirst().status());
+        assertEquals(23, reviewed.alternatives().getFirst().stops().getFirst().baseTravelMinutes());
+        assertEquals("usable", agent.finalizeDay(outing, research, reviewed, context).alternatives().getFirst().status());
+        var prompts = ArgumentCaptor.forClass(String.class);
+        verify(runner, times(2)).createObject(prompts.capture(), eq(Itinerary.Draft.class));
+        assertTrue(prompts.getAllValues().getLast().contains("\"baseTravelMinutes\":23"));
+        var noCall = mock(OperationContext.class);
+        var validReview = agent.reviewDraft(outing, research, good);
+        assertEquals("usable", agent.finalizeDay(outing, research, validReview, noCall).alternatives().getFirst().status());
+        verifyNoInteractions(noCall);
+        var ignored = mock(OperationContext.class, RETURNS_DEEP_STUBS);
+        var ignoredRunner = ignored.ai().withLlm(planner).withToolObject(tools);
+        when(ignoredRunner.createObject(anyString(), eq(Itinerary.Draft.class))).thenReturn(bad);
+        assertEquals("invalid", agent.finalizeDay(outing, research, reviewed, ignored).alternatives().getFirst().status());
+        verify(ignoredRunner).createObject(anyString(), eq(Itinerary.Draft.class));
     }
     @Test void rawRequestNeverEntersTheKnownAgentProcessBlackboard() {
         AgentPlatform platform = mock(AgentPlatform.class);
