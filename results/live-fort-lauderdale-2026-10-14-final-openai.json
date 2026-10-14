@@ -1,0 +1,4 @@
+{
+  "code": "DECISION_FAILED",
+  "message": "The model did not return a complete typed itinerary answer."
+}

@@ -51,7 +51,7 @@ trap 'exit 143' TERM
 printf 'Synthetic date: %s; fresh outputs: %s\n' "$outing_date" "$run_dir"
 mvn test package > "$run_dir/build.log" 2>&1
 java -jar target/bayes-0.1.0.jar --server.port="$port" \
-  --bayes.models.researcher=gpt-4.1-mini --bayes.models.planner=gpt-4.1 \
+  --bayes.models.researcher=gpt-4.1 --bayes.models.planner=gpt-4.1 \
   --logging.level.root=ERROR --logging.level.dev.jimador.bayes=INFO \
   > "$run_dir/server.log" 2>&1 &
 owned_pid=$!

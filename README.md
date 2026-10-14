@@ -24,11 +24,11 @@ embabel.agent.platform.models.typesafe.api-key=${TYPESAFE_API_KEY:}
 embabel.agent.platform.models.typesafe.services.jevDecision.model=jev-latest
 embabel.models.decision.roles.prompted=openaiDecision
 embabel.models.decision.roles.specialized=jevDecision
-bayes.models.researcher=${BAYES_RESEARCHER_MODEL:gpt-4.1-mini}
+bayes.models.researcher=${BAYES_RESEARCHER_MODEL:gpt-4.1}
 bayes.models.planner=${BAYES_PLANNER_MODEL:gpt-4.1}
 ```
 
-Three separately injected itinerary services receive local Java rules, `jevDecision`, or `openaiDecision`. Each submission runs the same Embabel actions and calls only its selected decision service. `BAYES_RESEARCHER_MODEL` and `BAYES_PLANNER_MODEL` can select existing configured OpenAI models. The integration check uses the configured defaults, `gpt-4.1-mini` for discovery/research and `gpt-4.1` for planning, across all three submissions.
+Three separately injected itinerary services receive local Java rules, `jevDecision`, or `openaiDecision`. Each submission runs the same Embabel actions and calls only its selected decision service. `BAYES_RESEARCHER_MODEL` and `BAYES_PLANNER_MODEL` can select existing configured OpenAI models. Discovery/research and planning both default to `gpt-4.1`. The final integration round and managed script explicitly pin both to `gpt-4.1`; earlier recorded rounds used `gpt-4.1-mini` for discovery/research and cannot establish a timing comparison with the final configuration.
 
 ## Plan an outing
 
@@ -72,7 +72,11 @@ Change the example date when it is in the past. `engine` accepts `local`, `jev` 
 
 ## Read the result
 
+The Embabel action chain drafts an itinerary, mandatorily reviews it with the Java validator, then finalizes it. If any draft alternative is invalid or unresolved, a single model refinement receives the actual review, followed by final validation. A usable draft needs no refinement. This is a typed action dependency, not an optional review tool or an application retry loop.
+
 A **usable** outline covers the requested stops and meals, with chronological times inside the outing window, attributed operating windows and trusted base routes. **Unresolved** means material evidence is missing; **invalid** means a requirement or known constraint fails. **Needs research** means the decision did not select an outline. The browser shows blocking issues separately from advisory price, menu and routine check-before-visiting notes. Titles come from the actual chosen venue names. Requested breakfast needs service evidence; a mapped `breakfast=yes` tag supports it provisionally without a generic missing-service question. Cafe or coffee labels alone do not establish breakfast.
+
+Incomplete, duplicate or improperly attributed research records become explicit unknown interpretations. Invalid fields or unsupported operating windows are omitted; independently retrieved map/page evidence remains visible. These partial results can still yield an unresolved outline with material questions, rather than treating rejected model claims as facts.
 
 Coverage, choice, confidence and classification describe the typed evidence fit. They do not verify bookings or availability. Cuisine diversity is checked when researched liked-cuisine candidates fit hours and routes; incomplete alternatives retain material questions. Unknown facts stay visible. Stop evidence includes source IDs, mapped links, route basis, meal-service basis, cuisine interpretation and hours basis. Expand the research section to inspect public pages and attributed interpretations.
 
@@ -82,7 +86,7 @@ Public adapters use [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocod
 
 Operating windows are model interpretations of attributed map/page evidence, not verified current opening times. Search leads do not establish service or hours. Admission, menus, access, prices and safety can remain unknown. Driving estimates exclude live traffic. Confirm changes and private dietary/allergy needs directly with venues.
 
-Root logging defaults to `ERROR`; application stage logging defaults to `INFO`. `BAYES_LOG_LEVEL=ERROR` silences the stage summaries, or use `--logging.level.dev.jimador.bayes=ERROR`. Stage logs contain stage name, duration, outcome and failure type; they exclude request text, private origin, medical notes and credentials. Keep framework/model HTTP debug and prompt logging disabled when handling private requests.
+Root logging defaults to `ERROR`; application stage logging defaults to `INFO`. `BAYES_LOG_LEVEL=ERROR` silences the stage summaries, or use `--logging.level.dev.jimador.bayes=ERROR`. Stage logs contain stage name, duration, outcome, failure type and safe research-issue/review/refinement counts; they exclude request text, private origin, medical notes and credentials. Keep framework/model HTTP debug and prompt logging disabled when handling private requests.
 
 ## Validation and historical work
 

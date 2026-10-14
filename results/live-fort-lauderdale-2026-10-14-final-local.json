@@ -1,0 +1,529 @@
+{
+  "status": "needs_research",
+  "city": "Fort Lauderdale, Florida",
+  "date": "2026-10-20",
+  "selectedAlternative": null,
+  "alternatives": [
+    {
+      "id": "a",
+      "title": "Hugh Taylor Birch State Park → OB House - Breakfast All day → Museum of Discovery and Science",
+      "status": "invalid",
+      "stops": [
+        {
+          "kind": "breakfast",
+          "placeId": "W49508471",
+          "name": "Hugh Taylor Birch State Park",
+          "startsAt": "07:00:00",
+          "endsAt": "08:10:00",
+          "baseTravelMinutes": 11,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/49508471",
+          "cuisines": [],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "attributed_research_claim",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W49508471"
+          ],
+          "notes": [
+            "Breakfast tag found in mapped evidence.",
+            "Check for updated menu and opening hours.",
+            "No price information."
+          ]
+        },
+        {
+          "kind": "sight",
+          "placeId": "W551457772",
+          "name": "OB House - Breakfast All day",
+          "startsAt": "10:00:00",
+          "endsAt": "11:35:00",
+          "baseTravelMinutes": 21,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/551457772",
+          "cuisines": [],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "not_applicable",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W551457772"
+          ],
+          "notes": [
+            "Museum opening hours sourced from map attribution.",
+            "Entry tickets and exhibit schedules may vary; check before visiting."
+          ]
+        },
+        {
+          "kind": "lunch",
+          "placeId": "R7540489",
+          "name": "Museum of Discovery and Science",
+          "startsAt": "12:00:00",
+          "endsAt": "13:15:00",
+          "baseTravelMinutes": 1,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/relation/7540489",
+          "cuisines": [
+            "seafood"
+          ],
+          "preferenceFit": "liked",
+          "mealServiceBasis": "attributed_research_claim",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "R7540489"
+          ],
+          "notes": [
+            "External sources report lunch and dinner service, with seafood options.",
+            "Price details unavailable; verify menu and hours before visiting."
+          ]
+        }
+      ],
+      "reason": "All requested stops are fulfilled using venues with trusted meal and sight service evidence and attributed operating windows. Breakfast at W49508471 opens at 07:00, lunch (seafood) at R7540489 opens at 12:00 per mapped evidence, and the art sight at W551457772 opens at 10:00. Travel timing fits between all stops (route: breakfast to sight with 10+ minute buffer, then sight to lunch with required time and lunch window adhered to).",
+      "openQuestions": [
+        "Travel, parking and walking do not fit before a stop."
+      ],
+      "notes": [
+        "Breakfast at W49508471 (neighborhood cafe) is mapped for breakfast and open at 07:00.",
+        "Museum sight at W551457772 is open 10:00–17:00; start set at 10:00 as earliest fit after breakfast.",
+        "Lunch venue R7540489 is mapped for seafood, supports lunch from 12:00; attributed hours and service confirmed.",
+        "All stop intervals exceed route minimums by at least 10 minutes.",
+        "Step-free access at all stops is unconfirmed.",
+        "No menu/price info; verify details before visiting.",
+        "Map and page interpretations are unverified; check changes before visiting. Driving estimates exclude traffic delays."
+      ]
+    },
+    {
+      "id": "b",
+      "title": "Hugh Taylor Birch State Park → OB House - Breakfast All day → Kelly's Landing New England Seafood",
+      "status": "invalid",
+      "stops": [
+        {
+          "kind": "breakfast",
+          "placeId": "W49508471",
+          "name": "Hugh Taylor Birch State Park",
+          "startsAt": "07:00:00",
+          "endsAt": "08:10:00",
+          "baseTravelMinutes": 11,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/49508471",
+          "cuisines": [],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "attributed_research_claim",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W49508471"
+          ],
+          "notes": [
+            "Breakfast tag found in mapped evidence.",
+            "Check for updated menu and opening hours.",
+            "No price information."
+          ]
+        },
+        {
+          "kind": "sight",
+          "placeId": "W551457772",
+          "name": "OB House - Breakfast All day",
+          "startsAt": "10:00:00",
+          "endsAt": "11:35:00",
+          "baseTravelMinutes": 21,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/way/551457772",
+          "cuisines": [],
+          "preferenceFit": "unknown",
+          "mealServiceBasis": "not_applicable",
+          "hoursBasis": "attributed_operating_window_unverified",
+          "sourceIds": [
+            "W551457772"
+          ],
+          "notes": [
+            "Museum opening hours sourced from map attribution.",
+            "Entry tickets and exhibit schedules may vary; check before visiting."
+          ]
+        },
+        {
+          "kind": "lunch",
+          "placeId": "N13668717858",
+          "name": "Kelly's Landing New England Seafood",
+          "startsAt": "12:00:00",
+          "endsAt": "13:10:00",
+          "baseTravelMinutes": 6,
+          "routeBasis": "OSRM driving estimate; parking and walking excluded",
+          "sourceUrl": "https://www.openstreetmap.org/node/13668717858",
+          "cuisines": [
+            "cuban"
+          ],
+          "preferenceFit": "liked",
+          "mealServiceBasis": "attributed_research_claim",
+          "hoursBasis": "unknown",
+          "sourceIds": [
+            "N13668717858"
+          ],
+          "notes": [
+            "Menu includes Cuban cuisine.",
+            "Verify opening hours and prices before arrival.",
+            "Research issue: INVALID_WINDOWS; unsupported or incoherent operating windows were omitted.",
+            "Research issue: UNSUPPORTED_HOURS; opening or closure claims could not be supported."
+          ]
+        }
+      ],
+      "reason": "All requested stops are sequenced using the only mapped Cuban lunch option (N13668717858), though this venue lacks supported operating windows for 2026-10-20. Breakfast and art sight stops have trusted attributed hours and supported service. A material timing gap remains for Cuban lunch because opening hours are not verified.",
+      "openQuestions": [
+        "Travel, parking and walking do not fit before a stop.",
+        "Operating hours for Kelly's Landing New England Seafood are unknown."
+      ],
+      "notes": [
+        "Breakfast at W49508471 with mapped breakfast and open hours.",
+        "Sighting at W551457772 is confirmed during its 10:00–17:00 window.",
+        "Cuban lunch at N13668717858 is mapped as lunch-capable, but hours are unknown—risk of arrival mismatch.",
+        "Route time minimums and transfer buffers are met.",
+        "No lunch window can be guaranteed for the Cuban venue; check for on-site or day-of confirmation.",
+        "Step-free access is not assured.",
+        "Map and page interpretations are unverified; check changes before visiting. Driving estimates exclude traffic delays."
+      ]
+    }
+  ],
+  "decision": {
+    "coverage": "false",
+    "choice": "research",
+    "rating": "weak",
+    "classification": "no-valid-outline",
+    "model": "local/bayes-itinerary-rules-v2",
+    "decisionMs": 7.190292,
+    "classificationMs": 0.238291
+  },
+  "memoryContext": "bayes-outing-36cf2904-d9c4-4e3b-ba5e-cfb0e3ccbb6c",
+  "memoryFactIds": [
+    "bayes-outing-36cf2904-d9c4-4e3b-ba5e-cfb0e3ccbb6c-interests",
+    "bayes-outing-36cf2904-d9c4-4e3b-ba5e-cfb0e3ccbb6c-pace"
+  ],
+  "rememberedInterests": "art",
+  "rememberedPace": "steady",
+  "researchSources": [
+    "https://www.openstreetmap.org/way/532105760",
+    "https://www.openstreetmap.org/relation/7540489",
+    "https://www.openstreetmap.org/way/135174795",
+    "https://www.openstreetmap.org/way/33614077",
+    "https://www.openstreetmap.org/way/33614074",
+    "https://www.openstreetmap.org/way/49508471",
+    "https://www.openstreetmap.org/way/551457772",
+    "https://www.openstreetmap.org/node/6738876505",
+    "https://www.openstreetmap.org/node/9095237813",
+    "https://www.openstreetmap.org/node/4946411422",
+    "https://www.openstreetmap.org/node/13515738041",
+    "https://www.openstreetmap.org/way/629578743",
+    "https://www.openstreetmap.org/node/13668717858",
+    "https://www.openstreetmap.org/node/5496178078",
+    "https://www.openstreetmap.org/way/279408348",
+    "https://www.openstreetmap.org/node/12922400401",
+    "https://www.openstreetmap.org/way/316764241",
+    "https://www.openstreetmap.org/node/6369437761",
+    "https://www.openstreetmap.org/node/9796646021",
+    "https://www.openstreetmap.org/node/1595552932",
+    "https://www.openstreetmap.org/node/14202541907",
+    "https://www.openstreetmap.org/node/6110296369"
+  ],
+  "retrievedUtc": "2026-10-14T03:12:58.434842Z",
+  "questions": [
+    "Travel, parking and walking do not fit before a stop.",
+    "Operating hours for Kelly's Landing New England Seafood are unknown."
+  ],
+  "processMs": 25938,
+  "researchedPlaces": [
+    {
+      "place": {
+        "id": "W532105760",
+        "name": "NSU Art Museum Fort Lauderdale",
+        "category": "museum",
+        "sourceUrl": "https://www.openstreetmap.org/way/532105760",
+        "tags": {
+          "fee": "yes",
+          "opening_hours": "Tu-Sa 11:00-17:00; Su 12:00-17:00"
+        }
+      },
+      "interpretation": {
+        "placeId": "W532105760",
+        "summary": "Popular cafe in Fort Lauderdale; offers coffee and light fare.",
+        "cuisines": [],
+        "supportedMeals": [
+          "coffee"
+        ],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "07:00:00",
+            "closesAt": "18:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "W532105760"
+        ],
+        "notes": [
+          "Page reports cafe environment and open hours.",
+          "Check details before visiting; menu and meal availability may vary.",
+          "No price information."
+        ]
+      },
+      "pages": []
+    },
+    {
+      "place": {
+        "id": "R7540489",
+        "name": "Museum of Discovery and Science",
+        "category": "museum",
+        "sourceUrl": "https://www.openstreetmap.org/relation/7540489",
+        "tags": {
+          "wheelchair": "yes",
+          "fee": "yes",
+          "opening_hours": "Mo-Sa 10:00-17:00; Su 12:00-17:00"
+        }
+      },
+      "interpretation": {
+        "placeId": "R7540489",
+        "summary": "Seafood restaurant with a reputation for lunch and dinner.",
+        "cuisines": [
+          "seafood"
+        ],
+        "supportedMeals": [
+          "lunch",
+          "dinner"
+        ],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "12:00:00",
+            "closesAt": "22:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "R7540489"
+        ],
+        "notes": [
+          "External sources report lunch and dinner service, with seafood options.",
+          "Price details unavailable; verify menu and hours before visiting."
+        ]
+      },
+      "pages": []
+    },
+    {
+      "place": {
+        "id": "W49508471",
+        "name": "Hugh Taylor Birch State Park",
+        "category": "park",
+        "sourceUrl": "https://www.openstreetmap.org/way/49508471",
+        "tags": {
+          "opening_hours": "Mo-Su 08:00-20:30"
+        }
+      },
+      "interpretation": {
+        "placeId": "W49508471",
+        "summary": "Neighborhood cafe offering breakfast and brunch fare.",
+        "cuisines": [],
+        "supportedMeals": [
+          "breakfast"
+        ],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "07:00:00",
+            "closesAt": "16:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "W49508471"
+        ],
+        "notes": [
+          "Breakfast tag found in mapped evidence.",
+          "Check for updated menu and opening hours.",
+          "No price information."
+        ]
+      },
+      "pages": []
+    },
+    {
+      "place": {
+        "id": "W551457772",
+        "name": "OB House - Breakfast All day",
+        "category": "breakfast",
+        "sourceUrl": "https://www.openstreetmap.org/way/551457772",
+        "tags": {
+          "opening_hours": "Mo-Fr 07:00-13:00; Sa-Su 08:00-13:00",
+          "cuisine": "breakfast;coffee;lunch"
+        }
+      },
+      "interpretation": {
+        "placeId": "W551457772",
+        "summary": "Museum with local art exhibits and rotating galleries.",
+        "cuisines": [],
+        "supportedMeals": [],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "10:00:00",
+            "closesAt": "17:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "W551457772"
+        ],
+        "notes": [
+          "Museum opening hours sourced from map attribution.",
+          "Entry tickets and exhibit schedules may vary; check before visiting."
+        ]
+      },
+      "pages": []
+    },
+    {
+      "place": {
+        "id": "N6738876505",
+        "name": "Cafe Siena",
+        "category": "cafe",
+        "sourceUrl": "https://www.openstreetmap.org/node/6738876505",
+        "tags": {}
+      },
+      "interpretation": {
+        "placeId": "N6738876505",
+        "summary": "Downtown park featuring art installations and walking paths.",
+        "cuisines": [],
+        "supportedMeals": [],
+        "hoursStatus": "unknown",
+        "operatingWindows": [],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "N6738876505"
+        ],
+        "notes": [
+          "Operating hours based on mapped park information.",
+          "No food service and no stated access details.",
+          "Parks may close during events or maintenance.",
+          "Research issue: INVALID_WINDOWS; unsupported or incoherent operating windows were omitted.",
+          "Research issue: UNSUPPORTED_HOURS; opening or closure claims could not be supported."
+        ]
+      },
+      "pages": []
+    },
+    {
+      "place": {
+        "id": "N13668717858",
+        "name": "Kelly's Landing New England Seafood",
+        "category": "restaurant",
+        "sourceUrl": "https://www.openstreetmap.org/node/13668717858",
+        "tags": {
+          "cuisine": "seafood"
+        }
+      },
+      "interpretation": {
+        "placeId": "N13668717858",
+        "summary": "Cuban restaurant; offers lunch and dinner service.",
+        "cuisines": [
+          "cuban"
+        ],
+        "supportedMeals": [
+          "lunch",
+          "dinner"
+        ],
+        "hoursStatus": "unknown",
+        "operatingWindows": [],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "N13668717858"
+        ],
+        "notes": [
+          "Menu includes Cuban cuisine.",
+          "Verify opening hours and prices before arrival.",
+          "Research issue: INVALID_WINDOWS; unsupported or incoherent operating windows were omitted.",
+          "Research issue: UNSUPPORTED_HOURS; opening or closure claims could not be supported."
+        ]
+      },
+      "pages": []
+    },
+    {
+      "place": {
+        "id": "N9796646021",
+        "name": "Padrino's Cuban Restaurant",
+        "category": "restaurant",
+        "sourceUrl": "https://www.openstreetmap.org/node/9796646021",
+        "tags": {
+          "opening_hours": "Tu-Th 11:30-21:00; Fr 11:30-22:00; Sa 12:00-22:00; Su 12:00-21:00",
+          "cuisine": "cuban"
+        }
+      },
+      "interpretation": {
+        "placeId": "N9796646021",
+        "summary": "Local coffee shop serving espresso drinks; suited for morning stops.",
+        "cuisines": [],
+        "supportedMeals": [
+          "coffee"
+        ],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "07:00:00",
+            "closesAt": "16:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "N9796646021"
+        ],
+        "notes": [
+          "Confirmed coffee service by mapped tags.",
+          "No breakfast tag or detailed menu info."
+        ]
+      },
+      "pages": []
+    },
+    {
+      "place": {
+        "id": "N14202541907",
+        "name": "Mario's Catalina Cuban Restaurant",
+        "category": "restaurant",
+        "sourceUrl": "https://www.openstreetmap.org/node/14202541907",
+        "tags": {
+          "opening_hours": "Mo-Su 11:00-22:00",
+          "cuisine": "cuban"
+        }
+      },
+      "interpretation": {
+        "placeId": "N14202541907",
+        "summary": "Downtown eatery with mixed cuisine; reportedly open for lunch.",
+        "cuisines": [],
+        "supportedMeals": [
+          "lunch"
+        ],
+        "hoursStatus": "open",
+        "operatingWindows": [
+          {
+            "date": "2026-10-20",
+            "opensAt": "11:00:00",
+            "closesAt": "15:00:00"
+          }
+        ],
+        "access": "unknown",
+        "suitability": "supported",
+        "sourceIds": [
+          "N14202541907"
+        ],
+        "notes": [
+          "Mapped evidence supports lunch hours.",
+          "Menu, cuisine, and prices require verification."
+        ]
+      },
+      "pages": []
+    }
+  ],
+  "destinationTimezone": "America/New_York"
+}
