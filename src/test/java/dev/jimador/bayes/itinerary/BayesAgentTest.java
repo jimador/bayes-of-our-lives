@@ -2,6 +2,7 @@ package dev.jimador.bayes.itinerary;
 
 import com.embabel.agent.api.annotation.support.AgentMetadataReader;
 import com.embabel.agent.api.common.OperationContext;
+import com.embabel.agent.api.common.PromptRunner;
 import com.embabel.agent.core.AgentPlatform;
 import com.embabel.agent.core.AgentProcess;
 import com.embabel.agent.core.AgentProcessStatusCode;
@@ -60,7 +61,9 @@ class BayesAgentTest {
         outing.tools().search("museum", "");
         OperationContext context = mock(OperationContext.class, RETURNS_DEEP_STUBS);
         var researchRunner = context.ai().withLlm(researcher).withToolObject(outing.tools());
-        var planningRunner = context.ai().withLlm(planner).withToolObject(outing.tools());
+        var placeRunner = context.ai().withLlm(planner).withToolObject(outing.tools());
+        var planningRunner = mock(PromptRunner.class);
+        when(placeRunner.withToolObject(any(ItineraryPlanningTools.class))).thenReturn(planningRunner);
         var discovery = new BayesAgent.Discovery(List.of("N7"), "Art interest");
         var findings = new ResearchFindings(List.of(new ResearchFindings.PlaceFinding("N7", "Map hours interpretation",
                 List.of(), List.of(), "open", List.of(new ResearchFindings.Window(request().date(),
@@ -75,6 +78,9 @@ class BayesAgentTest {
         var planned = agent.planDay(outing, researched, context);
         assertEquals("unresolved", planned.alternatives().getFirst().status());
         assertEquals("Art Museum", planned.alternatives().getFirst().title());
+        var feedback = ArgumentCaptor.forClass(ItineraryPlanningTools.class);
+        verify(placeRunner).withToolObject(feedback.capture());
+        assertEquals(planned, feedback.getValue().review(draft));
         var prompts = ArgumentCaptor.forClass(String.class);
         verify(researchRunner).createObject(prompts.capture(), eq(BayesAgent.Discovery.class));
         verify(researchRunner).createObject(prompts.capture(), eq(ResearchFindings.class));

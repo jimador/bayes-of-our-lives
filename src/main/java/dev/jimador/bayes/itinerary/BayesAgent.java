@@ -97,9 +97,19 @@ public class BayesAgent {
     }
     @Action public Itinerary planDay(ItineraryContext outing, ResearchFindings research, OperationContext context) {
         return stage("plan", () -> {
-            var draft = context.ai().withLlm(planner).withToolObject(outing.tools()).createObject("""
+            var draft = context.ai().withLlm(planner).withToolObject(outing.tools())
+                    .withToolObject(new ItineraryPlanningTools(outing, research)).createObject("""
                     Reason over the researched venues and return one or two useful distinct timed alternatives,
                     IDs a and b. Each has stops (kind, exact placeId, startsAt and endsAt HH:mm), reason and notes.
+                    Before final output call review with the complete draft, read the validated status,
+                    openQuestions and each stop's trusted baseTravelMinutes, and repair any invalid schedule.
+                    You have at most three reviews inside this planning call. Return a reviewed draft with no
+                    invalid alternatives; truthful unresolved evidence gaps are allowed. For example, if a stop
+                    ends at 12:10 and the next drive is 23 minutes, the next stop cannot start before 12:43.
+                    For each requested meal choose a venue with attributed supportedMeals for that meal
+                    (mapped breakfast=yes also supports breakfast). Prefer known meal service over unknown
+                    service. A sight is a meal venue only with attributed meal service; never relabel a museum
+                    as lunch simply to fill the slot.
                     Include EVERY requested stop kind, including breakfast and lunch, plus a sight. Never leave a
                     requested meal or a stop time blank. Use only researched place IDs. Honor known closures,
                     operating windows, access and suitability. If evidence is incomplete, explain the material gap.
