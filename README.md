@@ -13,7 +13,7 @@ java -jar target/bayes-0.1.0.jar
 
 Open **http://127.0.0.1:8080/**. Run the app in a foreground terminal or a managed terminal session; stop that session with Ctrl-C. To use a different port, append `--server.port=18084`. Stop only the process you started.
 
-For a reproducible synthetic backend check, run `bash scripts/run-live-check.sh 2026-10-20` with both keys already in the environment. Change the destination-local date once that date has passed. The script checks the date and an unused port, builds the package, starts its own app, submits exactly one independent outing per engine, saves timestamped actual JSON and safe stage logs in a fresh temporary directory, then stops only its own process. It requires Python 3 in addition to the app prerequisites. `BAYES_LIVE_PORT` selects the local port (default 18085). A nonzero exit reports HTTP, connection or unusable-result failures; it makes no provider retries. This API check complements the separate real browser validation. Running it makes real provider calls.
+For a reproducible synthetic backend check, run `bash scripts/run-live-check.sh 2026-10-20` with both keys already in the environment. Change the destination-local date once that date has passed. The script checks the date and an unused port, builds the package, starts its own app, submits a local outing first, then Jev and OpenAI only while preceding results are usable, saves timestamped actual JSON and safe stage logs in a fresh temporary directory, then stops only its own process. It requires Python 3 in addition to the app prerequisites. `BAYES_LIVE_PORT` selects the local port (default 18085). It stops after the first HTTP, connection or non-usable result and reports the actual submission count, up to three. A nonzero exit reports that failure; it makes no outing resubmissions and sets three framework retry templates to one attempt. Tool conversations and compatibility fallback can still make additional HTTP calls. This API check complements the separate real browser validation. Running it makes real provider calls.
 
 The named configuration in `src/main/resources/application.properties` references runtime keys:
 
@@ -72,11 +72,13 @@ Change the example date when it is in the past. `engine` accepts `local`, `jev` 
 
 ## Read the result
 
-The Embabel action chain drafts an itinerary, mandatorily reviews it with the Java validator, then finalizes it. If any draft alternative is invalid or unresolved, a single model refinement receives the actual review, followed by final validation. A usable draft needs no refinement. This is a typed action dependency, not an optional review tool or an application retry loop.
+A mandatory `retrieveEvidence` action produces typed `RetrievedEvidence` before research. It carries each selected venue’s exact mapped ID, name, category, tags, map source and retrieved pages into research, initial planning and final refinement. The Embabel action chain then drafts an itinerary, mandatorily reviews it with the Java validator, and finalizes it. If any draft alternative is invalid or unresolved, a single model refinement receives the actual review, followed by final validation. A usable draft needs no refinement. This is a typed action dependency, not an optional review tool or an application retry loop.
 
 A **usable** outline covers the requested stops and meals, with chronological times inside the outing window, attributed operating windows and trusted base routes. **Unresolved** means material evidence is missing; **invalid** means a requirement or known constraint fails. **Needs research** means the decision did not select an outline. The browser shows blocking issues separately from advisory price, menu and routine check-before-visiting notes. Titles come from the actual chosen venue names. Requested breakfast needs service evidence; a mapped `breakfast=yes` tag supports it provisionally without a generic missing-service question. Cafe or coffee labels alone do not establish breakfast.
 
 Incomplete, duplicate or improperly attributed research records become explicit unknown interpretations. Invalid fields or unsupported operating windows are omitted; independently retrieved map/page evidence remains visible. These partial results can still yield an unresolved outline with material questions, rather than treating rejected model claims as facts.
+
+Confidence levels are ordered `weak` → `possible` → `strong`. If no non-invalid alternative exists, Bayes returns coverage `false`, choice `research`, confidence `weak`, classification `no-valid-outline`, model `not-called` and zero decision/classification times. It makes no `DecisionService` call in that case. Other choices use the selected service. Typed failures retain fixed question/reason codes such as `UNAVAILABLE` and `INVALID_RESPONSE` without raw provider output. The underlying reason for the earlier OpenAI error was not captured.
 
 Coverage, choice, confidence and classification describe the typed evidence fit. They do not verify bookings or availability. Cuisine diversity is checked when researched liked-cuisine candidates fit hours and routes; incomplete alternatives retain material questions. Unknown facts stay visible. Stop evidence includes source IDs, mapped links, route basis, meal-service basis, cuisine interpretation and hours basis. Expand the research section to inspect public pages and attributed interpretations.
 
@@ -88,9 +90,23 @@ Operating windows are model interpretations of attributed map/page evidence, not
 
 Root logging defaults to `ERROR`; application stage logging defaults to `INFO`. `BAYES_LOG_LEVEL=ERROR` silences the stage summaries, or use `--logging.level.dev.jimador.bayes=ERROR`. Stage logs contain stage name, duration, outcome, failure type and safe research-issue/review/refinement counts; they exclude request text, private origin, medical notes and credentials. Keep framework/model HTTP debug and prompt logging disabled when handling private requests.
 
+## Limits and retry settings
+
+The managed script starts the app with these one-attempt settings. The application configuration is unchanged.
+
+| Setting | Installed framework default | Managed script |
+| --- | ---: | ---: |
+| `embabel.agent.platform.models.openai.max-attempts` | 10 | 1 |
+| `embabel.agent.platform.llm-operations.data-binding.max-attempts` | 10 | 1 |
+| `embabel.agent.platform.decisions.llm.max-attempts` | 5 | 1 |
+
+These settings limit the configured retry templates. They do not limit tool conversation turns or compatibility fallback HTTP calls. The script submits each attempted outing once and stops after the first failed or non-usable result. The recorded nine-outing budget counted submissions, not raw provider calls, and further paid calls are on hold.
+
+Researcher responses request at most 3000 output tokens; planner responses request at most 2500. Public page evidence is bounded to eight venues, up to two pages per venue and 6000 characters per page excerpt. These are response and evidence limits, not an aggregate token or spend cap. Raw provider usage and total cost were not collected. No cost estimate is inferred from timings or character counts.
+
 ## Validation and historical work
 
-`mvn test package` runs model-free tests for typed actions, provider bounds, source validation, timed meals, cuisine coverage, safe preference recall, privacy, decision dispatch and destination-local dates. CI makes no provider calls. The current [Fort Lauderdale integration observation](results/refactor-fort-lauderdale-2026-10-14.md) records independent real browser/backend submissions and their limits. These observations are not controlled timing comparisons: public evidence and model outputs can differ between requests, and remote durations include network and provider work.
+`mvn test package` runs model-free tests for typed actions, provider bounds, source validation, timed meals, cuisine coverage, safe preference recall, privacy, decision dispatch and destination-local dates. CI makes no provider calls. The [Fort Lauderdale integration observation](results/refactor-fort-lauderdale-2026-10-14.md) preserves nine earlier live submissions and their failures. Subsequent evidence/decision corrections passed 16 focused offline checks and a package gate under narrow independent review. Actual model behavior and useful live acceptance after those corrections remain unverified. No new provider calls were made for the documentation checks. These observations are not controlled timing comparisons: public evidence and model outputs can differ between requests, and remote durations include network and provider work.
 
 The preserved [earlier experimental article draft](docs/drafts/blog.md) and historical result files describe earlier implementations. They may refer to removed replay, targeted research loops or experimental adapters. The current app has no replay runner, bespoke retry research loop or native local CLEF model path. The article remains a draft and has not been published on Medium.
 

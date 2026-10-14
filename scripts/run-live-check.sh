@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# This is three independent provider-backed outings, without warmups or retries.
+# Up to three outings; stop at the first failed result. Tool turns may add HTTP calls.
 outing_date=${1:-2026-10-20}
 port=${BAYES_LIVE_PORT:-18085}
 if (( $# > 1 )); then
@@ -53,6 +53,9 @@ mvn test package > "$run_dir/build.log" 2>&1
 java -jar target/bayes-0.1.0.jar --server.port="$port" \
   --bayes.models.researcher=gpt-4.1 --bayes.models.planner=gpt-4.1 \
   --logging.level.root=ERROR --logging.level.dev.jimador.bayes=INFO \
+  --embabel.agent.platform.models.openai.max-attempts=1 \
+  --embabel.agent.platform.llm-operations.data-binding.max-attempts=1 \
+  --embabel.agent.platform.decisions.llm.max-attempts=1 \
   > "$run_dir/server.log" 2>&1 &
 owned_pid=$!
 ready=false
@@ -66,8 +69,10 @@ for (( attempt=0; attempt<30; attempt++ )); do
 done
 [[ "$ready" == true ]] || { printf 'Owned app did not become ready; inspect %s/server.log\n' "$run_dir" >&2; exit 1; }
 failed=0
+attempted=0
 for engine in local jev openai; do
   kill -0 "$owned_pid" 2>/dev/null || exit 1
+  attempted=$((attempted + 1))
   output="$run_dir/$run_stamp-$engine.json"
   started=$(python3 -c 'import time; print(time.monotonic_ns())')
   if http=$(curl --silent --show-error --max-time 300 \
@@ -78,9 +83,9 @@ JSON
   ); then
     printf '%s HTTP %s; actual body: %s\n' "$engine" "$http" "$output"
   else
-    printf '%s request failed; no retry; partial body: %s\n' "$engine" "$output" >&2
+    printf '%s outing request failed; no resubmission; partial body: %s\n' "$engine" "$output" >&2
     failed=1
-    continue
+    break
   fi
   if ! python3 - "$output" "$http" "$engine" "$started" <<'PY'
 import json, sys, time
@@ -95,6 +100,7 @@ if http != '200' or data.get('status') != 'usable' or not selected or selected.g
 PY
   then
     failed=1
+    break
   fi
 done
 python3 - "$run_dir/server.log" <<'PY'
@@ -105,5 +111,5 @@ print('Actual stage counts: ' + str(dict(collections.Counter(re.search(r'stage=(
 for line in lines:
     print(line)
 PY
-printf 'Three independent attempts; zero warmups/retries. Times mix provider, network, model and app work.\n'
+printf '%s outing submission(s); zero warmups or outing retries. Configured retry templates use one attempt; tool turns and compatibility fallback can add HTTP calls. Times mix provider, network, model and app work.\n' "$attempted"
 exit "$failed"
