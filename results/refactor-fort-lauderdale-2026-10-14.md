@@ -1,6 +1,6 @@
 # Fort Lauderdale integration observation — 2026-10-14
 
-Functional acceptance remains **blocked after the final capped round**. Across nine real outings, the latest local/Jev requests returned only invalid outlines with venue facts assigned to the wrong mapped places; final OpenAI returned a typed-decision HTTP 502. The final round proves mandatory review and a single refinement occurred for each request, but it does not establish a useful complete guide. Earlier failures and the initial OpenAI success remain preserved. Passing model-free tests is not live functional acceptance.
+Full three-engine acceptance remains **blocked after twelve recorded outing submissions**. The latest approved three-request batch at `03f1bea` returned a usable OpenAI Cuban outline, invalid local travel timing and a Jev-selected discovery error before any Jev decision call. Earlier failures remain preserved. These results do not establish acceptance of subsequent offline fixes.
 
 ## Setup and count
 
@@ -50,7 +50,6 @@ Fixture-only browser cancellation re-enabled submit, retained the cancellation e
 
 All 15 initial stage logs have outcome=completed and contain only stage/timing/outcome values. Scans found neither runtime key, exact starting location nor city text in the application stage log, neither key in saved raw JSON, and no private dietary field in saved responses. Empty dietary text means live medical-text exclusion was not independently exercised; model-free privacy tests cover that boundary. Root ERROR/application INFO defaults were used; HTTP/model/prompt debug logging stayed disabled.
 
-Local reviewer evidence remains in `/tmp/bayes-guide-integration-server.log`, `/tmp/bayes-guide-browser.cjs`, `/tmp/bayes-guide-browser-output.log`, `/tmp/bayes-guide-{local,jev,openai}-{desktop,mobile}.png`, `/tmp/bayes-guide-{engine}-dom.txt`, `/tmp/bayes-guide-{engine}-observation.json` and `/tmp/bayes-guide-integration-build.log`. These temporary paths are not portable deliverables. Signed commits and repository result JSON are the durable evidence. Both owned application sessions were stopped with Ctrl-C; their traps stop only the owned Java PIDs. No push, merge, publication, article modification or unrelated file changes.
 
 ## Corrected build and bounded live observation
 
@@ -91,7 +90,6 @@ Actual corrected early-choice request: needs_input200/processMs0 with three foll
 
 Corrected safety scans: runtime keys absent log/raw JSON; exact origin/city absent stage log; private dietary field absent responses. All 11 corrected stage lines are present: nine completed and two failed research lines; zero plan-review lines. The private dietary field remains empty, so live medical-text exclusion is not independently exercised. Model-free privacy tests passed. Owned PID 98518/session was stopped with Ctrl-C/trap after checks (exit143). No provider reruns, publication, push, merge or article edits.
 
-Corrected supporting files: `/tmp/bayes-guide-integration-corrected-build.log`, `/tmp/bayes-guide-integration-corrected-server.log`, `/tmp/bayes-guide-browser-corrected.cjs`, `/tmp/bayes-guide-browser-corrected-output.log`, `/tmp/bayes-guide-corrected-{engine}-{desktop,mobile}.png`, `-dom.txt`, `-observation.json`. Independent source review also identified obsolete README cuisine-alias guidance; fixed to actual accepted `seafood`/`cuban` names. These temporary files complement durable checked-in raw outputs; they do not substitute for a useful live flow.
 
 ## Final capped round: GPT-4.1 research and mandatory actions
 
@@ -123,7 +121,6 @@ Actual final desktop/mobile DOM widths 1440/390 equal viewport widths; no horizo
 
 Offline final scans found no runtime keys in logs/raw JSON, no exact origin/city in stage logs and no private dietary field in responses. Empty dietary text limits live medical-exclusion evidence. Owned final server stopped with Ctrl-C/trap (session exit143); no other app was stopped. No further API calls after the outing-submission hold, no push/merge/publication/article edits. The README and managed script now reflect current GPT-4.1 defaults, mandatory review and partial-unknown semantics; the script was not live-executed.
 
-Final temporary evidence: `/tmp/bayes-guide-integration-final-build.log`, `/tmp/bayes-guide-integration-final-server.log`, `/tmp/bayes-guide-browser-final.cjs`, `/tmp/bayes-guide-browser-final-output.log`, `/tmp/bayes-guide-final-{engine}-{desktop,mobile}.png`, `-dom.txt`, `-observation.json`. Safe durable raw responses and this note retain every failure; they are not a usable guide or a performance ranking.
 
 ## Subsequent offline evidence and decision corrections
 
@@ -138,3 +135,35 @@ The historical budget was **nine outing submissions**, not nine raw provider cal
 Researcher output limit is 3000 tokens per response; planner output limit is 2500. Public page excerpts allow up to eight venues × two pages × 6000 characters. There is no aggregate token/spend cap in this app or script. Raw provider-call counts, token usage and aggregate cost were not collected; no usage or cost estimate is inferred. Further paid calls remain on hold, and no completion or publication claim follows from the offline corrections.
 
 Current offline documentation checks passed: Bash syntax, JavaScript syntax, diff whitespace and 13 local README/result links (zero missing). The rebased integration package compiled offline with tests skipped; no full-suite rerun or harness execution occurred. Tracked production Java source contains 23 files, 1674 lines and 109648 bytes. This source-size count includes blank lines and comments and excludes tests, dependencies and generated target files. The actual signed documentation commit and its final package check are recorded in the private cook report. Live usability after the evidence/decision fix remains unverified.
+
+## Approved post-fix batch at 03f1bea
+
+James approved exactly three additional outings. The same synthetic Fort Lauderdale scenario was submitted once each for local, Jev and OpenAI. All three attempts completed; no warmups or resubmissions. The private ledger records all three finished responses. **Twelve total outing submissions are now recorded.** This is not a raw provider-call, token or cost count.
+
+Measured source: `03f1bea0c4f828184f6cc8733cef611a61059a1f`, including evidence/decision fixes `0b749f2` and `1f36f94`. Its existing offline skip-tests package passed in 1.821 seconds. No suite/package was rerun for this capture-only update. Research/planning were explicitly pinned to GPT-4.1. OpenAI, data-binding and LLM-decision retry templates were each set to one attempt. The compatibility-fallback logger was enabled at WARN; no known unsupported-parameter fallback warning was observed. That fallback was not disabled, and raw HTTP counts remain unknown.
+
+| Selected engine | HTTP | Browser wall ms | Backend ms | Actual decision/result |
+| --- | --- | ---: | ---: | --- |
+| local | 200 | 37642 | 37558 | needs_research; false/research/weak/no-valid-outline; model not-called; ask/classification 0 ms |
+| Jev | 400 | 3160 | not returned | INVALID_INPUT: Unknown mapped place ID; discovery failed before Jev |
+| OpenAI | 200 | 34381 | 34341 | usable b; true/b/strong/usable-outline; OpenAI/gpt-4.1; ask1194.899541/classification476.817792 ms |
+
+| Engine | Geocode | Discovery | Evidence | Research | Draft | Review | Final | Decision stage |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| local | 862 | 7963 | 7633 | 8152 | 5298 | 1099 | 6333 | 0 |
+| Jev | 734 | 2375 failed | not reached | not reached | not reached | not reached | not reached | not reached |
+| OpenAI | 174 | 8239 | 7164 | 6453 | 4490 | 1053 | 4991 | 1684 |
+
+Local and OpenAI each completed mandatory evidence, draft, review and final actions, with one refinement. Their initial review found two invalid drafts. Actual evidence retrieval produced nine page records/five retrieved venue pages for local. The source action passes exact venue identity/tags/pages into research and both planning prompts. Actual associations now match OB House breakfast, NSU art museum and the named Cuban/seafood restaurants; earlier cafe/museum substitutions are absent in these two responses.
+
+Local still failed final timing. Both alternatives depart the origin at 07:00 and reach OB House 07:30–08:30; the 30-minute gap exceeds its five-minute drive plus ten-minute buffer. Alternative a lunches at Padrino’s 11:50–12:50, then starts NSU Museum at 13:05: gap15 versus drive8+10=18, deficit3 minutes. Alternative b lunches at Mr. & Mrs. Crab 12:10–13:10, then starts NSU at 13:25: gap15 versus drive22+10=32, deficit17. Both are invalid. The model rationale says transfers fit, but final validation rejects them. The no-valid-choice guard correctly reports not-called with zero DecisionService times.
+
+The Jev-selected request failed discovery with the fixed message “Unknown mapped place ID”. The existing mapped-place lookup guard emits that message. The rejected ID and exact selection/tool operation were not captured, so no more specific cause is claimed. The response labels this model/discovery failure INVALID_INPUT; it is not evidence that the supplied form fields were wrong. No evidence, planning or Jev decision was reached.
+
+OpenAI selected b: OB House breakfast07:30–08:30 → NSU Museum11:00–12:00 → Padrino’s Cuban lunch12:20–13:20. Incoming gaps30/150/20 meet trusted drive-plus-ten requirements15/12/18. Each slot fits the actual mapped Tuesday window: OB07–13, NSU11–17, Padrino11:30–21. Mapped category/cuisine fields and attributed service match the proposed venues; NSU and Padrino also have retrieved official page evidence. No selected blocker remains. Alternative a uses Kelly’s seafood lunch12:20–13:20 and stays unresolved because hours and lunch service are unknown. Those two questions remain visible. This is a supported provisional outline, not independently verified current availability, a booking or allergy safety. Seafood/Cuban alternatives are present, but only the Cuban option is usable.
+
+New snapshots: [local](live-fort-lauderdale-2026-10-14-postfix-local.json), [Jev](live-fort-lauderdale-2026-10-14-postfix-jev.json), [OpenAI](live-fort-lauderdale-2026-10-14-postfix-openai.json). Sixteen retrieved/search-lead `PageEvidence.excerpt` strings are omitted from these three files. Each retains its URL/ID/status and adds `originalCharacterCount` plus a UTF-8 SHA-256 `contentSha256`. All other fields, statuses and timings are unchanged. Full responses remain private for review; existing nine snapshots are unchanged.
+
+All six complete result screenshots were captured live from the active response UI before any packaging error. Desktop/mobile views show the actual two invalid local cards, safe Jev error and selected OpenAI card with a separate unresolved seafood option. Local/Jev numeric DOM width checks show1440/390 with no overflow or stale fields; their JavaScript error captures are empty. OpenAI’s saved DOM and complete screenshots align with its response. Its numeric DOM/error-stream observation was not saved.
+
+A temporary log-path pause introduced an EISDIR error while packaging the final OpenAI observation, after all three responses, public snapshots, DOM files and screenshots had been saved. No screenshots or UI were recreated afterward, and no requests were retried. Existing stage logs provide the OpenAI action timings above. This is a measurement-packaging limitation, not an OpenAI API failure. The owned backend was stopped after the batch. Full three-engine acceptance remains blocked by local scheduling and Jev discovery; no later offline patch has paid verification in these records.
