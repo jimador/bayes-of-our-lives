@@ -13,7 +13,18 @@ java -jar target/bayes-0.1.0.jar
 
 Open **http://127.0.0.1:8080/**. Run the app in a foreground terminal or a managed terminal session; stop that session with Ctrl-C. To use a different port, append `--server.port=18084`. Stop only the process you started.
 
-For a reproducible synthetic backend check, run `bash scripts/run-live-check.sh 2026-10-20` with both keys already in the environment. Change the destination-local date once that date has passed. The script checks the date and an unused port, builds the package, starts its own app, submits a local outing first, then Jev and OpenAI only while preceding results are usable, saves timestamped actual JSON and safe stage logs in a fresh temporary directory, then stops only its own process. It requires Python 3 in addition to the app prerequisites. `BAYES_LIVE_PORT` selects the local port (default 18085). It stops after the first HTTP, connection or non-usable result and reports the actual submission count, up to three. A nonzero exit reports that failure; it makes no outing resubmissions and sets three framework retry templates to one attempt. Tool conversations and compatibility fallback can still make additional HTTP calls. This API check complements the separate real browser validation. Running it makes real provider calls.
+For a reproducible synthetic backend check, run `bash scripts/run-live-check.sh 2026-10-20` with both keys already in the environment. Change the destination-local date once it has passed. The script validates the scenario and unused port before building, starts its own app, submits each selected engine once (default `local,jev,openai`), and stops only its own process. Failures retain JSON or partial responses and the default continues through the remaining engines; `--fail-fast` stops after the first failure. Any failed attempt produces a nonzero exit. Each run creates an atomic, unique city/date directory under `results/`, with a matching Markdown summary linking every attempted capture and reporting timings and submission count. Python 3 is required. Running it makes real provider calls.
+
+```sh
+bash scripts/run-live-check.sh --city 'Tampa, Florida' --origin 'Downtown Tampa' \
+  --date 2026-10-20 --start 09:00 --end 18:00 --interests 'art, parks' \
+  --pace relaxed --meals lunch,dinner --cuisine-likes 'cuban, seafood' \
+  --cuisine-dislikes italian --engines local,jev --timezone America/New_York
+```
+
+`--help` lists all options and defaults without requiring keys or making calls. Each value option has a `BAYES_LIVE_` environment equivalent: `CITY`, `ORIGIN`, `DATE`, `START`, `END`, `INTERESTS`, `PACE`, `MEALS`, `CUISINE_LIKES`, `CUISINE_DISLIKES`, `ENGINES`, `TIMEZONE`, and `PORT`. Flags override environment values; the single positional date overrides `BAYES_LIVE_DATE` and cannot be combined with `--date`. Duplicate flags and empty required values are rejected. `BAYES_LIVE_FAIL_FAST` accepts only `true` or `false`; `--fail-fast` or `--continue-on-failure` overrides it. Meals and engines are unique comma-delimited lists; `--meals none` requests no meals. Without breakfast or coffee the script confirms `earlyFoodDeclined`. Cuisine strings may be empty and use the API's supported cuisine names; the allergy field stays empty.
+
+The default scenario remains Fort Lauderdale, Downtown Fort Lauderdale, 2026-10-20, 07:00–14:00, art, steady pace, breakfast/lunch, seafood/Cuban likes and Italian dislikes, on port 18085. The supplied IANA timezone must match the destination; the script does no geocoding or timezone guessing. It defaults to `America/New_York`, checks today's finish as an instant, rejects nonexistent/ambiguous local boundaries and windows whose boundary UTC offsets differ, and limits the window to at most 12 hours (stricter than the API's whole-hour duration check). Choose another window across a daylight-saving transition. It makes zero warmups or outing resubmissions and sets three framework retry templates to one attempt. Tool conversations and compatibility fallback can still add HTTP calls. This API check complements separate real browser validation.
 
 The named configuration in `src/main/resources/application.properties` references runtime keys:
 
@@ -104,11 +115,13 @@ The managed script starts the app with these one-attempt settings. The applicati
 | `embabel.agent.platform.llm-operations.data-binding.max-attempts` | 10 | 1 |
 | `embabel.agent.platform.decisions.llm.max-attempts` | 5 | 1 |
 
-These settings limit the configured retry templates. They do not limit tool conversation turns or compatibility fallback HTTP calls. The script submits each attempted outing once and stops after the first failed or non-usable result. The original nine-outing budget and subsequent three-outing approval counted submissions, not raw provider calls. All fourteen approved submissions are recorded. No further provider calls were made for the offline correction.
+These settings limit the configured retry templates. They do not limit tool conversation turns or compatibility fallback HTTP calls. The script submits each selected outing once, continues after failures by default, and supports `--fail-fast`. The original nine-outing budget and subsequent three-outing approval counted submissions, not raw provider calls. All fourteen approved submissions are recorded. No further provider calls were made for the offline correction.
 
 Researcher responses request at most 3000 output tokens; planner responses request at most 2500. Public page evidence is bounded to eight venues, up to two pages per venue and 6000 characters per page excerpt. These are response and evidence limits, not an aggregate token or spend cap. Raw provider usage and total cost were not collected. No cost estimate is inferred from timings or character counts.
 
 ## Validation and historical work
+
+Run `env -u OPENAI_API_KEY -u TYPESAFE_API_KEY bash scripts/test-run-live-check.sh` for the isolated offline runner harness; it stubs Maven, Java and curl in a temporary fixture repository.
 
 `mvn test package` runs model-free tests for typed actions, provider bounds, source validation, timed meals, cuisine coverage, safe preference recall, privacy, decision dispatch and destination-local dates. CI makes no provider calls.
 
