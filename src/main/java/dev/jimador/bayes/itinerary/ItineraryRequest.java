@@ -15,6 +15,8 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
         String profileId, Boolean rememberPreferences, Boolean useRememberedPreferences,
         String cuisineLikes, String cuisineDislikes) {
     // Keep food preferences separate from free-text medical needs, which never leave this app.
+    /** Engine names double as decision and classification role names in the application properties. */
+    public static final List<String> ENGINES = List.of("local", "jev", "openai");
     private static final java.util.Set<String> CUISINES = java.util.Set.of(
             "american", "argentinian", "barbecue", "brazilian", "british", "caribbean",
             "chinese", "colombian", "cuban", "ethiopian", "filipino", "french", "german",
@@ -73,7 +75,7 @@ public record ItineraryRequest(String city, String startingLocation, LocalDate d
                 && (profileId == null || !profileId.matches(
                         "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")))
             throw new IllegalArgumentException("A private profile ID is required to remember preferences");
-        if (engine == null || !List.of("local", "jev", "openai").contains(engine))
+        if (engine == null || !ENGINES.contains(engine))
             throw new IllegalArgumentException("Choose a listed decision engine");
         if (!publicMapConsent)
             throw new IllegalArgumentException("Confirm sharing the city, start location, and liked cuisine terms with public map services");

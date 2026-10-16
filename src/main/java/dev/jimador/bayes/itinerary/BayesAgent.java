@@ -5,7 +5,6 @@ import com.embabel.agent.api.annotation.AchievesGoal;
 import com.embabel.agent.api.annotation.Agent;
 import com.embabel.agent.api.common.OperationContext;
 import com.embabel.agent.core.support.InvalidLlmReturnFormatException;
-import com.embabel.common.ai.decision.DecisionService;
 import com.embabel.common.ai.model.LlmOptions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,7 +21,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 @Agent(description = "Discover and research real places, reason over a timed city outing, and evaluate sourced alternatives")
 public class BayesAgent {
-    public record SelectedDecision(DecisionService service) {}
     public record MappedCandidates(List<Place> places) {}
     public record Discovery(List<String> placeIds, String reason) {}
     public record RetrievedEvidence(List<DayGuideTools.Evidence> places) {}
@@ -56,7 +54,7 @@ public class BayesAgent {
         var location = stage("geocode", () -> places.locate(request.city(), request.startingLocation()));
         ItineraryValidation.date(brief, location.timezone());
         return new ItineraryContext(brief, memory, new DayGuideTools(places, pages, location, brief.cuisineLikes()),
-                location.timezone(), request.hasDietaryNeed());
+                location.timezone(), request.hasDietaryNeed(), request.engine());
     }
     @Action public MappedCandidates gatherCandidates(ItineraryContext outing) {
         return stage("candidates", () -> {
@@ -206,10 +204,12 @@ public class BayesAgent {
             return ItineraryValidation.plans(draft, research, outing);
         });
     }
+    /** The outing's engine is a role name, so the platform's registry decides which service answers. */
     @Action public ItineraryDecisions.Answer decideDay(ItineraryContext outing, Itinerary itinerary,
-                                                       SelectedDecision decision) {
+                                                       OperationContext context) {
         return stage("decision", () -> ItineraryDecisions.evaluate(DecisionBrief.from(outing.brief(), itinerary.alternatives()),
-                itinerary.alternatives(), decision.service(), json));
+                itinerary.alternatives(), context.ai().decisions().byRole(outing.decisionRole()),
+                context.ai().classifications().byRole(outing.decisionRole()), json));
     }
     @Action @AchievesGoal(description = "Return a useful attributed city outline and show material questions separately from advisory notes")
     public TravelPlan completeItinerary(ItineraryContext outing, ResearchFindings research,

@@ -33,7 +33,7 @@ class BayesWebTest {
 
     @Test void itineraryApiBindsCuisineFieldsAndKeepsOlderPayloadCompatible() throws Exception {
         var service = mock(BayesItineraryService.class);
-        var mvc = MockMvcBuilders.standaloneSetup(new BayesItineraryController(service, mock(BayesItineraryService.class), mock(BayesItineraryService.class))).build();
+        var mvc = MockMvcBuilders.standaloneSetup(new BayesItineraryController(service)).build();
         doThrow(new BayesItineraryService.ModelUnavailableException("synthetic unavailable"))
                 .when(service).plan(any());
         String base = BASE;
@@ -51,10 +51,8 @@ class BayesWebTest {
     }
 
     @Test void unreadableRequestsReturnSafeBadRequestBeforeAnyServiceCall() throws Exception {
-        var local = mock(BayesItineraryService.class);
-        var jev = mock(BayesItineraryService.class);
-        var openai = mock(BayesItineraryService.class);
-        var mvc = MockMvcBuilders.standaloneSetup(new BayesItineraryController(local, jev, openai)).build();
+        var service = mock(BayesItineraryService.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new BayesItineraryController(service)).build();
         for (String body : java.util.List.of("{\"engine\":\"invalid\"}", "{}", "null", "{\"city\":",
                 "{\"partySize\":\"PRIVATE_MEDICAL_SENTINEL\",\"startingLocation\":\"PRIVATE_ORIGIN_SENTINEL\"}")) {
             var result = mvc.perform(post("/api/itinerary").contentType(MediaType.APPLICATION_JSON).content(body))
@@ -65,26 +63,23 @@ class BayesWebTest {
             assertFalse(response.contains("PRIVATE_MEDICAL_SENTINEL"));
             assertFalse(response.contains("PRIVATE_ORIGIN_SENTINEL"));
         }
-        verifyNoInteractions(local, jev, openai);
+        verifyNoInteractions(service);
     }
-    @Test void dispatchesExactlyOneServiceForEachEngineAndRejectsUnsupportedEngine() {
-        var local = mock(BayesItineraryService.class);
-        var jev = mock(BayesItineraryService.class);
-        var openai = mock(BayesItineraryService.class);
-        var controller = new BayesItineraryController(local, jev, openai);
+    @Test void everyListedEngineReachesTheOneServiceAndAnUnsupportedEngineDoesNot() {
+        var service = mock(BayesItineraryService.class);
+        var controller = new BayesItineraryController(service);
         var request = new ItineraryRequest("Miami", "Downtown", java.time.LocalDate.of(2030, 10, 15),
                 java.time.LocalTime.of(10, 0), java.time.LocalTime.of(14, 0), false, false, false,
                 false, false, 2, 0, "art", "steady", false, "", "local", true, true);
-        for (var engine : java.util.List.of("local", "jev", "openai")) {
+        for (var engine : ItineraryRequest.ENGINES) {
             var selected = request.withEngine(engine);
             controller.itinerary(selected);
-            var expected = switch (engine) { case "jev" -> jev; case "openai" -> openai; default -> local; };
-            verify(expected).plan(selected);
-            verifyNoMoreInteractions(local, jev, openai);
-            clearInvocations(local, jev, openai);
+            verify(service).plan(selected);
+            verifyNoMoreInteractions(service);
+            clearInvocations(service);
         }
         assertThrows(IllegalArgumentException.class, () -> controller.itinerary(request.withEngine("unknown")));
-        verifyNoInteractions(local, jev, openai);
+        verifyNoInteractions(service);
     }
     @Test void invalidModelSelectionIsSafeGatewayFailureWhileBadEngineIsBadRequest() throws Exception {
         var mapper = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules();
@@ -97,13 +92,13 @@ class BayesWebTest {
         var brief = new dev.jimador.bayes.itinerary.ItineraryBrief("City", java.time.LocalDate.of(2030, 10, 15),
                 java.time.LocalTime.of(7, 0), java.time.LocalTime.of(14, 0), 2, 0, "art", "steady", false,
                 java.util.List.of("sight"), java.util.List.of(), java.util.List.of());
-        var outing = new dev.jimador.bayes.itinerary.ItineraryContext(brief, null, null, "America/New_York", false);
+        var outing = new dev.jimador.bayes.itinerary.ItineraryContext(brief, null, null, "America/New_York", false, "jev");
         var candidates = new dev.jimador.bayes.itinerary.BayesAgent.MappedCandidates(java.util.List.of(
                 new dev.jimador.bayes.provider.Place("N7", "Mapped Museum", "museum", "https://www.openstreetmap.org/node/7", java.util.Map.of())));
         var failure = assertThrows(IllegalStateException.class, () -> agent.discoverPlaces(outing, candidates, context));
         var service = mock(BayesItineraryService.class);
         doThrow(failure).when(service).plan(any());
-        var mvc = MockMvcBuilders.standaloneSetup(new BayesItineraryController(mock(BayesItineraryService.class), service, mock(BayesItineraryService.class))).build();
+        var mvc = MockMvcBuilders.standaloneSetup(new BayesItineraryController(service)).build();
         var response = mvc.perform(post("/api/itinerary").contentType(MediaType.APPLICATION_JSON)
                         .content(BASE.replace("\"local\"", "\"jev\"")))
                 .andExpect(status().isBadGateway()).andExpect(jsonPath("$.code").value("RESEARCH_UNAVAILABLE"))

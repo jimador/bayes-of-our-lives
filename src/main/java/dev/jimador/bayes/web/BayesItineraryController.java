@@ -4,7 +4,6 @@ import dev.jimador.bayes.itinerary.BayesItineraryService;
 import dev.jimador.bayes.itinerary.ItineraryRequest;
 
 import java.util.Map;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -17,28 +16,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api")
 public class BayesItineraryController {
-    private final BayesItineraryService local;
-    private final BayesItineraryService jev;
-    private final BayesItineraryService openai;
+    private final BayesItineraryService itineraries;
 
-    public BayesItineraryController(@Qualifier("localItinerary") BayesItineraryService local,
-            @Qualifier("jevItinerary") BayesItineraryService jev,
-            @Qualifier("openaiItinerary") BayesItineraryService openai) {
-        this.local = local;
-        this.jev = jev;
-        this.openai = openai;
+    public BayesItineraryController(BayesItineraryService itineraries) {
+        this.itineraries = itineraries;
     }
 
     @PostMapping("/itinerary")
     BayesItineraryService.Result itinerary(@RequestBody ItineraryRequest request) {
         request.validateShape();
-        var service = switch (request.engine()) {
-            case "local" -> local;
-            case "jev" -> jev;
-            case "openai" -> openai;
-            default -> throw new IllegalArgumentException("engine must be local, jev, or openai");
-        };
-        return service.plan(request);
+        return itineraries.plan(request);
     }
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<Map<String, String>> unreadableInput() {

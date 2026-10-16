@@ -66,7 +66,7 @@ class CapturedItineraryValidationTest {
             }
             var localAnswer = engine.equals("local") ? ItineraryDecisions.evaluate(
                     DecisionBrief.from(f.context().brief(), checked.alternatives()), checked.alternatives(),
-                    new LocalItineraryDecisions(JSON), JSON) : null;
+                    new LocalItineraryDecisions(JSON), new LocalItineraryDecisions(JSON), JSON) : null;
             if (localAnswer != null) {
                 assertEquals("true", localAnswer.coverage());
                 assertEquals("a", localAnswer.choice());
@@ -174,7 +174,7 @@ class CapturedItineraryValidationTest {
                 LocalTime.of(7, 0), LocalTime.of(14, 0), 2, 0, "art", "steady", false,
                 List.of("breakfast", "lunch", "sight"), List.of("seafood", "cuban"), List.of("italian"));
         var context = new ItineraryContext(brief, new ItineraryMemories.Accepted("offline-recorded-fixture", "art", "steady", List.of()),
-                tools, location.timezone(), false);
+                tools, location.timezone(), false, "local");
         var research = new ResearchFindings(List.copyOf(facts));
         assertEquals(research, ItineraryValidation.research(research, List.copyOf(coordinate.keySet()), context));
         return new Fixture(captured, context, research, new Itinerary.Draft(List.copyOf(alternatives)), places, pages);

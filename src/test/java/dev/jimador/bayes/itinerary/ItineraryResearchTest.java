@@ -35,7 +35,7 @@ class ItineraryResearchTest {
     private final DayGuideTools tools = new DayGuideTools(places, pages, location, List.of());
     private final ItineraryContext outing = new ItineraryContext(new ItineraryBrief("City", DATE, time("10:00"), time("14:00"),
             2, 0, "art", "steady", false, List.of("sight"), List.of(), List.of()),
-            new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, "America/New_York", false);
+            new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, "America/New_York", false, "local");
     ItineraryResearchTest() {
         when(places.driveMinutes(anyDouble(), anyDouble(), anyDouble(), anyDouble())).thenReturn(5);
         for (int i = 1; i <= 3; i++) {

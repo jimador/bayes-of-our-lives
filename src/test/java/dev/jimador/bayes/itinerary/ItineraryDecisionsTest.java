@@ -30,10 +30,11 @@ class ItineraryDecisionsTest {
         return new Itinerary.Alternative(id, "Venue", status, List.of(stop), "Fits", status.equals("unresolved")
                 ? List.of("Hours need confirmation") : List.of(), List.of("Prices can change"));
     }
+    private LocalItineraryDecisions local() { return new LocalItineraryDecisions(mapper); }
     @Test void localRulesSelectAUsableOutlineAndReportCoverageAndConfidenceDespiteAdvisories() {
         var alternatives = List.of(alternative("a", "usable", "seafood"), alternative("b", "usable", "cuban"));
         var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives,
-                new LocalItineraryDecisions(mapper), mapper);
+                local(), local(), mapper);
         assertEquals("true", answer.coverage());
         assertEquals("a", answer.choice());
         assertEquals("strong", answer.rating());
@@ -53,7 +54,7 @@ class ItineraryDecisionsTest {
             }
             return invocation.callRealMethod();
         }).when(service).classify(any());
-        var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, mapper);
+        var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, service, mapper);
         assertTrue(answer.choice().startsWith("failure:"));
         assertNotEquals("b", answer.choice());
         assertTrue(answer.failed());
@@ -68,7 +69,7 @@ class ItineraryDecisionsTest {
                 return request.getSpec().selected("research", new ModelProvenance("fixture", "fixture"));
             return invocation.callRealMethod();
         }).when(service).classify(any());
-        var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, mapper);
+        var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, service, mapper);
         assertEquals("research", answer.choice());
         assertEquals("material-gaps", answer.classification());
         assertEquals("possible", answer.rating());
@@ -76,7 +77,7 @@ class ItineraryDecisionsTest {
     @Test void noValidAlternativeHasExplicitUncalledDecisionWithoutProviderProvenance() {
         var service = org.mockito.Mockito.mock(com.embabel.common.ai.decision.DecisionService.class);
         for (var alternatives : List.of(List.<Itinerary.Alternative>of(), List.of(alternative("a", "invalid", "seafood")))) {
-            var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, mapper);
+            var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, service, mapper);
             assertEquals("false", answer.coverage());
             assertEquals("research", answer.choice());
             assertEquals("weak", answer.rating());
@@ -91,7 +92,7 @@ class ItineraryDecisionsTest {
     @Test void validChoicesUseSelectedServiceAndFrameworkLevelsAreLowestToHighest() {
         var alternatives = List.of(alternative("a", "usable", "seafood"));
         var service = spy(new LocalItineraryDecisions(mapper));
-        var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, mapper);
+        var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, service, mapper);
         var request = org.mockito.ArgumentCaptor.forClass(com.embabel.common.ai.decision.DecisionRequest.class);
         org.mockito.Mockito.verify(service).ask(request.capture());
         var scale = (com.embabel.common.ai.decision.RatingQuestionSpec) request.getValue().getSpec().question("confidence");
@@ -112,7 +113,7 @@ class ItineraryDecisionsTest {
                 when(service.ask(any())).thenAnswer(i -> com.embabel.common.ai.decision.DecisionResponse.failed(
                         ((com.embabel.common.ai.decision.DecisionRequest) i.getArgument(0)).getSpec(), reason));
                 when(service.classify(any())).thenReturn(new com.embabel.common.ai.classification.ClassificationResult.Failure(reason));
-                var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, mapper);
+                var answer = ItineraryDecisions.evaluate(DecisionBrief.from(profile, alternatives), alternatives, service, service, mapper);
                 assertEquals("failure:coverage:" + reason.name(), answer.coverage());
                 assertEquals("failure:next:" + reason.name(), answer.choice());
                 assertEquals("failure:confidence:" + reason.name(), answer.rating());

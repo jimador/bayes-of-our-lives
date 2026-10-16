@@ -14,11 +14,15 @@ import com.embabel.common.ai.decision.spi.RatingAssessment;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.jimador.bayes.itinerary.DecisionBrief;
+import dev.jimador.bayes.itinerary.ItineraryDecisions;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 
-/** Local control reads the same JSON DTO used by configured remote decision services. */
+/**
+ * Deterministic Java rules that answer the same itinerary questions as Jev and OpenAI, from the same JSON brief.
+ * It is registered like any other decision service and selected by the {@code local} role.
+ */
 public final class LocalItineraryDecisions implements DecisionService, RatingAssessment {
     private static final ModelProvenance PROVENANCE = new ModelProvenance("bayes-itinerary-rules-v2", "local");
     private final ObjectMapper mapper;
@@ -31,9 +35,10 @@ public final class LocalItineraryDecisions implements DecisionService, RatingAss
     }
     @Override public ClassificationResult classify(ClassificationRequest request) {
         DecisionBrief brief = read(request.getInput());
-        List<String> ids = request.getSpec().getCategories().stream().map(c -> c.getId()).toList();
-        String selected = ids.contains("research") ? best(brief, ids) : brief.readiness();
-        return request.getSpec().selected(selected, PROVENANCE);
+        var spec = request.getSpec();
+        String selected = spec.getQuestion().getName().equals(ItineraryDecisions.READINESS.getQuestion().getName())
+                ? brief.readiness() : best(brief, spec.getCategories().stream().map(c -> c.getId()).toList());
+        return spec.selected(selected, PROVENANCE);
     }
     @Override public RatingResult rate(String input, RatingQuestionSpec question) {
         DecisionBrief brief = read(input);

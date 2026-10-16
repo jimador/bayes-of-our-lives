@@ -29,7 +29,7 @@ class ItineraryValidationTest {
     private final ItineraryBrief brief = new ItineraryBrief("City", DATE, time("07:00"), time("14:00"),
             2, 0, "art", "steady", false, List.of("breakfast", "sight", "lunch"), List.of("seafood", "cuban"), List.of("italian"));
     private final ItineraryContext outing = new ItineraryContext(brief,
-            new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, "America/New_York", false);
+            new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, "America/New_York", false, "local");
     ItineraryValidationTest() {
         register("N1", "Breakfast Cafe", "breakfast", Map.of("breakfast", "yes", "opening_hours", "07:00-14:00"), "");
         register("N2", "Art Museum", "museum", Map.of("opening_hours", "10:00-17:00"), "");
@@ -120,7 +120,7 @@ class ItineraryValidationTest {
         when(places.driveMinutes(26.6, -80.6, 26.7, -80.7)).thenReturn(22);
         var profile = new ItineraryBrief("City", DATE, time("07:00"), time("14:00"), 2, 0, "art", "steady", false,
                 List.of("lunch", "sight"), List.of("seafood", "cuban"), List.of());
-        var context = new ItineraryContext(profile, outing.memory(), capturedTools, outing.timezone(), false);
+        var context = new ItineraryContext(profile, outing.memory(), capturedTools, outing.timezone(), false, "local");
         var research = new ResearchFindings(List.of(fact("W532105760", List.of(), List.of(), "11:00", "17:00"),
                 fact("N9796646021", List.of("cuban"), List.of("lunch"), "11:30", "21:00"),
                 fact("N12922400401", List.of("seafood"), List.of("lunch"), "12:00", "23:00")));
@@ -167,7 +167,7 @@ class ItineraryValidationTest {
             assertFalse(checked.alternatives().getFirst().openQuestions().stream()
                     .anyMatch(q -> q.contains("Provide distinct alternatives")));
             var answer = ItineraryDecisions.evaluate(DecisionBrief.from(brief, checked.alternatives()),
-                    checked.alternatives(), new LocalItineraryDecisions(mapper), mapper);
+                    checked.alternatives(), new LocalItineraryDecisions(mapper), new LocalItineraryDecisions(mapper), mapper);
             assertEquals("false", answer.coverage());
             assertEquals("material-gaps", answer.classification());
         }
@@ -227,7 +227,7 @@ class ItineraryValidationTest {
         assertTrue(omitted.alternatives().getFirst().openQuestions().stream().anyMatch(q -> q.contains("liked cuisines: cuban")));
         var mapper = new ObjectMapper().findAndRegisterModules();
         var answer = ItineraryDecisions.evaluate(DecisionBrief.from(brief, omitted.alternatives()),
-                omitted.alternatives(), new LocalItineraryDecisions(mapper), mapper);
+                omitted.alternatives(), new LocalItineraryDecisions(mapper), new LocalItineraryDecisions(mapper), mapper);
         assertEquals("false", answer.coverage());
         assertEquals("material-gaps", answer.classification());
     }

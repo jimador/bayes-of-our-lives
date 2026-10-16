@@ -93,10 +93,71 @@ class BayesAgentTest {
             assertFalse(prompt.contains("-80.654321"));
             assertTrue(prompt.contains("art"));
         }
-        var review = agent.decideDay(outing, planned, new BayesAgent.SelectedDecision(new LocalItineraryDecisions(mapper)));
+        var ai = mock(com.embabel.agent.api.common.Ai.class);
+        var registry = registry(new LocalItineraryDecisions(mapper));
+        when(ai.decisions()).thenReturn(registry.decisions());
+        when(ai.classifications()).thenReturn(registry.classifications());
+        when(context.ai()).thenReturn(ai);
+        var review = agent.decideDay(outing, planned, context);
+        assertEquals("local/bayes-itinerary-rules-v2", review.model());
         var result = agent.completeItinerary(outing, researched, planned, review);
         assertEquals("Art Museum", result.researchedPlaces().getFirst().place().name());
         assertEquals("https://www.openstreetmap.org/node/7", result.researchedPlaces().getFirst().place().sourceUrl());
+    }
+    /** Binds every engine role the way application.properties does, with stubs standing in for Jev and OpenAI. */
+    private static com.embabel.common.ai.model.DecisionServiceRegistry registry(LocalItineraryDecisions local,
+            com.embabel.common.ai.decision.DecisionService jev) {
+        var builder = com.embabel.common.ai.model.DecisionServiceRegistry.builder()
+                .register("localDecision", local)
+                .register("jevDecision", jev)
+                .register("openaiDecision", com.embabel.common.ai.decision.support.StubDecisionService.builder("openaiDecision").build());
+        for (String engine : ItineraryRequest.ENGINES) {
+            builder.decisionRole(engine, engine + "Decision").classificationRole(engine, engine + "Decision");
+        }
+        return builder.build();
+    }
+    private static com.embabel.common.ai.model.DecisionServiceRegistry registry(LocalItineraryDecisions local) {
+        return registry(local, com.embabel.common.ai.decision.support.StubDecisionService.builder("jevDecision").build());
+    }
+    @Test void decisionActionAsksTheServiceBoundToTheOutingsRole() {
+        var model = new com.embabel.common.ai.classification.ModelProvenance("jev-fixture", "typesafe");
+        var jev = com.embabel.common.ai.decision.support.StubDecisionService.builder("jevDecision")
+                .proposition("coverage", new com.embabel.common.ai.decision.PropositionResult.Answered(true, model))
+                .choice("next", new com.embabel.common.ai.classification.ClassificationResult.Selected("a", model))
+                .rating("confidence", new com.embabel.common.ai.decision.RatingResult.Answered(model, "strong"))
+                .choice("readiness", new com.embabel.common.ai.classification.ClassificationResult.Selected("usable-outline", model))
+                .build();
+        var registry = registry(new LocalItineraryDecisions(mapper), jev);
+        var ai = mock(com.embabel.agent.api.common.Ai.class);
+        when(ai.decisions()).thenReturn(registry.decisions());
+        when(ai.classifications()).thenReturn(registry.classifications());
+        OperationContext context = mock(OperationContext.class);
+        when(context.ai()).thenReturn(ai);
+        var brief = new ItineraryBrief("City", LocalDate.of(2030, 10, 15), LocalTime.of(10, 0), LocalTime.of(14, 0),
+                2, 0, "art", "steady", false, List.of("sight"), List.of(), List.of());
+        var outing = new ItineraryContext(brief, null, null, "America/New_York", false, "jev");
+        var itinerary = new Itinerary(List.of(new Itinerary.Alternative("a", "Art Museum", "usable", List.of(),
+                "Fits", List.of(), List.of())));
+        var agent = new BayesAgent(mock(ItineraryMemories.class), mock(Places.class), mock(PublicPages.class), mapper,
+                LlmOptions.withModel("research-fixture"), LlmOptions.withModel("plan-fixture"));
+        var review = agent.decideDay(outing, itinerary, context);
+        assertEquals("typesafe/jev-fixture", review.model());
+        assertEquals("a", review.choice());
+        assertEquals("strong", review.rating());
+        assertEquals("usable-outline", review.classification());
+        assertEquals(List.of("askQuestionSet", "classify"), jev.calls());
+    }
+    @Test void serviceRefusesToStartWhenAnEngineHasNoRole() {
+        var partial = com.embabel.common.ai.model.DecisionServiceRegistry.builder()
+                .register("localDecision", new LocalItineraryDecisions(mapper))
+                .decisionRole("local", "localDecision").classificationRole("local", "localDecision").build();
+        var reader = mock(AgentMetadataReader.class);
+        var bayes = mock(BayesAgent.class);
+        when(reader.createAgentMetadata(bayes)).thenReturn(mock(com.embabel.agent.core.Agent.class));
+        var failure = assertThrows(com.embabel.common.ai.model.ServiceSelectionException.class, () ->
+                new BayesItineraryService(mock(AgentPlatform.class), new ItineraryMemories(temporary.resolve("p.json")),
+                        bayes, reader, partial));
+        assertTrue(failure.getMessage().contains("jev"), failure.getMessage());
     }
     @Test void metadataRequiresDraftReviewAndOnlyFinalizationProducesItinerary() {
         var agent = new BayesAgent(mock(ItineraryMemories.class), mock(Places.class), mock(PublicPages.class), mapper,
@@ -138,7 +199,7 @@ class BayesAgentTest {
         var tools = new dev.jimador.bayes.provider.DayGuideTools(places, pages, location, List.of("seafood", "cuban", "italian"));
         var brief = new ItineraryBrief("City", request().date(), LocalTime.of(7, 0), LocalTime.of(22, 0), 2, 0,
                 "art", "steady", false, List.of("sight", "breakfast", "coffee", "lunch", "dinner"), List.of("seafood", "cuban", "italian"), List.of());
-        var outing = new ItineraryContext(brief, new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, location.timezone(), true);
+        var outing = new ItineraryContext(brief, new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, location.timezone(), true, "local");
         var options = LlmOptions.withModel("research-fixture");
         var agent = new BayesAgent(mock(ItineraryMemories.class), places, pages, mapper, options, options);
         var candidates = agent.gatherCandidates(outing);
@@ -183,7 +244,7 @@ class BayesAgentTest {
         tools.search("museum", "");
         var brief = new ItineraryBrief("City", request().date(), java.time.LocalTime.of(10, 0), java.time.LocalTime.of(14, 0),
                 2, 0, "art", "steady", false, List.of("sight"), List.of(), List.of());
-        var outing = new ItineraryContext(brief, new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, "America/New_York", false);
+        var outing = new ItineraryContext(brief, new ItineraryMemories.Accepted("local", "art", "steady", List.of()), tools, "America/New_York", false, "local");
         var research = new ResearchFindings(List.of(new ResearchFindings.PlaceFinding("N7", "Attributed map hours", List.of(), List.of(), "open",
                 List.of(new ResearchFindings.Window(request().date(), java.time.LocalTime.of(10, 0), java.time.LocalTime.of(14, 0))),
                 "unknown", "unknown", List.of("N7"), List.of())));
@@ -237,7 +298,7 @@ class BayesAgentTest {
         var prepared = agent.prepare(request());
         var outing = new ItineraryContext(prepared.brief(), prepared.memory(),
                 new dev.jimador.bayes.provider.DayGuideTools(places, pages, location, List.of("seafood", "cuban")),
-                prepared.timezone(), prepared.privateRestrictionCheck());
+                prepared.timezone(), prepared.privateRestrictionCheck(), prepared.decisionRole());
         for (var place : captured) {
             String cuisine = place.tags().getOrDefault("cuisine", "");
             when(places.search(location, place.category(), cuisine)).thenReturn(List.of(new Places.MappedPlace(place, 26.2, -80.2)));
@@ -294,13 +355,13 @@ class BayesAgentTest {
         var tools = new dev.jimador.bayes.provider.DayGuideTools(mock(Places.class), mock(PublicPages.class),
                 new Places.Location("City", "America/New_York", 26, -80, 26.123456, -80.654321), List.of());
         var outing = new ItineraryContext(brief, new ItineraryMemories.Accepted("local", "art", "steady", List.of()),
-                tools, "America/New_York", true);
+                tools, "America/New_York", true, "local");
         when(bayes.prepare(any())).thenReturn(outing);
         AgentProcess process = mock(AgentProcess.class);
-        when(platform.createAgentProcessFrom(eq(knownAgent), any(ProcessOptions.class), eq(outing), any(BayesAgent.SelectedDecision.class))).thenReturn(process);
+        when(platform.createAgentProcessFrom(eq(knownAgent), any(ProcessOptions.class), eq(outing))).thenReturn(process);
         when(process.run()).thenReturn(process);
         when(process.getStatus()).thenReturn(AgentProcessStatusCode.COMPLETED);
-        var service = new BayesItineraryService(platform, new LocalItineraryDecisions(mapper), memory, bayes, reader);
+        var service = new BayesItineraryService(platform, memory, bayes, reader, registry(new LocalItineraryDecisions(mapper)));
         assertThrows(BayesItineraryService.ItineraryUnavailableException.class, () -> service.plan(request()));
         var invocation = mockingDetails(platform).getInvocations().stream()
                 .filter(i -> i.getMethod().getName().equals("createAgentProcessFrom")).findFirst().orElseThrow();
