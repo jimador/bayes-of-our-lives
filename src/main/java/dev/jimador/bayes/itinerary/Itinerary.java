@@ -1,6 +1,7 @@
 package dev.jimador.bayes.itinerary;
 
 import com.embabel.common.ai.prompt.PromptContributor;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -9,12 +10,21 @@ import java.util.stream.Collectors;
 public record Itinerary(List<Alternative> alternatives) {
 
     /** What the planner returns before Java has checked it. */
-    public record Draft(List<AlternativeDraft> alternatives) {}
+    public record Draft(
+            @JsonPropertyDescription("One or two alternatives, with IDs a and b")
+                    List<AlternativeDraft> alternatives) {}
 
     public record AlternativeDraft(
-            String id, List<StopDraft> stops, String reason, List<String> notes) {}
+            @JsonPropertyDescription("a or b") String id,
+            @JsonPropertyDescription("The stops in time order") List<StopDraft> stops,
+            @JsonPropertyDescription("Why this alternative suits the outing") String reason,
+            @JsonPropertyDescription("Caveats and evidence gaps") List<String> notes) {}
 
-    public record StopDraft(String kind, String placeId, LocalTime startsAt, LocalTime endsAt) {}
+    public record StopDraft(
+            @JsonPropertyDescription("breakfast, coffee, lunch, dinner or sight") String kind,
+            @JsonPropertyDescription("A researched place ID") String placeId,
+            @JsonPropertyDescription("Local start time, HH:mm") LocalTime startsAt,
+            @JsonPropertyDescription("Local end time, HH:mm") LocalTime endsAt) {}
 
     /**
      * A draft together with the validator's verdict on each alternative, which drives the one

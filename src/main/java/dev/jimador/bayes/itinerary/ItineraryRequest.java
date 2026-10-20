@@ -223,7 +223,7 @@ public record ItineraryRequest(
     }
 
     /** Missing requirements are returned as targeted questions before any provider call. */
-    public List<String> questions() {
+    public List<String> questions(MealTimes meals) {
         List<String> missing = new ArrayList<>();
         if (date == null || startTime == null || endTime == null)
             missing.add("What date and start/end times should the itinerary cover?");
@@ -235,22 +235,18 @@ public record ItineraryRequest(
             if (!endTime.isAfter(startTime)
                     || java.time.Duration.between(startTime, endTime).toHours() > 12)
                 missing.add("Choose an end time after the start, within a 12-hour outing.");
-            if (startTime.isBefore(LocalTime.of(9, 0))
+            if (startTime.isBefore(meals.earlyStart())
                     && !breakfast
                     && !coffee
                     && !earlyFoodDeclined)
                 missing.add(
                         "With an early start, would you like breakfast or coffee, or neither?"
                                 + " Confirm one before planning.");
-            if (lunch
-                    && (endTime.isBefore(LocalTime.of(11, 0))
-                            || startTime.isAfter(LocalTime.of(14, 30))))
+            if (lunch && !meals.fits("lunch", startTime, endTime))
                 missing.add(
                         "Lunch falls outside this time window. Change the window or lunch"
                                 + " requirement.");
-            if (dinner
-                    && (endTime.isBefore(LocalTime.of(17, 0))
-                            || startTime.isAfter(LocalTime.of(21, 0))))
+            if (dinner && !meals.fits("dinner", startTime, endTime))
                 missing.add(
                         "Dinner falls outside this time window. Change the window or dinner"
                                 + " requirement.");

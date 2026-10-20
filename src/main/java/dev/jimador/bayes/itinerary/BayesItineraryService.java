@@ -44,13 +44,15 @@ public class BayesItineraryService {
     private final ItineraryMemories memory;
     private final com.embabel.agent.core.Agent agent;
     private final BayesAgent bayesAgent;
+    private final MealTimes meals;
 
     public BayesItineraryService(
             AgentPlatform platform,
             ItineraryMemories memory,
             BayesAgent bayesAgent,
             AgentMetadataReader reader,
-            DecisionServiceRegistry decisions) {
+            DecisionServiceRegistry decisions,
+            MealTimes meals) {
         // Each engine is a role name. Fail at startup, not on someone's first outing, when one is
         // unbound.
         for (String engine : ItineraryRequest.ENGINES) {
@@ -60,6 +62,7 @@ public class BayesItineraryService {
         this.platform = platform;
         this.memory = memory;
         this.bayesAgent = bayesAgent;
+        this.meals = meals;
         AgentScope scope = reader.createAgentMetadata(bayesAgent);
         if (!(scope instanceof com.embabel.agent.core.Agent known))
             throw new IllegalStateException("Bayes agent metadata is unavailable");
@@ -90,7 +93,7 @@ public class BayesItineraryService {
                     List.of(),
                     null);
         var effective = memory.resolve(request);
-        List<String> questions = effective.questions();
+        List<String> questions = effective.questions(meals);
         if (!questions.isEmpty())
             return new Result(
                     "needs_input",

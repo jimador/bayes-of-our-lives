@@ -15,6 +15,7 @@ import com.embabel.agent.api.common.OperationContext;
 import com.embabel.agent.core.support.InvalidLlmReturnFormatException;
 import com.embabel.common.ai.model.LlmOptions;
 import com.embabel.common.ai.prompt.PromptContributor;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import dev.jimador.bayes.provider.DayGuideTools;
 import dev.jimador.bayes.provider.PageEvidence;
 import dev.jimador.bayes.provider.Place;
@@ -55,7 +56,13 @@ public class BayesAgent {
         }
     }
 
-    public record Discovery(List<String> placeIds, String reason) {}
+    public record Discovery(
+            @JsonPropertyDescription(
+                            "Place IDs copied exactly from the candidate list, such as N123 or"
+                                    + " W456")
+                    List<String> placeIds,
+            @JsonPropertyDescription("One sentence on why these venues suit the outing")
+                    String reason) {}
 
     /** Map tags and retrieved pages for each venue discovery selected. */
     public record RetrievedEvidence(List<DayGuideTools.Evidence> places)
@@ -116,6 +123,7 @@ public class BayesAgent {
     private final ItineraryDecisions decisions;
     private final LlmOptions researcher;
     private final LlmOptions planner;
+    private final MealTimes meals;
 
     public BayesAgent(
             ItineraryMemories memories,
@@ -123,22 +131,24 @@ public class BayesAgent {
             PublicPages pages,
             ItineraryDecisions decisions,
             @Qualifier("researcherLlm") LlmOptions researcher,
-            @Qualifier("plannerLlm") LlmOptions planner) {
+            @Qualifier("plannerLlm") LlmOptions planner,
+            MealTimes meals) {
         this.memories = memories;
         this.places = places;
         this.pages = pages;
         this.decisions = decisions;
         this.researcher = researcher;
         this.planner = planner;
+        this.meals = meals;
     }
 
     public ItineraryContext prepare(ItineraryRequest request) {
         request.validateShape();
-        if (!request.questions().isEmpty())
+        if (!request.questions(meals).isEmpty())
             throw new IllegalArgumentException("Outing requirements are incomplete");
         var memory = memories.rememberForThisOuting(request);
-        var brief = ItineraryBrief.from(request, memory);
         var location = places.locate(request.city(), request.startingLocation());
+        var brief = ItineraryBrief.from(request, memory, meals, location.timezone());
         ItineraryValidation.date(brief, location.timezone());
         var tools = new DayGuideTools(places, pages, location, brief.cuisineLikes());
         return new ItineraryContext(
@@ -222,9 +232,7 @@ public class BayesAgent {
                             .withToolObject(outing.tools())
                             .withPromptElements(
                                     UNTRUSTED_EVIDENCE, RESEARCH_RULES, outing.brief(), evidence)
-                            .createObject(
-                                    RESEARCH_TASK.formatted(outing.brief().date()),
-                                    ResearchFindings.class);
+                            .createObject(RESEARCH_TASK, ResearchFindings.class);
         } catch (InvalidLlmReturnFormatException failure) {
             LOG.info("stage=research issue=MODEL_OUTPUT_FORMAT count={}", selected.size());
             return ResearchFindings.unavailable(
@@ -248,7 +256,7 @@ public class BayesAgent {
                         outing.brief(),
                         evidence,
                         research.asPrompt())
-                .createObject(DRAFT_TASK.formatted(outing.timezone()), Itinerary.Draft.class);
+                .createObject(DRAFT_TASK, Itinerary.Draft.class);
     }
 
     @Action
@@ -284,8 +292,7 @@ public class BayesAgent {
                                 evidence,
                                 research.asPrompt(),
                                 reviewed)
-                        .createObject(
-                                REFINE_TASK.formatted(outing.timezone()), Itinerary.Draft.class);
+                        .createObject(REFINE_TASK, Itinerary.Draft.class);
         return ItineraryValidation.plans(refined, research, outing);
     }
 

@@ -1,6 +1,7 @@
 package dev.jimador.bayes.itinerary;
 
 import com.embabel.common.ai.prompt.PromptContributor;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import dev.jimador.bayes.provider.PageEvidence;
 import dev.jimador.bayes.provider.Place;
 import java.time.LocalDate;
@@ -25,19 +26,37 @@ public record ResearchFindings(List<PlaceFinding> places) {
 
     public record PlaceView(Place place, PlaceFinding interpretation, List<PageEvidence> pages) {}
 
-    public record Window(LocalDate date, LocalTime opensAt, LocalTime closesAt) {}
+    public record Window(
+            @JsonPropertyDescription("The outing date") LocalDate date,
+            @JsonPropertyDescription("Opening time, HH:mm") LocalTime opensAt,
+            @JsonPropertyDescription("Closing time, HH:mm") LocalTime closesAt) {}
 
     public record PlaceFinding(
-            String placeId,
-            String summary,
-            List<String> cuisines,
-            List<String> supportedMeals,
-            String hoursStatus,
-            List<Window> operatingWindows,
-            String access,
-            String suitability,
-            List<String> sourceIds,
-            List<String> notes) {}
+            @JsonPropertyDescription("The venue's place ID, exactly as given") String placeId,
+            @JsonPropertyDescription(
+                            "What the evidence says about this venue, in a sentence or two")
+                    String summary,
+            @JsonPropertyDescription("Cuisines the evidence states, never inferred from the name")
+                    List<String> cuisines,
+            @JsonPropertyDescription(
+                            "Meals the evidence supports: breakfast, coffee, lunch or dinner")
+                    List<String> supportedMeals,
+            @JsonPropertyDescription("open, closed or unknown on the outing date")
+                    String hoursStatus,
+            @JsonPropertyDescription(
+                            "Opening windows on the outing date, empty when the hours are unknown")
+                    List<Window> operatingWindows,
+            @JsonPropertyDescription(
+                            "supported, incompatible or unknown for the group's access needs")
+                    String access,
+            @JsonPropertyDescription(
+                            "supported, incompatible or unknown for this group and its interests")
+                    String suitability,
+            @JsonPropertyDescription(
+                            "Sources relied on: the place ID for map tags, a page ID for a page")
+                    List<String> sourceIds,
+            @JsonPropertyDescription("Advisory notes, such as prices or menu caveats")
+                    List<String> notes) {}
 
     static PlaceFinding unknown(String placeId, Issue issue) {
         return new PlaceFinding(

@@ -448,7 +448,9 @@ public final class ItineraryValidation {
                                     + previousEnd
                                     + " + trusted drive "
                                     + route.driveMinutes()
-                                    + " minutes + 10-minute buffer = earliest "
+                                    + " minutes + "
+                                    + PARKING_MINUTES
+                                    + "-minute buffer = earliest "
                                     + earliest
                                     + "; requested start "
                                     + stop.startsAt()
@@ -456,8 +458,18 @@ public final class ItineraryValidation {
                                     + shortfall
                                     + " minutes.");
                 }
-                if (!mealWindow(stop.kind(), stop.startsAt(), stop.endsAt()))
-                    invalid.add("A requested meal falls outside its service time window.");
+                var window = context.brief().mealWindows().get(stop.kind());
+                if (window != null && !window.contains(stop.startsAt(), stop.endsAt()))
+                    invalid.add(
+                            "The "
+                                    + stop.kind()
+                                    + " stop at "
+                                    + stop.startsAt()
+                                    + "-"
+                                    + stop.endsAt()
+                                    + " falls outside its "
+                                    + window
+                                    + " service window.");
             }
             if (route.driveMinutes() == null)
                 questions.add("Driving time to " + place.name() + " is unavailable.");
@@ -476,7 +488,17 @@ public final class ItineraryValidation {
                                                             && !stop.endsAt()
                                                                     .isAfter(w.closesAt()));
             if (!fits && !fact.operatingWindows().isEmpty())
-                invalid.add(place.name() + " does not fit its attributed operating window.");
+                invalid.add(
+                        place.name()
+                                + " is open "
+                                + fact.operatingWindows().stream()
+                                        .map(w -> w.opensAt() + "-" + w.closesAt())
+                                        .collect(java.util.stream.Collectors.joining(", "))
+                                + ", so the stop at "
+                                + stop.startsAt()
+                                + "-"
+                                + stop.endsAt()
+                                + " must move inside those hours.");
             else if (!fits) questions.add("Operating hours for " + place.name() + " are unknown.");
             boolean breakfastTag = "yes".equalsIgnoreCase(place.tags().get("breakfast"));
             boolean meal = !stop.kind().equals("sight");
@@ -557,17 +579,5 @@ public final class ItineraryValidation {
                 draft.reason(),
                 blockers,
                 notes.stream().distinct().toList());
-    }
-
-    private static boolean mealWindow(String kind, LocalTime start, LocalTime end) {
-        return switch (kind) {
-            case "breakfast" ->
-                    !start.isBefore(LocalTime.of(5, 0)) && !end.isAfter(LocalTime.of(11, 30));
-            case "lunch" ->
-                    !start.isBefore(LocalTime.of(11, 0)) && !end.isAfter(LocalTime.of(15, 30));
-            case "dinner" ->
-                    !start.isBefore(LocalTime.of(17, 0)) && !end.isAfter(LocalTime.of(22, 0));
-            default -> true;
-        };
     }
 }
