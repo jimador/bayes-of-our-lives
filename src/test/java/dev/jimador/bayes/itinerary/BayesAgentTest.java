@@ -107,21 +107,22 @@ class BayesAgentTest {
     /** Binds every engine role the way application.properties does, with stubs standing in for Jev and OpenAI. */
     private static com.embabel.common.ai.model.DecisionServiceRegistry registry(LocalItineraryDecisions local,
             com.embabel.common.ai.decision.DecisionService jev) {
+        var names = Map.of("local", "localDecision", "jev", "jev-latest", "openai", "gpt-4.1");
         var builder = com.embabel.common.ai.model.DecisionServiceRegistry.builder()
                 .register("localDecision", local)
-                .register("jevDecision", jev)
-                .register("openaiDecision", com.embabel.common.ai.decision.support.StubDecisionService.builder("openaiDecision").build());
+                .register("jev-latest", jev)
+                .register("gpt-4.1", com.embabel.common.ai.decision.support.StubDecisionService.builder("gpt-4.1").build());
         for (String engine : ItineraryRequest.ENGINES) {
-            builder.decisionRole(engine, engine + "Decision").classificationRole(engine, engine + "Decision");
+            builder.decisionRole(engine, names.get(engine)).classificationRole(engine, names.get(engine));
         }
         return builder.build();
     }
     private static com.embabel.common.ai.model.DecisionServiceRegistry registry(LocalItineraryDecisions local) {
-        return registry(local, com.embabel.common.ai.decision.support.StubDecisionService.builder("jevDecision").build());
+        return registry(local, com.embabel.common.ai.decision.support.StubDecisionService.builder("jev-latest").build());
     }
     @Test void decisionActionAsksTheServiceBoundToTheOutingsRole() {
         var model = new com.embabel.common.ai.classification.ModelProvenance("jev-fixture", "typesafe");
-        var jev = com.embabel.common.ai.decision.support.StubDecisionService.builder("jevDecision")
+        var jev = com.embabel.common.ai.decision.support.StubDecisionService.builder("jev-latest")
                 .proposition("coverage", new com.embabel.common.ai.decision.PropositionResult.Answered(true, model))
                 .choice("next", new com.embabel.common.ai.classification.ClassificationResult.Selected("a", model))
                 .rating("confidence", new com.embabel.common.ai.decision.RatingResult.Answered(model, "strong"))
