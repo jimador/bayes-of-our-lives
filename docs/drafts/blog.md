@@ -2,12 +2,12 @@
 
 *Like sands through the hourglass, so are the LLM API calls of our lives.*
 
-You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one a question, some state, and the answers it's allowed to give. It hands back one of those answers with probabilities attached. Here's a choice question from [TypeSafe's quickstart](https://docs.typesafe.ai/introduction/quickstart), asking which team should handle a support ticket. The state is the ticket itself, and the criteria are the answers it's allowed to give.
+You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one a question, some state, and the answers it's allowed to give. It hands back one of those answers with probabilities attached. Here's a choice question I sent Jev, based on the support-ticket example in [TypeSafe's quickstart](https://docs.typesafe.ai/introduction/quickstart). It asks which team should handle a support ticket. The state is the ticket itself, and the criteria are the answers it's allowed to give.
 
 ```json
 {
   "model": "jev-latest",
-  "state": "Our API integration started returning 500 errors on every request about 20 minutes ago, and we can't process any customer orders until this is fixed.",
+  "state": "Your app keeps logging me out, and now my card shows a charge I don't recognize.",
   "questions": {
     "department": {
       "type": "choice",
@@ -30,15 +30,15 @@ Here's what came back when I sent it.
   "answers": {
     "department": {
       "type": "choice",
-      "choice": "technical",
-      "confidence": 1.0,
-      "probabilities": { "billing": 0.0, "technical": 1.0, "sales": 0.0 }
+      "choice": "billing",
+      "confidence": 0.77,
+      "probabilities": { "billing": 0.85, "technical": 0.15, "sales": 0.0 }
     }
   }
 }
 ```
 
-The answer is `technical`, and the probabilities tell your code how sure it ought to be about that.
+The answer is `billing`, and the probabilities tell your code how sure it ought to be about that.
 
 The big draw here is speed. A decision model doesn't have to write anything out. It just picks from the answers you gave it, so there's no long response to generate and no text to parse on the other end. Those savings add up fast when an agent has to make a bunch of small calls on the way to a result.
 
