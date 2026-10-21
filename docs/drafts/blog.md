@@ -2,7 +2,27 @@
 
 *Like sands through the hourglass, so are the LLM API calls of our lives.*
 
-You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one a question, some state, and the answers it's allowed to give. It hands back one of those answers with probabilities attached. Here's a choice answer from [TypeSafe's quickstart](https://docs.typesafe.ai/introduction/quickstart), for a question about which team should handle a support ticket. The state is the ticket itself, a customer saying their API integration has been throwing 500 errors for twenty minutes and they can't process orders.
+You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one a question, some state, and the answers it's allowed to give. It hands back one of those answers with probabilities attached. Here's a choice question from [TypeSafe's quickstart](https://docs.typesafe.ai/introduction/quickstart), asking which team should handle a support ticket. The state is the ticket itself, and the criteria are the answers it's allowed to give.
+
+```json
+{
+  "model": "jev-latest",
+  "state": "Our API integration started returning 500 errors on every request about 20 minutes ago, and we can't process any customer orders until this is fixed.",
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instructions": "Which team should handle this",
+      "criteria": {
+        "billing": "Payment or subscription issues",
+        "technical": "Bugs or integration problems",
+        "sales": "Pricing or account questions"
+      }
+    }
+  }
+}
+```
+
+Here's what came back when I sent it.
 
 ```json
 {
@@ -12,7 +32,7 @@ You may or may not have heard of decision models. They're a newer kind of model,
       "type": "choice",
       "choice": "technical",
       "confidence": 1.0,
-      "probabilities": { "technical": 1.0, "billing": 0.0, "sales": 0.0 }
+      "probabilities": { "billing": 0.0, "technical": 1.0, "sales": 0.0 }
     }
   }
 }
