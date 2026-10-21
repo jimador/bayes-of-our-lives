@@ -42,7 +42,7 @@ The answer is `billing`. Along with the answer, you get a probability for each o
 
 The big draw here is speed. A decision model doesn't have to write anything out. It just picks from the answers you gave it, so there's no long response to generate and no text to parse on the other end. Those savings add up fast when an agent has to make a bunch of small calls on the way to a result.
 
-[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) is TypeSafe's first *System One* model. I wanted to see how it stacked up against an LLM making the same call inside a real agent, so I built a small app to find out.
+I wanted to see how [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev), TypeSafe's first *System One* model, stacked up against an LLM making the same call inside a real agent, so I built a small app to find out.
 
 ## Decisions in Embabel Agent
 
