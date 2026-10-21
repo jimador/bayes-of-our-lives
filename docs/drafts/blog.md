@@ -4,7 +4,7 @@
 
 You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one a question, some state, and the answers it's allowed to give. It hands back one of those answers with probabilities attached. The big draw here is speed. A decision model doesn't have to write anything out. It just picks from the answers you gave it, so there's no long response to generate and no text to parse on the other end. That adds up fast when an agent has to make a bunch of small calls on the way to a result.
 
-[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) is TypeSafe's flagship model and the first of their _System One_ models. I wanted to see how it stacked up against an LLM making the same call inside a real agent, so I built a small app to find out.
+[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) is TypeSafe's first *System One* model. I wanted to see how it stacked up against an LLM making the same call inside a real agent, so I built a small app to find out.
 
 ## Decisions in Embabel Agent
 
@@ -35,9 +35,9 @@ embabel.models.classification.roles.openai=gpt-4.1
 
 ## Call and response
 
-Bayes asks three questions in one decision request and then a fourth as a classification request. Coverage asks whether a plan covers every requested stop and meal. Next asks which plan fits best, or whether to go research more. Confidence rates the best plan as weak, possible, or strong. Readiness classifies the whole set of plans.
+Bayes asks three questions in one decision request and then a fourth as a classification request. The coverage question asks whether a plan covers every requested stop and meal. The next question asks which plan fits best, or whether to go research more. The confidence question rates the best plan as weak, possible, or strong. Readiness classifies the whole set of plans.
 
-The next question is the interesting one, because its answers change every time. The options are whichever plans passed validation, plus a way out.
+The `next` question is the interesting one, because its answers may change every time. The options are whichever plans passed validation, plus an escape hatch.
 
 ```java
 static ChoiceQuestionSpec next(List<Itinerary.Alternative> valid) {
@@ -76,7 +76,7 @@ private static String coverage(PropositionResult result) {
 }
 ```
 
-No parsing, no guessing what the model meant. If it picks something that wasn't on the list, Bayes records that as a failure.
+Bayes never has to parse text or guess what the model meant. If the model picks something that wasn't on the list, Bayes records that as a failure.
 
 ## The stopwatch
 
@@ -87,7 +87,7 @@ Bayes times the decision call and the classification call separately, so it's ea
 | Jev | 416 ms | 141 ms |
 | OpenAI | 736 ms | 603 ms |
 
-Jev was faster on both calls, about 1.8 times on the decision and about 4 times on the classification. These are remote calls, so the numbers include the network, and one run each is a small sample. Still, it was a clear difference for the exact same questions.
+Jev was faster on both calls, about 1.8 times on the decision and about 4 times on the classification. These are remote calls, so the numbers include the network, and one run each is a small sample. Still, the gap was clear for the exact same questions.
 
 Both models picked the same plan, which was breakfast at Fast Jacks Breakfast, the Tampa Museum of Art, and a seafood lunch at Juicy Seafood. Not much of a cliffhanger, but nothing Italian made the cut.
 
