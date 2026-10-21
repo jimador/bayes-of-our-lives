@@ -2,38 +2,25 @@
 
 *Like sands through the hourglass, so are the LLM API calls of our lives.*
 
-You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one the state it should judge, a question about it, and the answers it's allowed to give. The state can be plain text or structured data. It hands back one of those answers with probabilities attached. Here's a trimmed example from [TypeSafe's docs](https://docs.typesafe.ai/primitives/choice), where the state is a customer message to an online shoe store and the question is which team should handle it.
+You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one a question, some state, and the answers it's allowed to give. It hands back one of those answers with probabilities attached. Here's a choice answer from [TypeSafe's quickstart](https://docs.typesafe.ai/introduction/quickstart), for a question about which team should handle a support ticket. The state is the ticket itself, a customer saying their API integration has been throwing 500 errors for twenty minutes and they can't process orders.
 
 ```json
 {
-  "model": "jev-latest",
-  "state": "My running shoes arrived in the wrong size. Can I swap them for a size 10?",
-  "questions": {
+  "model": "jev-1.13.0",
+  "answers": {
     "department": {
       "type": "choice",
-      "instructions": "Which team should handle this?",
-      "criteria": {
-        "returns": "Exchanges, wrong or damaged items",
-        "shipping": "Delivery status, delays, lost packages",
-        "billing": "Charges, invoices, payment problems"
-      }
+      "choice": "technical",
+      "confidence": 1.0,
+      "probabilities": { "technical": 1.0, "billing": 0.0, "sales": 0.0 }
     }
   }
 }
 ```
 
-Jev answers with `returns`, along with a probability for every option.
+The answer is `technical`, and the probabilities tell your code how sure it ought to be about that.
 
-```json
-"department": {
-  "type": "choice",
-  "choice": "returns",
-  "confidence": 1.0,
-  "probabilities": { "shipping": 0.0, "returns": 1.0, "billing": 0.0 }
-}
-```
-
-The big draw here is speed. A decision model doesn't have to write anything out. It just picks from the answers you gave it, so there's no long response to generate and no text to parse on the other end. Skipping both of those adds up fast when an agent has to make a bunch of small calls on the way to a result.
+The big draw here is speed. A decision model doesn't have to write anything out. It just picks from the answers you gave it, so there's no long response to generate and no text to parse on the other end. Those savings add up fast when an agent has to make a bunch of small calls on the way to a result.
 
 [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) is TypeSafe's first *System One* model. I wanted to see how it stacked up against an LLM making the same call inside a real agent, so I built a small app to find out.
 
@@ -68,7 +55,7 @@ embabel.models.classification.roles.openai=gpt-4.1
 
 Bayes asks three questions in one decision request and then a fourth as a classification request. The coverage question asks whether a plan covers every requested stop and meal. The next question asks which plan fits best, or whether to go research more. The confidence question rates the best plan as weak, possible, or strong. Readiness classifies the whole set of plans.
 
-The `next` question is the interesting one, because its answers may change every time. Earlier in the run, the app checked each plan against drive times, meal windows, and opening hours, and marked the ones that failed as invalid. The plans that made it through come in as `valid`, and each one becomes an option, plus an escape hatch to go research more. This method only builds the question. It doesn't call Jev or the LLM.
+The `next` question is the interesting one, because its answers may change every time. The options are whichever plans passed validation, plus an escape hatch. In the code that list is `valid`. This method just builds the question, so no model gets called yet.
 
 ```java
 static ChoiceQuestionSpec next(List<Itinerary.Alternative> valid) {
@@ -83,7 +70,7 @@ static ChoiceQuestionSpec next(List<Itinerary.Alternative> valid) {
 }
 ```
 
-A plan that failed validation never makes the list, so neither model can pick it, and no LLM gets to talk a bad plan into a good one by sounding pleased with itself. Asking the questions is where the models come in. `decisions` and `classifier` are the services Bayes looked up by role, so this same code calls Jev on one run and the LLM on the other. `input` is the state, a text brief with the traveler's preferences and every plan that passed, stop by stop. The first call asks coverage, next, and confidence together, and the second asks readiness.
+A plan that failed validation never makes the list, so neither model can pick it, and no LLM gets to talk a bad plan into a good one by sounding pleased with itself. Here's where the model actually gets called, whichever one the role points at. Asking all four questions looks like this.
 
 ```java
 DecisionResponse response =
@@ -95,7 +82,7 @@ ClassificationResult readiness =
         classifier.classify(ClassificationRequest.of(input, READINESS));
 ```
 
-The answers come back typed. Bayes pulls each one out of the response by its question, like `response.answer(COVERAGE)`. Each one is a sealed result with answered, inconclusive, and failure cases, so a switch over it is exhaustive, and the compiler tells you if you miss one. Here's how Bayes reads the coverage answer.
+The answers come back typed. Each one is a sealed result with answered, inconclusive, and failure cases, so a switch over it is exhaustive, and the compiler tells you if you miss one. Here's the coverage answer.
 
 ```java
 private static String coverage(PropositionResult result) {
