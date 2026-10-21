@@ -2,7 +2,7 @@
 
 *Like sands through the hourglass, so are the LLM API calls of our lives.*
 
-You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one a question, some state, and the answers it's allowed to give. It hands back one of those answers with probabilities attached. Here's a choice question I sent Jev, based on the support-ticket example in [TypeSafe's quickstart](https://docs.typesafe.ai/introduction/quickstart), for a question about which team should handle a support ticket. The state is the ticket itself, a customer saying the app keeps logging them out and there's a charge on their card they don't recognize.
+You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one a question, some state, and the answers it's allowed to give. It hands back one of those answers with probabilities attached. Here's a choice question I sent Jev about which team should handle a support ticket, based on the example in [TypeSafe's quickstart](https://docs.typesafe.ai/introduction/quickstart). The state is the ticket itself, a customer saying the app keeps logging them out and there's a charge on their card they don't recognize.
 
 ```json
 {
