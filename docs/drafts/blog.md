@@ -2,7 +2,7 @@
 
 *Like sands through the hourglass, so are the LLM API calls of our lives.*
 
-You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one a question, some state, and the answers it's allowed to give. It hands back one of those answers with probabilities attached. Here's a choice question I sent Jev about which team should handle a support ticket, based on the example in [TypeSafe's quickstart](https://docs.typesafe.ai/introduction/quickstart). The state is the ticket itself, a customer saying the app keeps logging them out and there's a charge on their card they don't recognize.
+You may or may not have heard of decision models. They're a newer kind of model, and they do a narrower job than the LLM you might already have judging things in your app. You give one a question, some state, and the answers it's allowed to give. It hands back one of those answers with probabilities attached. Here's an example adapted from the support-ticket routing example in [TypeSafe's quickstart](https://docs.typesafe.ai/introduction/quickstart). The request asks Jev which team should handle a customer's message. The state is the message itself, and the criteria list the teams Jev can choose from, each with a short description.
 
 ```json
 {
@@ -22,7 +22,7 @@ You may or may not have heard of decision models. They're a newer kind of model,
 }
 ```
 
-Here's what came back when I sent it.
+Jev's response comes back as structured data rather than a wall of text, or text-formatted JSON that you need to cleanse and parse.
 
 ```json
 {
@@ -38,7 +38,7 @@ Here's what came back when I sent it.
 }
 ```
 
-The answer is `billing`, and the probabilities tell your code how confident the model is about the answer.
+The answer is `billing`. Along with the answer, you get a probability for each option and a confidence score between zero and one.
 
 The big draw here is speed. A decision model doesn't have to write anything out. It just picks from the answers you gave it, so there's no long response to generate and no text to parse on the other end. Those savings add up fast when an agent has to make a bunch of small calls on the way to a result.
 
