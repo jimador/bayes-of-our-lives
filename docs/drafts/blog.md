@@ -135,3 +135,14 @@ Bayes also uses [Dice](https://github.com/embabel/dice) to remember interests an
 
 The code is on GitHub at [jimador/bayes-of-our-lives](https://github.com/jimador/bayes-of-our-lives), and the README walks through setup. You'll need your own OpenAI and TypeSafe keys. Swap in whatever city your layover lands you in, flip the role, and watch the clock.
 
+## Closing credits
+
+The cast and crew for this episode, in case you want to follow along at home.
+
+- **Starring** [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) ([TypeSafe docs](https://docs.typesafe.ai/)) and ChatGPT
+- **Directed by** [Embabel Agent](https://github.com/embabel/embabel-agent) 1.5.4-SNAPSHOT ([user guide](https://docs.embabel.com/embabel-agent/guide/1.5.0-SNAPSHOT/))
+- **Supporting cast** [Dice](https://github.com/embabel/dice) 0.4.0 ([release notes](https://github.com/embabel/dice/releases/tag/v0.4.0))
+- **Special thanks** to [Tripper](https://github.com/embabel/tripper) for the location
+- **Try it at home** with [Bayes of Our Lives](https://github.com/jimador/bayes-of-our-lives)
+
+*Like sands through the hourglass, so are the LLM API calls of our lives.*
